@@ -38,8 +38,8 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     let content = vec![
         Line::from(Span::styled(
-            "⚠  Delete this account?",
-            Style::default().fg(theme::RED).add_modifier(Modifier::BOLD),
+            "Delete this account?",
+            Style::default().fg(theme::URGENT).add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(Span::styled(
@@ -53,10 +53,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         Line::from(""),
         Line::from(""),
         Line::from(vec![
-            Span::styled(
-                "[ y ] Yes   ",
-                Style::default().fg(theme::RED).add_modifier(Modifier::BOLD),
-            ),
+            Span::styled("[ y ] Yes   ", Style::default().fg(theme::URGENT).add_modifier(Modifier::BOLD)),
             Span::styled("[ n ] No", Style::default().fg(theme::DIM)),
         ]),
     ];
@@ -68,7 +65,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
                 Block::default()
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
-                    .border_style(Style::default().fg(theme::RED))
+                    .border_style(Style::default().fg(theme::URGENT))
                     .style(Style::default().bg(theme::BG)),
             ),
         inner,

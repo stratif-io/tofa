@@ -11,7 +11,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
     let error_line = if let Some(msg) = &state.status_message {
-        Line::from(Span::styled(msg.as_str(), Style::default().fg(theme::RED)))
+        Line::from(Span::styled(msg.as_str(), Style::default().fg(theme::URGENT)))
     } else {
         Line::from("")
     };
@@ -38,7 +38,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     let content = vec![
         Line::from(Span::styled(
             "Add OTP",
-            Style::default().fg(theme::GREEN).add_modifier(Modifier::BOLD),
+            Style::default().fg(theme::TEXT).add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(Span::styled(
@@ -47,13 +47,13 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         )),
         Line::from(Span::styled(
             format!("{}_", state.add_secret_input),
-            Style::default().fg(theme::GREEN),
+            Style::default().fg(theme::TEXT),
         )),
         Line::from(""),
         error_line,
         Line::from(""),
         Line::from(Span::styled(
-            "[ Enter ] next   [ Esc ] cancel",
+            "[ Enter ] next   [ Tab ] browse   [ Esc ] cancel",
             Style::default().fg(theme::DIM),
         )),
     ];
@@ -63,7 +63,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(theme::DIM_GREEN))
+                .border_style(Style::default().fg(theme::BORDER))
                 .style(Style::default().bg(theme::BG)),
         ),
         inner,

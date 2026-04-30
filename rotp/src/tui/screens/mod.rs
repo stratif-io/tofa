@@ -1,6 +1,11 @@
 pub mod add_form;
+pub mod scanning_qr;
 pub mod add_name;
 pub mod delete_confirm;
+pub mod export;
+pub mod export_qr;
+pub mod file_picker;
 pub mod fullscreen;
 pub mod list;
+pub mod otp_detail;
 pub mod unlock;

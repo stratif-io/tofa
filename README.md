@@ -1,77 +1,125 @@
 # rotp
 
-Eye-candy terminal OTP manager written in Rust. Secure, offline-first, works everywhere.
+> Eye-candy terminal OTP manager — encrypted vault, beautiful TUI, full CLI.
+
+```
+rotp                     # open the TUI
+rotp code github         # get your GitHub code instantly
+rotp add --qr ~/qr.png  # scan a QR code
+```
+
+---
 
 ## Features
 
-- Live 6-digit TOTP codes with expiry timer (green → orange → red)
-- AES-256-GCM encrypted vault, passphrase-derived with Argon2id
-- Add OTPs via QR code image, `otpauth://` URI, or raw Base32 secret
-- Fullscreen code view for easy phone scanning
-- Copy to clipboard with `y`
-- Atomic vault writes — no corruption on crash
+- **Encrypted vault** — AES-256-GCM + Argon2id key derivation
+- **Beautiful TUI** — violet accent, per-entry progress bars, mouse click to copy
+- **Full CLI** — scriptable, pipeable, shell-completion ready
+- **QR import/export** — Google Authenticator migration format
+- **Zero cloud** — your secrets never leave your machine
 
-## Install
+---
 
-**macOS**
-```sh
-brew install carlo/tap/rotp
-```
+## Installation
 
-**Linux**
-```sh
-# AUR
-yay -S rotp
-
-# Cargo
+```bash
 cargo install rotp
-
-# Install script
-curl -fsSL https://github.com/carlo/rotp/releases/latest/download/install.sh | sh
 ```
 
-**Windows**
-```sh
-scoop install rotp
-winget install rotp
+Or build from source:
+
+```bash
+git clone https://github.com/carlo/rotp
+cd rotp
+cargo build --release
+# binary at target/release/rotp
 ```
 
-## Usage
+### Shell completions
 
-```sh
-rotp        # open TUI
-rotp --help
-rotp --version
+```bash
+rotp completions bash >> ~/.bashrc
+rotp completions zsh  > ~/.zfunc/_rotp   # add ~/.zfunc to $fpath
+rotp completions fish > ~/.config/fish/completions/rotp.fish
 ```
 
-### Keyboard shortcuts
+---
 
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` | Navigate |
-| `Enter` | Fullscreen code view |
-| `a` | Add OTP |
-| `d` | Delete (with confirmation) |
-| `y` | Copy code to clipboard |
-| `q` | Quit |
-| `Esc` | Back / cancel |
+## Quick start
 
-### Adding OTPs
+```bash
+# Create your vault
+rotp init
 
-Press `a` and provide either:
-- A file path to a QR code image (PNG/JPG)
-- An `otpauth://totp/...` URI
-- A raw Base32 TOTP secret
+# Add accounts
+rotp add --uri "otpauth://totp/GitHub:you?secret=YOURSECRET"
+rotp add --qr  ~/Downloads/github-qr.png
+rotp add --secret JBSWY3DPEHPK3PXP --name "GitHub:you"
 
-> **Drag & drop:** In iTerm2, Kitty, and WezTerm, dragging a QR image into the terminal pastes its path automatically.
+# Get a code
+rotp code github           # → 480 152
+rotp code github --raw     # → 480152  (for scripts)
+rotp code github --copy    # copies to clipboard
+rotp code github --watch   # live countdown
+
+# Manage accounts
+rotp list
+rotp list --codes
+rotp rename "GitHub:you" "GitHub:work"
+rotp remove "GitHub:work"
+
+# Export / backup
+rotp qr github                        # display QR in terminal
+rotp qr --all --output backup.png     # migration QR for all accounts
+rotp export --output backup.json      # plain-text JSON (keep safe!)
+rotp import backup.json               # restore from JSON
+rotp import migration-qr.png          # import from Google Authenticator
+
+# Vault management
+rotp rekey                # change passphrase
+rotp destroy              # delete vault
+```
+
+---
+
+## Command reference
+
+| Command | Description |
+|---|---|
+| `rotp` | Launch TUI |
+| `rotp init` | Create a new vault |
+| `rotp destroy` | Delete the vault |
+| `rotp list [--codes]` | List accounts (optionally with codes) |
+| `rotp code <name> [--raw\|--copy\|--watch]` | Show current TOTP code |
+| `rotp add [--name] [--secret\|--uri\|--qr]` | Add an account |
+| `rotp remove <name>` | Remove an account |
+| `rotp rename <name> <new>` | Rename an account |
+| `rotp qr <name\|--all> [--output]` | Export QR code |
+| `rotp rekey` | Change passphrase |
+| `rotp completions <bash\|zsh\|fish>` | Print shell completions |
+| `rotp export [--output]` | Export vault as plain-text JSON |
+| `rotp import <file>` | Import from JSON or migration QR |
+
+---
 
 ## Vault location
 
-`~/.config/rotp/vault.enc`
+Default: `~/.config/rotp/vault.enc`
 
-## Security
+Override with `--vault <path>` or `ROTP_VAULT` environment variable.
 
-- Argon2id (m=64MB, t=3, p=1) key derivation
-- AES-256-GCM encryption with random salt + nonce per save
-- Keys zeroized from memory after use
-- Atomic vault writes (tmp → fsync → rename)
+---
+
+## Environment variables
+
+| Variable | Description |
+|---|---|
+| `ROTP_VAULT` | Override vault path |
+| `ROTP_PASSPHRASE` | Passphrase for non-interactive use (shows a warning) |
+| `ROTP_NEW_PASSPHRASE` | New passphrase for `rotp rekey` (non-interactive) |
+
+---
+
+## Licence
+
+MIT

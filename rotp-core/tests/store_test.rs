@@ -22,7 +22,10 @@ fn save_and_load_roundtrip() {
     let loaded = Vault::load(&path, passphrase).unwrap();
     assert_eq!(loaded.entries().len(), 1);
     assert_eq!(loaded.entries()[0].name, "GitHub");
-    assert_eq!(loaded.entries()[0].secret, "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+    assert_eq!(
+        loaded.entries()[0].secret,
+        "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+    );
 }
 
 #[test]

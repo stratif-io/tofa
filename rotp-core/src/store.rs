@@ -32,6 +32,12 @@ pub struct Vault {
     data: VaultData,
 }
 
+impl Default for Vault {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Vault {
     pub fn new() -> Self {
         Self {

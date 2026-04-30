@@ -1,3 +1,4 @@
+use crate::tui::{state::AppState, theme};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -5,14 +6,17 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
-use crate::tui::{state::AppState, theme};
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(20), Constraint::Length(14), Constraint::Min(0)])
+        .constraints([
+            Constraint::Percentage(20),
+            Constraint::Length(14),
+            Constraint::Min(0),
+        ])
         .split(area);
 
     let horiz = Layout::default()
@@ -30,13 +34,23 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         Line::from("")
     };
 
-    let name_color = if state.add_focused_field == 0 { theme::GREEN } else { theme::DIM };
-    let secret_color = if state.add_focused_field == 1 { theme::GREEN } else { theme::DIM };
+    let name_color = if state.add_focused_field == 0 {
+        theme::GREEN
+    } else {
+        theme::DIM
+    };
+    let secret_color = if state.add_focused_field == 1 {
+        theme::GREEN
+    } else {
+        theme::DIM
+    };
 
     let content = vec![
         Line::from(Span::styled(
             "Add OTP",
-            Style::default().fg(theme::GREEN).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::GREEN)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(Span::styled("Name:", Style::default().fg(theme::DIM))),

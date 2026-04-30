@@ -1,6 +1,6 @@
-pub mod theme;
-pub mod state;
 pub mod screens;
+pub mod state;
+pub mod theme;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
@@ -14,7 +14,11 @@ use rotp_core::{
     totp::generate_code_now,
 };
 use state::{AppState, Screen};
-use std::{io, path::PathBuf, time::Duration};
+use std::{
+    io,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 use zeroize::Zeroizing;
 
 pub fn vault_path() -> PathBuf {
@@ -57,24 +61,37 @@ fn run_app(
             let area = f.area();
             match app_state.screen {
                 Screen::Unlock => screens::unlock::render(f, area, &app_state),
-                Screen::List => {
-                    screens::list::render(f, area, &app_state, vault.as_ref().expect("vault must be initialized after unlock"))
-                }
-                Screen::Fullscreen => {
-                    screens::fullscreen::render(f, area, &app_state, vault.as_ref().expect("vault must be initialized after unlock"))
-                }
+                Screen::List => screens::list::render(
+                    f,
+                    area,
+                    &app_state,
+                    vault
+                        .as_ref()
+                        .expect("vault must be initialized after unlock"),
+                ),
+                Screen::Fullscreen => screens::fullscreen::render(
+                    f,
+                    area,
+                    &app_state,
+                    vault
+                        .as_ref()
+                        .expect("vault must be initialized after unlock"),
+                ),
                 Screen::AddForm => screens::add_form::render(f, area, &app_state),
-                Screen::DeleteConfirm => {
-                    screens::delete_confirm::render(f, area, &app_state, vault.as_ref().expect("vault must be initialized after unlock"))
-                }
+                Screen::DeleteConfirm => screens::delete_confirm::render(
+                    f,
+                    area,
+                    &app_state,
+                    vault
+                        .as_ref()
+                        .expect("vault must be initialized after unlock"),
+                ),
             }
         })?;
 
         if event::poll(Duration::from_millis(500))? {
             if let Event::Key(key) = event::read()? {
-                if key.modifiers.contains(KeyModifiers::CONTROL)
-                    && key.code == KeyCode::Char('c')
-                {
+                if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
                     return Ok(());
                 }
 
@@ -83,31 +100,47 @@ fn run_app(
                         handle_unlock_key(key.code, &mut app_state, &mut vault, &path)
                     }
                     Screen::List => {
-                        if handle_list_key(key.code, &mut app_state, vault.as_mut().expect("vault must be initialized after unlock"), &path)? {
+                        if handle_list_key(
+                            key.code,
+                            &mut app_state,
+                            vault
+                                .as_mut()
+                                .expect("vault must be initialized after unlock"),
+                            &path,
+                        )? {
                             return Ok(());
                         }
                     }
-                    Screen::Fullscreen => {
-                        handle_fullscreen_key(key.code, &mut app_state, vault.as_ref().expect("vault must be initialized after unlock"))
-                    }
-                    Screen::AddForm => {
-                        handle_add_form_key(key.code, &mut app_state, vault.as_mut().expect("vault must be initialized after unlock"), &path)?
-                    }
-                    Screen::DeleteConfirm => {
-                        handle_delete_confirm_key(key.code, &mut app_state, vault.as_mut().expect("vault must be initialized after unlock"), &path)?
-                    }
+                    Screen::Fullscreen => handle_fullscreen_key(
+                        key.code,
+                        &mut app_state,
+                        vault
+                            .as_ref()
+                            .expect("vault must be initialized after unlock"),
+                    ),
+                    Screen::AddForm => handle_add_form_key(
+                        key.code,
+                        &mut app_state,
+                        vault
+                            .as_mut()
+                            .expect("vault must be initialized after unlock"),
+                        &path,
+                    )?,
+                    Screen::DeleteConfirm => handle_delete_confirm_key(
+                        key.code,
+                        &mut app_state,
+                        vault
+                            .as_mut()
+                            .expect("vault must be initialized after unlock"),
+                        &path,
+                    )?,
                 }
             }
         }
     }
 }
 
-fn handle_unlock_key(
-    key: KeyCode,
-    state: &mut AppState,
-    vault: &mut Option<Vault>,
-    path: &PathBuf,
-) {
+fn handle_unlock_key(key: KeyCode, state: &mut AppState, vault: &mut Option<Vault>, path: &Path) {
     match key {
         KeyCode::Char(c) => state.passphrase_input.push(c),
         KeyCode::Backspace => {
@@ -135,35 +168,31 @@ fn handle_list_key(
     key: KeyCode,
     state: &mut AppState,
     vault: &mut Vault,
-    path: &PathBuf,
+    _path: &Path,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let len = vault.entries().len();
     match key {
         KeyCode::Char('q') => return Ok(true),
-        KeyCode::Up | KeyCode::Char('k') => {
-            if state.selected_index > 0 {
-                state.selected_index -= 1;
-            }
+        KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
+            state.selected_index -= 1;
         }
-        KeyCode::Down | KeyCode::Char('j') => {
-            if len > 0 && state.selected_index < len - 1 {
-                state.selected_index += 1;
-            }
+        KeyCode::Up | KeyCode::Char('k') => {}
+        KeyCode::Down | KeyCode::Char('j') if len > 0 && state.selected_index < len - 1 => {
+            state.selected_index += 1;
         }
-        KeyCode::Enter => {
-            if len > 0 {
-                state.screen = Screen::Fullscreen;
-            }
+        KeyCode::Down | KeyCode::Char('j') => {}
+        KeyCode::Enter if len > 0 => {
+            state.screen = Screen::Fullscreen;
         }
+        KeyCode::Enter => {}
         KeyCode::Char('a') => {
             state.clear_add_form();
             state.screen = Screen::AddForm;
         }
-        KeyCode::Char('d') => {
-            if len > 0 {
-                state.screen = Screen::DeleteConfirm;
-            }
+        KeyCode::Char('d') if len > 0 => {
+            state.screen = Screen::DeleteConfirm;
         }
+        KeyCode::Char('d') => {}
         KeyCode::Char('y') => {
             copy_selected_code(state, vault);
         }
@@ -184,7 +213,7 @@ fn handle_add_form_key(
     key: KeyCode,
     state: &mut AppState,
     vault: &mut Vault,
-    path: &PathBuf,
+    path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     match key {
         KeyCode::Esc => state.screen = Screen::List,
@@ -240,7 +269,7 @@ fn handle_delete_confirm_key(
     key: KeyCode,
     state: &mut AppState,
     vault: &mut Vault,
-    path: &PathBuf,
+    path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     match key {
         KeyCode::Char('y') | KeyCode::Char('Y') => {
@@ -263,18 +292,16 @@ fn handle_delete_confirm_key(
 fn copy_selected_code(state: &mut AppState, vault: &Vault) {
     if let Some(entry) = vault.entries().get(state.selected_index) {
         match generate_code_now(&entry.secret) {
-            Ok(code) => {
-                match arboard::Clipboard::new().and_then(|mut cb| cb.set_text(code)) {
-                    Ok(_) => state.status_message = Some("Copied to clipboard.".to_string()),
-                    Err(_) => state.status_message = Some("Clipboard unavailable.".to_string()),
-                }
-            }
+            Ok(code) => match arboard::Clipboard::new().and_then(|mut cb| cb.set_text(code)) {
+                Ok(_) => state.status_message = Some("Copied to clipboard.".to_string()),
+                Err(_) => state.status_message = Some("Clipboard unavailable.".to_string()),
+            },
             Err(e) => state.status_message = Some(format!("Error: {e}")),
         }
     }
 }
 
-fn save_vault(state: &mut AppState, vault: &Vault, path: &PathBuf) {
+fn save_vault(state: &mut AppState, vault: &Vault, path: &Path) {
     if let Some(key_bytes) = &state.vault_key_cache {
         let pass = std::str::from_utf8(key_bytes).unwrap_or("");
         match vault.save(path, pass) {

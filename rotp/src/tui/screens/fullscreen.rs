@@ -1,3 +1,4 @@
+use crate::tui::{state::AppState, theme};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -9,7 +10,6 @@ use rotp_core::{
     store::Vault,
     totp::{generate_code_now, seconds_remaining_now},
 };
-use crate::tui::{state::AppState, theme};
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);

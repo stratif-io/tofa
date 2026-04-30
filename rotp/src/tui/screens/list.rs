@@ -1,3 +1,4 @@
+use crate::tui::{state::AppState, theme};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -9,7 +10,6 @@ use rotp_core::{
     store::Vault,
     totp::{generate_code_now, seconds_remaining_now},
 };
-use crate::tui::{state::AppState, theme};
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
@@ -28,10 +28,16 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let header = Paragraph::new(Line::from(vec![
         Span::styled(
             "rotp",
-            Style::default().fg(theme::GREEN).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::GREEN)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            format!("  —  {} account{}", count, if count == 1 { "" } else { "s" }),
+            format!(
+                "  —  {} account{}",
+                count,
+                if count == 1 { "" } else { "s" }
+            ),
             Style::default().fg(theme::DIM),
         ),
     ]))
@@ -49,8 +55,8 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         .map(|(i, entry)| {
             let is_selected = i == state.selected_index;
             if is_selected {
-                let code = generate_code_now(&entry.secret)
-                    .unwrap_or_else(|_| "------".to_string());
+                let code =
+                    generate_code_now(&entry.secret).unwrap_or_else(|_| "------".to_string());
                 ListItem::new(Line::from(vec![
                     Span::styled("▶ ", Style::default().fg(theme::GREEN)),
                     Span::styled(
@@ -67,10 +73,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
                             .add_modifier(Modifier::BOLD),
                     ),
                     Span::raw("  "),
-                    Span::styled(
-                        format!("⏱ {}s", secs),
-                        Style::default().fg(timer_color),
-                    ),
+                    Span::styled(format!("⏱ {}s", secs), Style::default().fg(timer_color)),
                 ]))
             } else {
                 ListItem::new(Line::from(vec![

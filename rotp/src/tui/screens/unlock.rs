@@ -1,3 +1,4 @@
+use crate::tui::{state::AppState, theme};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -5,13 +6,9 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
-use crate::tui::{state::AppState, theme};
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
-    f.render_widget(
-        Block::default().style(Style::default().bg(theme::BG)),
-        area,
-    );
+    f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -39,10 +36,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
                 .fg(theme::GREEN)
                 .add_modifier(Modifier::BOLD),
         )),
-        Line::from(Span::styled(
-            "OTP Manager",
-            Style::default().fg(theme::DIM),
-        )),
+        Line::from(Span::styled("OTP Manager", Style::default().fg(theme::DIM))),
         Line::from(""),
         Line::from(Span::styled("Passphrase:", Style::default().fg(theme::DIM))),
         Line::from(Span::styled(masked, Style::default().fg(theme::GREEN))),

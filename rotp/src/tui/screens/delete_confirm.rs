@@ -1,3 +1,4 @@
+use crate::tui::{state::AppState, theme};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -6,7 +7,6 @@ use ratatui::{
     Frame,
 };
 use rotp_core::store::Vault;
-use crate::tui::{state::AppState, theme};
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
@@ -61,15 +61,13 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     ];
 
     f.render_widget(
-        Paragraph::new(content)
-            .alignment(Alignment::Center)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .border_style(Style::default().fg(theme::RED))
-                    .style(Style::default().bg(theme::BG)),
-            ),
+        Paragraph::new(content).alignment(Alignment::Center).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(theme::RED))
+                .style(Style::default().bg(theme::BG)),
+        ),
         horiz[1],
     );
 }

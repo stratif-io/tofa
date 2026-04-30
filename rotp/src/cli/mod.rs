@@ -1,0 +1,132 @@
+pub mod commands;
+
+use clap::{Parser, Subcommand};
+use rpassword::prompt_password;
+use rotp_core::Vault;
+use std::path::PathBuf;
+
+pub type CliResult = Result<(), Box<dyn std::error::Error>>;
+
+#[derive(Parser)]
+#[command(
+    name = "rotp",
+    about = "Eye-candy terminal OTP manager",
+    long_about = "rotp manages TOTP codes in an encrypted vault.\n\nRun without arguments to launch the interactive TUI.",
+    version,
+    arg_required_else_help = false
+)]
+pub struct Cli {
+    /// Path to the vault file (overrides ROTP_VAULT env var)
+    #[arg(long, global = true, env = "ROTP_VAULT", value_name = "PATH")]
+    pub vault: Option<PathBuf>,
+
+    #[command(subcommand)]
+    pub command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    /// Create a new encrypted vault
+    Init(commands::init::InitArgs),
+    /// Permanently delete the vault
+    Destroy,
+    /// List all accounts
+    List(commands::list::ListArgs),
+    /// Show the current TOTP code for an account
+    Code(commands::code::CodeArgs),
+    /// Add a new account
+    Add(commands::add::AddArgs),
+    /// Remove an account
+    Remove(commands::remove::RemoveArgs),
+    /// Rename an account
+    Rename(commands::rename::RenameArgs),
+    /// Export a QR code for one or all accounts
+    Qr(commands::qr::QrArgs),
+    /// Change the vault passphrase
+    Rekey,
+    /// Print shell completions
+    Completions(commands::completions::CompletionsArgs),
+    /// Export all accounts as plain-text JSON
+    Export(commands::export::ExportArgs),
+    /// Import accounts from JSON or a migration QR image
+    Import(commands::import::ImportArgs),
+}
+
+pub fn default_vault_path() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("rotp")
+        .join("vault.enc")
+}
+
+pub fn resolve_vault_path(flag: Option<PathBuf>) -> PathBuf {
+    flag.unwrap_or_else(default_vault_path)
+}
+
+pub fn read_passphrase(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
+    if let Ok(pass) = std::env::var("ROTP_PASSPHRASE") {
+        eprintln!("⚠  Passphrase read from ROTP_PASSPHRASE. Avoid this in production.");
+        return Ok(pass);
+    }
+    let pass = prompt_password(prompt)?;
+    Ok(pass)
+}
+
+pub fn open_vault(path: &PathBuf, passphrase: &str) -> Result<Vault, Box<dyn std::error::Error>> {
+    if !path.exists() {
+        return Err(format!(
+            "no vault at {}. Run 'rotp init' to create one.",
+            path.display()
+        )
+        .into());
+    }
+    let vault = Vault::load(path, passphrase)
+        .map_err(|_| "wrong passphrase.")?;
+    Ok(vault)
+}
+
+pub fn find_entry<'a>(
+    vault: &'a Vault,
+    name: &str,
+) -> Result<(usize, &'a rotp_core::VaultEntry), Box<dyn std::error::Error>> {
+    let lower = name.to_lowercase();
+    let matches: Vec<(usize, &rotp_core::VaultEntry)> = vault
+        .entries()
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| e.name.to_lowercase().contains(&lower))
+        .collect();
+    match matches.len() {
+        0 => Err(format!("no account matching \"{name}\".").into()),
+        1 => Ok(matches.into_iter().next().unwrap()),
+        _ => {
+            let list = matches
+                .iter()
+                .map(|(_, e)| format!("  {}", e.name))
+                .collect::<Vec<_>>()
+                .join("\n");
+            Err(format!(
+                "\"{name}\" matches multiple accounts:\n{list}\nUse a more specific name."
+            )
+            .into())
+        }
+    }
+}
+
+pub fn dispatch(cmd: Commands, vault_flag: Option<PathBuf>) -> CliResult {
+    let vault_path = resolve_vault_path(vault_flag);
+    match cmd {
+        Commands::Init(args)         => commands::init::run(args, vault_path),
+        Commands::Destroy            => commands::destroy::run(vault_path),
+        Commands::List(args)         => commands::list::run(args, vault_path),
+        Commands::Code(args)         => commands::code::run(args, vault_path),
+        Commands::Add(args)          => commands::add::run(args, vault_path),
+        Commands::Remove(args)       => commands::remove::run(args, vault_path),
+        Commands::Rename(args)       => commands::rename::run(args, vault_path),
+        Commands::Qr(args)           => commands::qr::run(args, vault_path),
+        Commands::Rekey              => commands::rekey::run(vault_path),
+        Commands::Completions(args)  => commands::completions::run(args),
+        Commands::Export(args)       => commands::export::run(args, vault_path),
+        Commands::Import(args)       => commands::import::run(args, vault_path),
+    }
+}

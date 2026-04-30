@@ -1,10 +1,34 @@
-use crate::cli::CliResult;
+use crate::cli::{read_passphrase, CliResult};
 use clap::Args;
+use rotp_core::Vault;
 use std::path::PathBuf;
 
 #[derive(Args)]
 pub struct InitArgs {}
 
-pub fn run(_args: InitArgs, _vault_path: PathBuf) -> CliResult {
-    todo!()
+pub fn run(_args: InitArgs, vault_path: PathBuf) -> CliResult {
+    if vault_path.exists() {
+        return Err(format!(
+            "Vault already exists at {}. Use 'rotp rekey' to change the passphrase.",
+            vault_path.display()
+        )
+        .into());
+    }
+
+    let pass = if std::env::var("ROTP_PASSPHRASE").is_ok() {
+        read_passphrase("")?
+    } else {
+        let p = read_passphrase("Passphrase: ")?;
+        let confirm = rpassword::prompt_password("Confirm passphrase: ")?;
+        if p != confirm {
+            return Err("Passphrases do not match.".into());
+        }
+        p
+    };
+
+    let vault = Vault::new();
+    vault.save(&vault_path, &pass)?;
+
+    eprintln!("Vault created at {}", vault_path.display());
+    Ok(())
 }

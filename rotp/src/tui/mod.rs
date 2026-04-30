@@ -302,6 +302,7 @@ fn handle_list_key(
             state.show_codes = !state.show_codes;
         }
         KeyCode::Char('i') if !accumulating && len > 0 => {
+            state.reset_detail_reveal();
             state.screen = Screen::OtpDetail;
         }
         KeyCode::Char('e') if !accumulating && len > 0 => {
@@ -557,13 +558,57 @@ fn copy_selected_code(state: &mut AppState, vault: &Vault) {
 
 fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
     let len = vault.entries().len();
+
+    // Passphrase reveal sub-mode
+    if state.detail_revealing {
+        match key {
+            KeyCode::Esc => {
+                state.detail_revealing = false;
+                state.detail_passphrase.clear();
+            }
+            KeyCode::Char(c) => state.detail_passphrase.push(c),
+            KeyCode::Backspace => { state.detail_passphrase.pop(); }
+            KeyCode::Enter => {
+                let correct = state.vault_key_cache
+                    .as_ref()
+                    .and_then(|k| std::str::from_utf8(k).ok())
+                    .map(|k| k == state.detail_passphrase)
+                    .unwrap_or(false);
+                if correct {
+                    state.detail_secret_visible = true;
+                    state.detail_revealing = false;
+                    state.detail_passphrase.clear();
+                } else {
+                    state.status_message = Some("Wrong passphrase".to_string());
+                    state.status_message_at = Some(std::time::Instant::now());
+                    state.detail_passphrase.clear();
+                }
+            }
+            _ => {}
+        }
+        return;
+    }
+
     match key {
-        KeyCode::Esc | KeyCode::Char('q') => state.screen = Screen::List,
+        KeyCode::Esc | KeyCode::Char('q') => {
+            state.reset_detail_reveal();
+            state.screen = Screen::List;
+        }
         KeyCode::Char('y') => copy_selected_code(state, vault),
+        KeyCode::Char('s') => {
+            if state.detail_secret_visible {
+                state.detail_secret_visible = false;
+            } else {
+                state.detail_revealing = true;
+                state.detail_passphrase.clear();
+            }
+        }
         KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
+            state.reset_detail_reveal();
             state.selected_index -= 1;
         }
         KeyCode::Down | KeyCode::Char('j') if len > 0 && state.selected_index < len - 1 => {
+            state.reset_detail_reveal();
             state.selected_index += 1;
         }
         _ => {}

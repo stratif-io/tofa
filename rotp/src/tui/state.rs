@@ -49,6 +49,10 @@ pub struct AppState {
     pub fp_query: String,
     // pending QR scan (set before switching to ScanningQr screen)
     pub pending_scan_path: Option<PathBuf>,
+    // OTP detail secret reveal
+    pub detail_revealing: bool,
+    pub detail_passphrase: String,
+    pub detail_secret_visible: bool,
 }
 
 impl Default for AppState {
@@ -81,7 +85,16 @@ impl AppState {
             fp_selected: 0,
             fp_query: String::new(),
             pending_scan_path: None,
+            detail_revealing: false,
+            detail_passphrase: String::new(),
+            detail_secret_visible: false,
         }
+    }
+
+    pub fn reset_detail_reveal(&mut self) {
+        self.detail_revealing = false;
+        self.detail_passphrase.clear();
+        self.detail_secret_visible = false;
     }
 
     pub fn clear_add_form(&mut self) {

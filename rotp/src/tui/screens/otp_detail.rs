@@ -21,14 +21,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let secs = seconds_remaining_now();
     let timer_col = theme::timer_color(secs);
 
-    let rows: Vec<(&str, String, bool)> = vec![
-        ("Name",    entry.name.clone(),    false),
-        ("Secret",  entry.secret.clone(),  false),
-        ("Code",    format!("{} {}  {}s", &code[..3], &code[3..], secs), true),
-        ("Created", entry.created_at.clone(), false),
-    ];
+    let secret_display = if state.detail_secret_visible {
+        entry.secret.clone()
+    } else {
+        "•".repeat(entry.secret.len().max(16))
+    };
 
-    let box_h = (rows.len() as u16 + 6).min(area.height.saturating_sub(4));
+    // Extra rows when the passphrase prompt is active
+    let extra_rows: u16 = if state.detail_revealing { 3 } else { 0 };
+    let box_h = (7 + extra_rows).min(area.height.saturating_sub(4));
     let box_w = area.width.min(62);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
@@ -51,14 +52,25 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         height: modal.height.saturating_sub(2),
     };
 
+    // Title row + field rows + optional reveal prompt + help row
+    let mut constraints = vec![
+        Constraint::Length(1), // title
+        Constraint::Length(1), // gap
+        Constraint::Length(1), // name
+        Constraint::Length(1), // code
+        Constraint::Length(1), // secret
+        Constraint::Length(1), // created
+    ];
+    if state.detail_revealing {
+        constraints.push(Constraint::Length(1)); // gap
+        constraints.push(Constraint::Length(1)); // passphrase label
+        constraints.push(Constraint::Length(1)); // passphrase input
+    }
+    constraints.push(Constraint::Length(1)); // help
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Min(1),
-            Constraint::Length(1),
-        ])
+        .constraints(constraints)
         .split(inner);
 
     f.render_widget(
@@ -69,26 +81,69 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         chunks[0],
     );
 
-    let mut content: Vec<Line> = vec![Line::from("")];
-    for (label, value, is_code) in &rows {
-        content.push(Line::from(vec![
-            Span::styled(format!("{label:<10}"), Style::default().fg(theme::DIM)),
-            Span::styled(
-                value.clone(),
-                Style::default()
-                    .fg(if *is_code { timer_col } else { theme::TEXT })
-                    .add_modifier(if *is_code { Modifier::BOLD } else { Modifier::empty() }),
-            ),
-        ]));
-    }
-    f.render_widget(Paragraph::new(content), chunks[2]);
+    let field_rows: &[(&str, &str, bool)] = &[
+        ("Name",    entry.name.as_str(),     false),
+        ("Code",    &format!("{} {}  {}s", &code[..3], &code[3..], secs), true),
+        ("Secret",  &secret_display,         false),
+        ("Created", entry.created_at.as_str(), false),
+    ];
 
+    for (i, (label, value, is_code)) in field_rows.iter().enumerate() {
+        let value_col = if *is_code { timer_col } else { theme::TEXT };
+        let value_mod = if *is_code { Modifier::BOLD } else { Modifier::empty() };
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(format!("{label:<10}"), Style::default().fg(theme::DIM)),
+                Span::styled(*value, Style::default().fg(value_col).add_modifier(value_mod)),
+            ])),
+            chunks[2 + i],
+        );
+    }
+
+    let help_idx = if state.detail_revealing {
+        // render passphrase prompt rows
+        let gap_idx = 6;
+        let label_idx = 7;
+        let input_idx = 8;
+        let help_idx = 9;
+
+        f.render_widget(Paragraph::new(Line::from("")), chunks[gap_idx]);
+
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                "Passphrase to reveal secret:",
+                Style::default().fg(theme::DIM),
+            ))),
+            chunks[label_idx],
+        );
+
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(
+                    "•".repeat(state.detail_passphrase.len()),
+                    Style::default().fg(theme::DIM),
+                ),
+                Span::styled("▌", Style::default().fg(theme::ACCENT)),
+            ])),
+            chunks[input_idx],
+        );
+
+        help_idx
+    } else {
+        6
+    };
+
+    let reveal_hint = if state.detail_secret_visible {
+        "[ s ] hide secret"
+    } else {
+        "[ s ] reveal secret"
+    };
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "[ y ] copy code   [ Esc ] back",
+            format!("[ y ] copy · {reveal_hint} · [ ↑↓ ] navigate · [ Esc ] back"),
             Style::default().fg(theme::DIM),
         )))
         .alignment(Alignment::Center),
-        chunks[3],
+        chunks[help_idx],
     );
 }

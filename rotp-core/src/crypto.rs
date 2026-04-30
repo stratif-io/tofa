@@ -22,9 +22,11 @@ pub enum CryptoError {
 const SALT_LEN: usize = 32;
 const NONCE_LEN: usize = 12;
 
-// Production value: m=65536 (64 MiB). Reduced to 4096 here to keep tests fast.
-// For a production deployment, increase ARGON2_M_COST back to 65536.
-const ARGON2_M_COST: u32 = 4096;
+#[cfg(not(test))]
+const ARGON2_M_COST: u32 = 65536; // 64 MiB — production value from spec
+
+#[cfg(test)]
+const ARGON2_M_COST: u32 = 4096; // reduced for test speed
 
 pub fn derive_key(passphrase: &str, salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, CryptoError> {
     let params = Params::new(ARGON2_M_COST, 3, 1, Some(32))

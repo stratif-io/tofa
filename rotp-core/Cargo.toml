@@ -2,6 +2,9 @@
 name = "rotp-core"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Core library for rotp — encrypted TOTP vault"
+repository = "https://github.com/carlo/rotp"
 
 [dependencies]
 argon2 = "0.5"

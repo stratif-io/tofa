@@ -19,3 +19,5 @@ jobs:
       - run: cargo test --workspace
       - run: cargo clippy --workspace -- -D warnings
       - run: cargo fmt --check
+      - name: Security audit
+        run: cargo install cargo-audit --locked && cargo audit

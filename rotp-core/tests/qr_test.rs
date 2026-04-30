@@ -1,4 +1,4 @@
-use rotp_core::qr::{parse_input, OtpSecret};
+use rotp_core::qr::parse_input;
 
 #[test]
 fn parse_raw_base32_secret() {

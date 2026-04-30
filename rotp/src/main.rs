@@ -1,10 +1,7 @@
-mod cli;
-mod tui;
-
 fn main() {
-    cli::parse();
+    rotp::cli::parse();
 
-    if let Err(e) = tui::run() {
+    if let Err(e) = rotp::tui::run() {
         eprintln!("Error: {e}");
         std::process::exit(1);
     }

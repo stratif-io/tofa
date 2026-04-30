@@ -1,0 +1,19 @@
+[package]
+name = "rotp"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rotp"
+path = "src/main.rs"
+
+[dependencies]
+rotp-core = { path = "../rotp-core" }
+ratatui = "0.28"
+crossterm = "0.28"
+clap = { version = "4", features = ["derive"] }
+arboard = "3"
+thiserror = "1"
+dirs = "5"
+chrono = "0.4"
+zeroize = { version = "1", features = ["derive"] }

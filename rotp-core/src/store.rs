@@ -90,6 +90,12 @@ impl Vault {
         }
     }
 
+    pub fn rename_entry(&mut self, index: usize, new_name: String) {
+        if let Some(entry) = self.data.entries.get_mut(index) {
+            entry.name = new_name;
+        }
+    }
+
     pub fn entries(&self) -> &[VaultEntry] {
         &self.data.entries
     }

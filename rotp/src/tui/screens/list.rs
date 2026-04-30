@@ -1,9 +1,9 @@
 use crate::tui::{state::AppState, theme};
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, List, ListItem, ListState, Paragraph},
+    widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph},
     Frame,
 };
 use rotp_core::{
@@ -103,19 +103,50 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     list_state.select(Some(state.selected_index));
     f.render_stateful_widget(list, chunks[0], &mut list_state);
 
-    let bar = if let Some(msg) = &state.status_message {
-        Span::styled(msg.as_str(), Style::default().fg(theme::URGENT))
-    } else {
-        let toggle = if state.show_codes { "hide" } else { "show" };
-        Span::styled(
-            format!(
-                "↑↓ navigate · Enter fullscreen · h {toggle} · a add · i detail · e export · d delete · y copy · q quit"
-            ),
-            Style::default().fg(theme::MUTED),
-        )
-    };
+    let toggle = if state.show_codes { "hide" } else { "show" };
     f.render_widget(
-        Paragraph::new(Line::from(bar)).style(Style::default().bg(theme::BG)),
+        Paragraph::new(Line::from(Span::styled(
+            format!("↑↓ navigate · Enter fullscreen · h {toggle} · a add · i detail · e export · d delete · y copy · q quit"),
+            Style::default().fg(theme::MUTED),
+        )))
+        .style(Style::default().bg(theme::BG)),
         chunks[1],
     );
+
+    // Toast overlay for copy confirmation
+    if let Some(msg) = &state.status_message {
+        let is_copy = msg.contains("Copied") || msg.contains("copied");
+        let (border_col, text_col) = if is_copy {
+            (theme::ACCENT, theme::ACCENT)
+        } else {
+            (theme::URGENT, theme::URGENT)
+        };
+        let label = if is_copy { format!("  ✓  {}  ", msg) } else { format!("  {}  ", msg) };
+        let toast_w = (label.chars().count() as u16 + 2).min(area.width);
+        let toast_h = 3u16;
+        let toast = Rect {
+            x: area.x + (area.width.saturating_sub(toast_w)) / 2,
+            y: area.y + (area.height.saturating_sub(toast_h)) / 2,
+            width: toast_w,
+            height: toast_h,
+        };
+        f.render_widget(Clear, toast);
+        f.render_widget(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(border_col))
+                .style(Style::default().bg(theme::BG)),
+            toast,
+        );
+        let inner = Rect { x: toast.x + 1, y: toast.y + 1, width: toast.width.saturating_sub(2), height: 1 };
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                label,
+                Style::default().fg(text_col).add_modifier(Modifier::BOLD),
+            )))
+            .alignment(Alignment::Center),
+            inner,
+        );
+    }
 }

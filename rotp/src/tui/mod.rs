@@ -18,7 +18,7 @@ use state::{AppState, OtpMetaDisplay, Screen};
 use std::{
     io,
     path::{Path, PathBuf},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 const IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "gif", "bmp", "webp"];
@@ -106,6 +106,14 @@ fn run_app(
                 }
             }
         })?;
+
+        // Auto-dismiss toast after 1.5s
+        if let Some(at) = app_state.status_message_at {
+            if at.elapsed() >= Duration::from_millis(1500) {
+                app_state.status_message = None;
+                app_state.status_message_at = None;
+            }
+        }
 
         // Two-phase scan: first iteration switches to ScanningQr (draws loader),
         // second iteration does the actual scan and transitions.
@@ -523,10 +531,19 @@ fn copy_selected_code(state: &mut AppState, vault: &Vault) {
     if let Some(entry) = vault.entries().get(state.selected_index) {
         match generate_code_now(&entry.secret) {
             Ok(code) => match arboard::Clipboard::new().and_then(|mut cb| cb.set_text(code)) {
-                Ok(_) => state.status_message = Some("Copied to clipboard.".to_string()),
-                Err(_) => state.status_message = Some("Clipboard unavailable.".to_string()),
+                Ok(_) => {
+                    state.status_message = Some("Copied to clipboard".to_string());
+                    state.status_message_at = Some(Instant::now());
+                }
+                Err(_) => {
+                    state.status_message = Some("Clipboard unavailable".to_string());
+                    state.status_message_at = Some(Instant::now());
+                }
             },
-            Err(e) => state.status_message = Some(format!("Error: {e}")),
+            Err(e) => {
+                state.status_message = Some(format!("Error: {e}"));
+                state.status_message_at = Some(Instant::now());
+            }
         }
     }
 }

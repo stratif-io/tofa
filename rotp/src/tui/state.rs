@@ -1,3 +1,4 @@
+use std::{path::PathBuf, time::Instant};
 use zeroize::Zeroizing;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -8,6 +9,11 @@ pub enum Screen {
     AddForm,
     AddName,
     DeleteConfirm,
+    FilePicker,
+    OtpDetail,
+    Export,
+    ExportQr,
+    ScanningQr,
 }
 
 pub struct OtpMetaDisplay {
@@ -23,6 +29,7 @@ pub struct AppState {
     pub passphrase_input: String,
     pub selected_index: usize,
     pub status_message: Option<String>,
+    pub status_message_at: Option<Instant>,
     pub add_name: String,
     pub add_secret_input: String,
     pub add_parsed_secret: String,
@@ -30,6 +37,18 @@ pub struct AppState {
     pub add_focused_field: usize,
     pub unlock_error: bool,
     pub vault_key_cache: Option<Zeroizing<Vec<u8>>>,
+    pub show_codes: bool,
+    // export
+    pub export_checked: Vec<bool>,
+    pub export_selected: usize,
+    pub export_qr_lines: Vec<String>,
+    // file picker
+    pub fp_path: PathBuf,
+    pub fp_entries: Vec<(String, bool)>, // (name, is_dir)
+    pub fp_selected: usize,
+    pub fp_query: String,
+    // pending QR scan (set before switching to ScanningQr screen)
+    pub pending_scan_path: Option<PathBuf>,
 }
 
 impl Default for AppState {
@@ -45,6 +64,7 @@ impl AppState {
             passphrase_input: String::new(),
             selected_index: 0,
             status_message: None,
+            status_message_at: None,
             add_name: String::new(),
             add_secret_input: String::new(),
             add_parsed_secret: String::new(),
@@ -52,6 +72,15 @@ impl AppState {
             add_focused_field: 0,
             unlock_error: false,
             vault_key_cache: None,
+            show_codes: true,
+            export_checked: Vec::new(),
+            export_selected: 0,
+            export_qr_lines: Vec::new(),
+            fp_path: PathBuf::new(),
+            fp_entries: Vec::new(),
+            fp_selected: 0,
+            fp_query: String::new(),
+            pending_scan_path: None,
         }
     }
 

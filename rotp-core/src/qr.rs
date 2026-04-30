@@ -26,6 +26,14 @@ pub fn parse_input(input: &str) -> Result<OtpSecret, QrError> {
         return parse_uri(trimmed);
     }
 
+    // Strip shell backslash-escapes (e.g. from terminal drag & drop: "path\ with\ spaces")
+    let unescaped = trimmed.replace("\\ ", " ");
+    let path = std::path::Path::new(unescaped.as_str());
+    if path.exists() {
+        return parse_qr_image(path);
+    }
+
+    // Also try the raw trimmed string in case it has no escapes
     let path = std::path::Path::new(trimmed);
     if path.exists() {
         return parse_qr_image(path);

@@ -20,6 +20,8 @@ pub enum QrError {
     UnrecognizedInput,
     #[error("could not decode Google Authenticator migration payload")]
     MigrationDecode,
+    #[error("could not generate QR code: {0}")]
+    QrGenerate(String),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -500,7 +502,8 @@ fn is_valid_base32(s: &str) -> bool {
 pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> {
     use image::Luma;
     let code = QrCode::with_error_correction_level(data.as_bytes(), EcLevel::L)
-        .map_err(|e| QrError::ImageLoad(e.to_string()))?;
+        .or_else(|_| QrCode::with_error_correction_level(data.as_bytes(), EcLevel::M))
+        .map_err(|e| QrError::QrGenerate(e.to_string()))?;
     let img = code
         .render::<Luma<u8>>()
         .quiet_zone(true)

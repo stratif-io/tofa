@@ -6,6 +6,7 @@ pub enum Screen {
     List,
     Fullscreen,
     AddForm,
+    AddName,
     DeleteConfirm,
 }
 
@@ -46,5 +47,6 @@ impl AppState {
         self.add_name.clear();
         self.add_secret_input.clear();
         self.add_focused_field = 0;
+        self.status_message = None;
     }
 }

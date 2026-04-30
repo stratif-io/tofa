@@ -78,6 +78,7 @@ fn run_app(
                         .expect("vault must be initialized after unlock"),
                 ),
                 Screen::AddForm => screens::add_form::render(f, area, &app_state),
+                Screen::AddName => screens::add_name::render(f, area, &app_state),
                 Screen::DeleteConfirm => screens::delete_confirm::render(
                     f,
                     area,
@@ -118,7 +119,8 @@ fn run_app(
                             .as_ref()
                             .expect("vault must be initialized after unlock"),
                     ),
-                    Screen::AddForm => handle_add_form_key(
+                    Screen::AddForm => handle_add_form_key(key.code, &mut app_state)?,
+                    Screen::AddName => handle_add_name_key(
                         key.code,
                         &mut app_state,
                         vault
@@ -212,51 +214,72 @@ fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
 fn handle_add_form_key(
     key: KeyCode,
     state: &mut AppState,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match key {
+        KeyCode::Esc => {
+            state.clear_add_form();
+            state.screen = Screen::List;
+        }
+        KeyCode::Char(c) => state.add_secret_input.push(c),
+        KeyCode::Backspace => {
+            state.add_secret_input.pop();
+        }
+        KeyCode::Enter => {
+            let raw = state.add_secret_input.trim().to_string();
+            if !raw.is_empty() {
+                match parse_input(&raw) {
+                    Ok(_) => {
+                        state.status_message = None;
+                        state.add_name.clear();
+                        state.screen = Screen::AddName;
+                    }
+                    Err(e) => {
+                        state.status_message = Some(format!("Error: {e}"));
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn handle_add_name_key(
+    key: KeyCode,
+    state: &mut AppState,
     vault: &mut Vault,
     path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     match key {
-        KeyCode::Esc => state.screen = Screen::List,
-        KeyCode::Tab => {
-            state.add_focused_field = if state.add_focused_field == 0 { 1 } else { 0 };
+        KeyCode::Esc => {
+            state.screen = Screen::AddForm;
+            state.status_message = None;
         }
-        KeyCode::Char(c) => {
-            if state.add_focused_field == 0 {
-                state.add_name.push(c);
-            } else {
-                state.add_secret_input.push(c);
-            }
-        }
+        KeyCode::Char(c) => state.add_name.push(c),
         KeyCode::Backspace => {
-            if state.add_focused_field == 0 {
-                state.add_name.pop();
-            } else {
-                state.add_secret_input.pop();
-            }
+            state.add_name.pop();
         }
         KeyCode::Enter => {
-            if state.add_focused_field == 0 {
-                state.add_focused_field = 1;
-            } else {
-                let name = state.add_name.trim().to_string();
-                let raw = state.add_secret_input.trim().to_string();
-                if !name.is_empty() && !raw.is_empty() {
-                    match parse_input(&raw) {
-                        Ok(otp) => {
-                            let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-                            vault.add_entry(VaultEntry {
-                                name,
-                                secret: otp.secret,
-                                created_at: today,
-                            });
-                            save_vault(state, vault, path);
-                            state.screen = Screen::List;
-                            state.clear_add_form();
-                        }
-                        Err(e) => {
-                            state.status_message = Some(format!("Error: {e}"));
-                        }
-                    }
+            let name = state.add_name.trim().to_string();
+            if name.is_empty() {
+                state.status_message = Some("Name is required.".to_string());
+                return Ok(());
+            }
+            let raw = state.add_secret_input.trim().to_string();
+            match parse_input(&raw) {
+                Ok(otp) => {
+                    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+                    vault.add_entry(VaultEntry {
+                        name,
+                        secret: otp.secret,
+                        created_at: today,
+                    });
+                    save_vault(state, vault, path);
+                    state.screen = Screen::List;
+                    state.clear_add_form();
+                }
+                Err(e) => {
+                    state.status_message = Some(format!("Error: {e}"));
                 }
             }
         }

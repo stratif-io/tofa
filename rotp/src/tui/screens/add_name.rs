@@ -36,19 +36,16 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             Style::default().fg(theme::GREEN).add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
+        Line::from(Span::styled("Name for this account:", Style::default().fg(theme::DIM))),
         Line::from(Span::styled(
-            "QR code path, otpauth:// URI, or Base32 secret:",
-            Style::default().fg(theme::DIM),
-        )),
-        Line::from(Span::styled(
-            format!("{}_", state.add_secret_input),
+            format!("{}_", state.add_name),
             Style::default().fg(theme::GREEN),
         )),
         Line::from(""),
         error_line,
         Line::from(""),
         Line::from(Span::styled(
-            "[ Enter ] next   [ Esc ] cancel",
+            "[ Enter ] save   [ Esc ] back",
             Style::default().fg(theme::DIM),
         )),
     ];
@@ -58,7 +55,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(theme::DIM_GREEN))
+                .border_style(Style::default().fg(theme::GREEN))
                 .style(Style::default().bg(theme::BG)),
         ),
         horiz[1],

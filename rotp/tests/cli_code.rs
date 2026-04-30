@@ -1,0 +1,73 @@
+use assert_cmd::Command;
+use predicates::str::{contains, is_match};
+use std::time::Duration;
+use tempfile::TempDir;
+
+fn setup() -> TempDir {
+    let tmp = TempDir::new().unwrap();
+    Command::cargo_bin("rotp").unwrap()
+        .env("ROTP_PASSPHRASE", "testpass")
+        .env("ROTP_VAULT", tmp.path().join("vault.enc").to_str().unwrap())
+        .arg("init").assert().success();
+    Command::cargo_bin("rotp").unwrap()
+        .env("ROTP_PASSPHRASE", "testpass")
+        .env("ROTP_VAULT", tmp.path().join("vault.enc").to_str().unwrap())
+        .args(["add", "--name", "GitHub:carlo", "--secret", "JBSWY3DPEHPK3PXP"])
+        .assert().success();
+    Command::cargo_bin("rotp").unwrap()
+        .env("ROTP_PASSPHRASE", "testpass")
+        .env("ROTP_VAULT", tmp.path().join("vault.enc").to_str().unwrap())
+        .args(["add", "--name", "GitHub:perso", "--secret", "JBSWY3DPEHPK3PXQ"])
+        .assert().success();
+    tmp
+}
+
+fn rotp(tmp: &TempDir) -> Command {
+    let mut cmd = Command::cargo_bin("rotp").unwrap();
+    cmd.env("ROTP_PASSPHRASE", "testpass")
+       .env("ROTP_VAULT", tmp.path().join("vault.enc").to_str().unwrap());
+    cmd
+}
+
+#[test]
+fn code_exact_substring() {
+    let tmp = setup();
+    rotp(&tmp).args(["code", "GitHub:carlo"])
+        .assert().success()
+        .stdout(is_match(r"^\d{3} \d{3}\n$").unwrap());
+}
+
+#[test]
+fn code_raw_flag() {
+    let tmp = setup();
+    let out = rotp(&tmp).args(["code", "GitHub:carlo", "--raw"])
+        .assert().success();
+    let stdout = String::from_utf8(out.get_output().stdout.clone()).unwrap();
+    let trimmed = stdout.trim();
+    assert_eq!(trimmed.len(), 6);
+    assert!(trimmed.chars().all(|c| c.is_ascii_digit()));
+}
+
+#[test]
+fn code_not_found() {
+    let tmp = setup();
+    rotp(&tmp).args(["code", "nope"])
+        .assert().failure().stderr(contains("no account matching"));
+}
+
+#[test]
+fn code_ambiguous() {
+    let tmp = setup();
+    rotp(&tmp).args(["code", "github"])
+        .assert().failure().stderr(contains("matches multiple"));
+}
+
+#[test]
+fn code_watch_produces_output() {
+    let tmp = setup();
+    rotp(&tmp)
+        .args(["code", "GitHub:carlo", "--watch"])
+        .timeout(Duration::from_secs(4))
+        .assert()
+        .stdout(is_match(r"\d{3} \d{3}").unwrap());
+}

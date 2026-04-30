@@ -10,6 +10,14 @@ pub enum Screen {
     DeleteConfirm,
 }
 
+pub struct OtpMetaDisplay {
+    pub issuer: Option<String>,
+    pub account: Option<String>,
+    pub algorithm: Option<String>,
+    pub digits: Option<u8>,
+    pub period: Option<u32>,
+}
+
 pub struct AppState {
     pub screen: Screen,
     pub passphrase_input: String,
@@ -18,6 +26,7 @@ pub struct AppState {
     pub add_name: String,
     pub add_secret_input: String,
     pub add_parsed_secret: String,
+    pub add_meta: Option<OtpMetaDisplay>,
     pub add_focused_field: usize,
     pub unlock_error: bool,
     pub vault_key_cache: Option<Zeroizing<Vec<u8>>>,
@@ -39,6 +48,7 @@ impl AppState {
             add_name: String::new(),
             add_secret_input: String::new(),
             add_parsed_secret: String::new(),
+            add_meta: None,
             add_focused_field: 0,
             unlock_error: false,
             vault_key_cache: None,
@@ -49,6 +59,7 @@ impl AppState {
         self.add_name.clear();
         self.add_secret_input.clear();
         self.add_parsed_secret.clear();
+        self.add_meta = None;
         self.add_focused_field = 0;
         self.status_message = None;
     }

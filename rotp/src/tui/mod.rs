@@ -13,7 +13,7 @@ use rotp_core::{
     store::{Vault, VaultEntry},
     totp::generate_code_now,
 };
-use state::{AppState, Screen};
+use state::{AppState, OtpMetaDisplay, Screen};
 use std::{
     io,
     path::{Path, PathBuf},
@@ -198,6 +198,13 @@ fn handle_list_key(
         KeyCode::Char('y') => {
             copy_selected_code(state, vault);
         }
+        // Any other character (e.g. a drag-dropped path pasted by the terminal)
+        // auto-opens the add form with that character pre-filled
+        KeyCode::Char(c) => {
+            state.clear_add_form();
+            state.add_secret_input.push(c);
+            state.screen = Screen::AddForm;
+        }
         _ => {}
     }
     Ok(false)
@@ -231,7 +238,17 @@ fn handle_add_form_key(
                     Ok(otp) => {
                         state.status_message = None;
                         state.add_parsed_secret = otp.secret;
-                        state.add_name.clear();
+                        // Pre-fill name from metadata if available
+                        state.add_name = otp.meta.account.clone()
+                            .or_else(|| otp.meta.issuer.clone())
+                            .unwrap_or_default();
+                        state.add_meta = Some(OtpMetaDisplay {
+                            issuer: otp.meta.issuer,
+                            account: otp.meta.account,
+                            algorithm: otp.meta.algorithm,
+                            digits: otp.meta.digits,
+                            period: otp.meta.period,
+                        });
                         state.screen = Screen::AddName;
                     }
                     Err(e) => {

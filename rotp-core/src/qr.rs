@@ -14,9 +14,19 @@ pub enum QrError {
     UnrecognizedInput,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct OtpMeta {
+    pub issuer: Option<String>,
+    pub account: Option<String>,
+    pub algorithm: Option<String>,
+    pub digits: Option<u8>,
+    pub period: Option<u32>,
+}
+
 #[derive(Debug, Clone)]
 pub struct OtpSecret {
     pub secret: String,
+    pub meta: OtpMeta,
 }
 
 pub fn parse_input(input: &str) -> Result<OtpSecret, QrError> {
@@ -33,7 +43,6 @@ pub fn parse_input(input: &str) -> Result<OtpSecret, QrError> {
         return parse_qr_image(path);
     }
 
-    // Also try the raw trimmed string in case it has no escapes
     let path = std::path::Path::new(trimmed);
     if path.exists() {
         return parse_qr_image(path);
@@ -42,6 +51,7 @@ pub fn parse_input(input: &str) -> Result<OtpSecret, QrError> {
     if is_valid_base32(trimmed) {
         return Ok(OtpSecret {
             secret: trimmed.to_uppercase(),
+            meta: OtpMeta::default(),
         });
     }
 
@@ -49,23 +59,56 @@ pub fn parse_input(input: &str) -> Result<OtpSecret, QrError> {
 }
 
 fn parse_uri(uri: &str) -> Result<OtpSecret, QrError> {
-    let secret = uri
-        .split('?')
-        .nth(1)
-        .and_then(|query| {
-            query.split('&').find_map(|param| {
-                let mut parts = param.splitn(2, '=');
-                if parts.next() == Some("secret") {
-                    parts.next()
-                } else {
-                    None
-                }
-            })
-        })
-        .ok_or(QrError::MissingSecret)?;
+    // Format: otpauth://totp/LABEL?secret=SECRET&issuer=ISSUER&...
+    // LABEL may be "issuer:account" or just "account"
+    let after_scheme = uri.strip_prefix("otpauth://totp/").unwrap_or("");
+    let (raw_label, query) = match after_scheme.split_once('?') {
+        Some((l, q)) => (l, q),
+        None => (after_scheme, ""),
+    };
+
+    let label = percent_decode(raw_label);
+    let (label_issuer, label_account) = if let Some((a, b)) = label.split_once(':') {
+        (Some(a.trim().to_string()), Some(b.trim().to_string()))
+    } else if !label.is_empty() {
+        (None, Some(label.clone()))
+    } else {
+        (None, None)
+    };
+
+    let mut secret = None;
+    let mut issuer: Option<String> = None;
+    let mut algorithm: Option<String> = None;
+    let mut digits: Option<u8> = None;
+    let mut period: Option<u32> = None;
+
+    for param in query.split('&') {
+        let mut parts = param.splitn(2, '=');
+        let key = parts.next().unwrap_or("");
+        let val = percent_decode(parts.next().unwrap_or(""));
+        match key {
+            "secret" => secret = Some(val.to_uppercase()),
+            "issuer" => issuer = Some(val),
+            "algorithm" => algorithm = Some(val),
+            "digits" => digits = val.parse().ok(),
+            "period" => period = val.parse().ok(),
+            _ => {}
+        }
+    }
+
+    let secret = secret.ok_or(QrError::MissingSecret)?;
+    let resolved_issuer = issuer.or(label_issuer);
+    let resolved_account = label_account;
 
     Ok(OtpSecret {
-        secret: secret.to_uppercase(),
+        secret,
+        meta: OtpMeta {
+            issuer: resolved_issuer,
+            account: resolved_account,
+            algorithm,
+            digits,
+            period,
+        },
     })
 }
 
@@ -87,6 +130,29 @@ fn parse_qr_image(path: &std::path::Path) -> Result<OtpSecret, QrError> {
     } else {
         Err(QrError::InvalidQrContent)
     }
+}
+
+fn percent_decode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '%' {
+            let h1 = chars.next();
+            let h2 = chars.next();
+            if let (Some(h1), Some(h2)) = (h1, h2) {
+                if let Ok(byte) = u8::from_str_radix(&format!("{h1}{h2}"), 16) {
+                    out.push(byte as char);
+                    continue;
+                }
+            }
+        }
+        if c == '+' {
+            out.push(' ');
+        } else {
+            out.push(c);
+        }
+    }
+    out
 }
 
 fn is_valid_base32(s: &str) -> bool {

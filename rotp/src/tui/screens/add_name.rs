@@ -22,7 +22,35 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         Line::from("")
     };
 
-    let box_height = 10u16;
+    // Build metadata lines
+    let mut meta_lines: Vec<Line> = Vec::new();
+    if let Some(meta) = &state.add_meta {
+        if let Some(issuer) = &meta.issuer {
+            meta_lines.push(Line::from(vec![
+                Span::styled("Issuer:    ", Style::default().fg(theme::DIM)),
+                Span::styled(issuer.clone(), Style::default().fg(theme::GREEN)),
+            ]));
+        }
+        if let Some(account) = &meta.account {
+            meta_lines.push(Line::from(vec![
+                Span::styled("Account:   ", Style::default().fg(theme::DIM)),
+                Span::styled(account.clone(), Style::default().fg(theme::GREEN)),
+            ]));
+        }
+        let algo = meta.algorithm.as_deref().unwrap_or("SHA1");
+        let digits = meta.digits.unwrap_or(6);
+        let period = meta.period.unwrap_or(30);
+        meta_lines.push(Line::from(vec![
+            Span::styled("Algorithm: ", Style::default().fg(theme::DIM)),
+            Span::styled(
+                format!("{algo}  {digits} digits  {period}s"),
+                Style::default().fg(theme::DIM),
+            ),
+        ]));
+    }
+
+    let box_height = (10 + meta_lines.len()).min(20) as u16;
+
     let vert = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -32,7 +60,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         ])
         .split(area);
 
-    let box_width = area.width.min(52);
+    let box_width = area.width.min(60);
     let pad = (area.width.saturating_sub(box_width)) / 2;
     let inner = Rect {
         x: area.x + pad,
@@ -41,7 +69,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         height: box_height,
     };
 
-    let content = vec![
+    let mut content = vec![
         Line::from(Span::styled(
             "Add OTP",
             Style::default().fg(theme::GREEN).add_modifier(Modifier::BOLD),
@@ -55,23 +83,33 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             Span::styled(format!("⏱ {}s", secs), Style::default().fg(timer_color)),
         ]),
         Line::from(""),
-        Line::from(Span::styled("Name for this account:", Style::default().fg(theme::DIM))),
-        Line::from(Span::styled(
-            format!("{}_", state.add_name),
-            Style::default().fg(theme::GREEN),
-        )),
-        Line::from(""),
-        error_line,
-        Line::from(""),
-        Line::from(Span::styled(
-            "[ Enter ] save   [ Esc ] back",
-            Style::default().fg(theme::DIM),
-        )),
     ];
+
+    content.extend(meta_lines);
+
+    if state.add_meta.is_some() {
+        content.push(Line::from(""));
+    }
+
+    content.push(Line::from(Span::styled(
+        "Name for this account:",
+        Style::default().fg(theme::DIM),
+    )));
+    content.push(Line::from(Span::styled(
+        format!("{}_", state.add_name),
+        Style::default().fg(theme::GREEN),
+    )));
+    content.push(Line::from(""));
+    content.push(error_line);
+    content.push(Line::from(""));
+    content.push(Line::from(Span::styled(
+        "[ Enter ] save   [ Esc ] back",
+        Style::default().fg(theme::DIM),
+    )));
 
     f.render_widget(
         Paragraph::new(content)
-            .alignment(Alignment::Center)
+            .alignment(Alignment::Left)
             .block(
                 Block::default()
                     .borders(Borders::ALL)

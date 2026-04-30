@@ -334,9 +334,16 @@ fn handle_list_key(
 }
 
 fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
+    let len = vault.entries().len();
     match key {
         KeyCode::Esc | KeyCode::Char('q') => state.screen = Screen::List,
         KeyCode::Char('y') => copy_selected_code(state, vault),
+        KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
+            state.selected_index -= 1;
+        }
+        KeyCode::Down | KeyCode::Char('j') if len > 0 && state.selected_index < len - 1 => {
+            state.selected_index += 1;
+        }
         _ => {}
     }
 }
@@ -549,9 +556,16 @@ fn copy_selected_code(state: &mut AppState, vault: &Vault) {
 }
 
 fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
+    let len = vault.entries().len();
     match key {
         KeyCode::Esc | KeyCode::Char('q') => state.screen = Screen::List,
         KeyCode::Char('y') => copy_selected_code(state, vault),
+        KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
+            state.selected_index -= 1;
+        }
+        KeyCode::Down | KeyCode::Char('j') if len > 0 && state.selected_index < len - 1 => {
+            state.selected_index += 1;
+        }
         _ => {}
     }
 }

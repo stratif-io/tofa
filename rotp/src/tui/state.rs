@@ -17,6 +17,7 @@ pub struct AppState {
     pub status_message: Option<String>,
     pub add_name: String,
     pub add_secret_input: String,
+    pub add_parsed_secret: String,
     pub add_focused_field: usize,
     pub unlock_error: bool,
     pub vault_key_cache: Option<Zeroizing<Vec<u8>>>,
@@ -37,6 +38,7 @@ impl AppState {
             status_message: None,
             add_name: String::new(),
             add_secret_input: String::new(),
+            add_parsed_secret: String::new(),
             add_focused_field: 0,
             unlock_error: false,
             vault_key_cache: None,
@@ -46,6 +48,7 @@ impl AppState {
     pub fn clear_add_form(&mut self) {
         self.add_name.clear();
         self.add_secret_input.clear();
+        self.add_parsed_secret.clear();
         self.add_focused_field = 0;
         self.status_message = None;
     }

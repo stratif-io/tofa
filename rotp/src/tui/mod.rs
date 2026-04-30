@@ -228,8 +228,9 @@ fn handle_add_form_key(
             let raw = state.add_secret_input.trim().to_string();
             if !raw.is_empty() {
                 match parse_input(&raw) {
-                    Ok(_) => {
+                    Ok(otp) => {
                         state.status_message = None;
+                        state.add_parsed_secret = otp.secret;
                         state.add_name.clear();
                         state.screen = Screen::AddName;
                     }
@@ -265,23 +266,15 @@ fn handle_add_name_key(
                 state.status_message = Some("Name is required.".to_string());
                 return Ok(());
             }
-            let raw = state.add_secret_input.trim().to_string();
-            match parse_input(&raw) {
-                Ok(otp) => {
-                    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-                    vault.add_entry(VaultEntry {
-                        name,
-                        secret: otp.secret,
-                        created_at: today,
-                    });
-                    save_vault(state, vault, path);
-                    state.screen = Screen::List;
-                    state.clear_add_form();
-                }
-                Err(e) => {
-                    state.status_message = Some(format!("Error: {e}"));
-                }
-            }
+            let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+            vault.add_entry(VaultEntry {
+                name,
+                secret: state.add_parsed_secret.clone(),
+                created_at: today,
+            });
+            save_vault(state, vault, path);
+            state.screen = Screen::List;
+            state.clear_add_form();
         }
         _ => {}
     }

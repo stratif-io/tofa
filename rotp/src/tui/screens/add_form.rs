@@ -10,24 +10,29 @@ use ratatui::{
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(30), Constraint::Length(10), Constraint::Min(0)])
-        .split(area);
-
-    let horiz = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(15),
-            Constraint::Percentage(70),
-            Constraint::Percentage(15),
-        ])
-        .split(chunks[1]);
-
     let error_line = if let Some(msg) = &state.status_message {
         Line::from(Span::styled(msg.as_str(), Style::default().fg(theme::RED)))
     } else {
         Line::from("")
+    };
+
+    let box_height = 10u16;
+    let vert = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Fill(1),
+            Constraint::Length(box_height),
+            Constraint::Fill(1),
+        ])
+        .split(area);
+
+    let box_width = area.width.min(70);
+    let pad = (area.width.saturating_sub(box_width)) / 2;
+    let inner = Rect {
+        x: area.x + pad,
+        y: vert[1].y,
+        width: box_width,
+        height: box_height,
     };
 
     let content = vec![
@@ -61,6 +66,6 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
                 .border_style(Style::default().fg(theme::DIM_GREEN))
                 .style(Style::default().bg(theme::BG)),
         ),
-        horiz[1],
+        inner,
     );
 }

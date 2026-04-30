@@ -10,15 +10,6 @@ use ratatui::{
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(35),
-            Constraint::Length(10),
-            Constraint::Min(0),
-        ])
-        .split(area);
-
     let masked: String = "•".repeat(state.passphrase_input.len());
     let error_line = if state.unlock_error {
         Line::from(Span::styled(
@@ -29,12 +20,29 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         Line::from("")
     };
 
+    let box_height = 10u16;
+    let vert = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Fill(1),
+            Constraint::Length(box_height),
+            Constraint::Fill(1),
+        ])
+        .split(area);
+
+    let box_width = area.width.min(52);
+    let pad = (area.width.saturating_sub(box_width)) / 2;
+    let inner = Rect {
+        x: area.x + pad,
+        y: vert[1].y,
+        width: box_width,
+        height: box_height,
+    };
+
     let content = Paragraph::new(vec![
         Line::from(Span::styled(
             "r o t p",
-            Style::default()
-                .fg(theme::GREEN)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme::GREEN).add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled("OTP Manager", Style::default().fg(theme::DIM))),
         Line::from(""),
@@ -56,14 +64,5 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             .style(Style::default().bg(theme::BG)),
     );
 
-    let horiz = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(25),
-            Constraint::Percentage(50),
-            Constraint::Percentage(25),
-        ])
-        .split(chunks[1]);
-
-    f.render_widget(content, horiz[1]);
+    f.render_widget(content, inner);
 }

@@ -17,23 +17,24 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         .map(|e| e.name.as_str())
         .unwrap_or("this entry");
 
-    let chunks = Layout::default()
+    let box_height = 9u16;
+    let vert = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage(35),
-            Constraint::Length(10),
-            Constraint::Min(0),
+            Constraint::Fill(1),
+            Constraint::Length(box_height),
+            Constraint::Fill(1),
         ])
         .split(area);
 
-    let horiz = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(25),
-            Constraint::Percentage(50),
-            Constraint::Percentage(25),
-        ])
-        .split(chunks[1]);
+    let box_width = area.width.min(48);
+    let pad = (area.width.saturating_sub(box_width)) / 2;
+    let inner = Rect {
+        x: area.x + pad,
+        y: vert[1].y,
+        width: box_width,
+        height: box_height,
+    };
 
     let content = vec![
         Line::from(Span::styled(
@@ -61,13 +62,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     ];
 
     f.render_widget(
-        Paragraph::new(content).alignment(Alignment::Center).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(theme::RED))
-                .style(Style::default().bg(theme::BG)),
-        ),
-        horiz[1],
+        Paragraph::new(content)
+            .alignment(Alignment::Center)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .border_style(Style::default().fg(theme::RED))
+                    .style(Style::default().bg(theme::BG)),
+            ),
+        inner,
     );
 }

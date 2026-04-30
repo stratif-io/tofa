@@ -31,17 +31,18 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let result = run_app(&mut terminal);
+    let res = run_app(&mut terminal);
 
-    disable_raw_mode()?;
-    execute!(
+    // Always restore terminal regardless of result
+    let _ = disable_raw_mode();
+    let _ = execute!(
         terminal.backend_mut(),
         LeaveAlternateScreen,
         DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
+    );
+    let _ = terminal.show_cursor();
 
-    result
+    res
 }
 
 fn run_app(
@@ -57,14 +58,14 @@ fn run_app(
             match app_state.screen {
                 Screen::Unlock => screens::unlock::render(f, area, &app_state),
                 Screen::List => {
-                    screens::list::render(f, area, &app_state, vault.as_ref().unwrap())
+                    screens::list::render(f, area, &app_state, vault.as_ref().expect("vault must be initialized after unlock"))
                 }
                 Screen::Fullscreen => {
-                    screens::fullscreen::render(f, area, &app_state, vault.as_ref().unwrap())
+                    screens::fullscreen::render(f, area, &app_state, vault.as_ref().expect("vault must be initialized after unlock"))
                 }
                 Screen::AddForm => screens::add_form::render(f, area, &app_state),
                 Screen::DeleteConfirm => {
-                    screens::delete_confirm::render(f, area, &app_state, vault.as_ref().unwrap())
+                    screens::delete_confirm::render(f, area, &app_state, vault.as_ref().expect("vault must be initialized after unlock"))
                 }
             }
         })?;
@@ -82,18 +83,18 @@ fn run_app(
                         handle_unlock_key(key.code, &mut app_state, &mut vault, &path)
                     }
                     Screen::List => {
-                        if handle_list_key(key.code, &mut app_state, vault.as_mut().unwrap(), &path)? {
+                        if handle_list_key(key.code, &mut app_state, vault.as_mut().expect("vault must be initialized after unlock"), &path)? {
                             return Ok(());
                         }
                     }
                     Screen::Fullscreen => {
-                        handle_fullscreen_key(key.code, &mut app_state, vault.as_ref().unwrap())
+                        handle_fullscreen_key(key.code, &mut app_state, vault.as_ref().expect("vault must be initialized after unlock"))
                     }
                     Screen::AddForm => {
-                        handle_add_form_key(key.code, &mut app_state, vault.as_mut().unwrap(), &path)?
+                        handle_add_form_key(key.code, &mut app_state, vault.as_mut().expect("vault must be initialized after unlock"), &path)?
                     }
                     Screen::DeleteConfirm => {
-                        handle_delete_confirm_key(key.code, &mut app_state, vault.as_mut().unwrap(), &path)?
+                        handle_delete_confirm_key(key.code, &mut app_state, vault.as_mut().expect("vault must be initialized after unlock"), &path)?
                     }
                 }
             }

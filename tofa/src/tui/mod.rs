@@ -154,9 +154,11 @@ fn run_app(
                             Screen::List => {
                                 let v = vault.as_ref().expect("vault initialized");
                                 let row = mouse.row as usize;
+                                let col = mouse.column as usize;
                                 let list_start = 2;
                                 let list_end = list_start + v.entries().len() * 2;
-                                if row >= list_start && row < list_end {
+                                let content_width = list_row_content_width(v);
+                                if row >= list_start && row < list_end && col < content_width {
                                     let entry_row = row - list_start;
                                     let is_separator = entry_row % 2 == 1;
                                     if !is_separator {
@@ -825,6 +827,23 @@ fn handle_file_picker_key(
         _ => {}
     }
     Ok(())
+}
+
+fn list_row_content_width(vault: &Vault) -> usize {
+    let entries = vault.entries();
+    let max_label_w = entries.iter().map(|e| {
+        if let Some(pos) = e.name.find(':') {
+            let issuer = &e.name[..pos];
+            let account = &e.name[pos + 1..];
+            if account.is_empty() { e.name.chars().count() } else { issuer.chars().count() + 3 + account.chars().count() }
+        } else {
+            e.name.chars().count()
+        }
+    }).max().unwrap_or(0);
+    let max_code_w: usize = entries.iter().map(|e| if e.digits == 8 { 9usize } else { 7 }).max().unwrap_or(7);
+    const BAR_LEN: usize = 20;
+    // cursor(2) + label(max_label_w) + gap(2) + code(max_code_w) + bar(1+BAR_LEN) + space(1) + secs("16s"=3)
+    2 + max_label_w + 2 + max_code_w + 1 + BAR_LEN + 1 + 3
 }
 
 fn save_vault(state: &mut AppState, vault: &Vault, path: &Path) {

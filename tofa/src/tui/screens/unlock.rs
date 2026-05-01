@@ -61,7 +61,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
 
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "t o f a",
+            &env!("CARGO_PKG_NAME").chars().map(|c| c.to_string()).collect::<Vec<_>>().join(" "),
             Style::default().fg(theme::TEXT).add_modifier(Modifier::BOLD),
         )))
         .alignment(Alignment::Center),

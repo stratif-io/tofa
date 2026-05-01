@@ -121,7 +121,7 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
                 let full = filled_eighths / 8;
                 let partial = filled_eighths % 8;
                 let empty = BAR_LEN.saturating_sub(full + if partial > 0 { 1 } else { 0 });
-                format!(" {}{}{}", "█".repeat(full), EIGHTHS[partial], "░".repeat(empty))
+                format!(" {}{}{}", "█".repeat(full), EIGHTHS[partial], " ".repeat(empty))
             } else {
                 String::new()
             };

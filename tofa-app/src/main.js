@@ -35,13 +35,15 @@ formUnlock.addEventListener('submit', async (e) => {
 const otpList = document.getElementById('otp-list');
 const btnSettings = document.getElementById('btn-settings');
 
-// Live state: array of { entry, secsLeft, barEl, codeEl }
+// Live state: array of { entry, expiresAt, barEl, codeEl }
+// expiresAt = Date.now() + seconds_left * 1000
 let liveRows = [];
 let countdownTimer = null;
 
 function renderEntries(entries) {
   otpList.innerHTML = '';
   liveRows = [];
+  const now = Date.now();
 
   entries.forEach(entry => {
     const el = document.createElement('div');
@@ -76,15 +78,20 @@ function renderEntries(entries) {
     });
     otpList.appendChild(el);
 
-    liveRows.push({ entry, secsLeft: entry.seconds_left, barEl: bar, codeEl });
-    updateRow(liveRows[liveRows.length - 1]);
+    liveRows.push({
+      entry,
+      expiresAt: now + entry.seconds_left * 1000,
+      barEl: bar,
+      codeEl,
+    });
   });
 }
 
-function updateRow(row) {
-  const pct = Math.round((row.secsLeft / row.entry.period) * 100);
-  const urgent = row.secsLeft <= 5;
-  row.barEl.style.width = pct + '%';
+function updateRow(row, now) {
+  const msLeft = Math.max(0, row.expiresAt - now);
+  const pct = (msLeft / (row.entry.period * 1000)) * 100;
+  const urgent = msLeft <= 5000;
+  row.barEl.style.width = pct.toFixed(2) + '%';
   row.barEl.className = 'otp-bar' + (urgent ? ' urgent' : '');
 }
 
@@ -93,33 +100,34 @@ function startCountdown(entries) {
   renderEntries(entries);
 
   countdownTimer = setInterval(async () => {
+    const now = Date.now();
     let needsRefresh = false;
+
     for (const row of liveRows) {
-      row.secsLeft = Math.max(0, row.secsLeft - 1);
-      updateRow(row);
-      if (row.secsLeft === 0) needsRefresh = true;
+      updateRow(row, now);
+      if (now >= row.expiresAt) needsRefresh = true;
     }
+
     if (needsRefresh) {
       try {
         const fresh = await invoke('get_entries');
-        // Only reset rows whose code changed — leave others counting down
+        const refreshNow = Date.now();
         for (const row of liveRows) {
           const updated = fresh.find(e => e.name === row.entry.name);
           if (updated && updated.code !== row.codeEl.textContent) {
             row.entry = updated;
-            row.secsLeft = updated.seconds_left;
+            row.expiresAt = refreshNow + updated.seconds_left * 1000;
             row.codeEl.textContent = updated.code;
           }
         }
       } catch (_) {
-        // TTL expired — go back to lock screen
         clearInterval(countdownTimer);
         countdownTimer = null;
         showView('locked');
         setTimeout(() => inputPassphrase.focus(), 50);
       }
     }
-  }, 1000);
+  }, 100);
 }
 
 btnSettings.addEventListener('click', async () => {

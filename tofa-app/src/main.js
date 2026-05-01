@@ -53,9 +53,15 @@ function renderEntries(entries) {
 
     const row = document.createElement('div');
     row.className = 'otp-row';
-    const nameEl = document.createElement('span');
+    const nameEl = document.createElement('div');
     nameEl.className = 'otp-name';
-    nameEl.textContent = entry.name;
+    if (entry.account) {
+      nameEl.innerHTML =
+        `<span class="otp-issuer">${entry.issuer}</span>` +
+        `<span class="otp-account">${entry.account}</span>`;
+    } else {
+      nameEl.innerHTML = `<span class="otp-issuer">${entry.issuer}</span>`;
+    }
     const codeEl = document.createElement('span');
     codeEl.className = 'otp-code';
     codeEl.textContent = entry.code;
@@ -64,12 +70,16 @@ function renderEntries(entries) {
 
     const tooltip = document.createElement('div');
     tooltip.className = 'otp-tooltip';
-    tooltip.innerHTML =
-      `<span class="tt-row"><span class="tt-label">Algorithm</span><span>${entry.algorithm}</span></span>` +
-      `<span class="tt-row"><span class="tt-label">Digits</span><span>${entry.digits}</span></span>` +
-      `<span class="tt-row"><span class="tt-label">Period</span><span>${entry.period}s</span></span>` +
-      `<span class="tt-row"><span class="tt-label">Added</span><span>${entry.created_at}</span></span>` +
-      `<button class="tt-delete" data-name="${entry.name}">Delete</button>`;
+    const rows = [
+      entry.issuer  ? `<span class="tt-row"><span class="tt-label">Issuer</span><span>${entry.issuer}</span></span>` : '',
+      entry.account ? `<span class="tt-row"><span class="tt-label">Account</span><span>${entry.account}</span></span>` : '',
+      `<span class="tt-row"><span class="tt-label">Algorithm</span><span>${entry.algorithm}</span></span>`,
+      `<span class="tt-row"><span class="tt-label">Digits</span><span>${entry.digits}</span></span>`,
+      `<span class="tt-row"><span class="tt-label">Period</span><span>${entry.period}s</span></span>`,
+      `<span class="tt-row"><span class="tt-label">Added</span><span>${entry.created_at}</span></span>`,
+      `<button class="tt-delete" data-name="${entry.name}">Delete</button>`,
+    ];
+    tooltip.innerHTML = rows.join('');
 
     const barWrap = document.createElement('div');
     barWrap.className = 'otp-bar-wrap';

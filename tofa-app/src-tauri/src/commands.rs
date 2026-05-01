@@ -6,6 +6,8 @@ use crate::state::{AppState, default_vault_path, settings_path};
 #[derive(Serialize)]
 pub struct OtpEntry {
     pub name: String,
+    pub issuer: String,
+    pub account: String,
     pub code: String,
     pub seconds_left: u64,
     pub period: u32,
@@ -209,8 +211,15 @@ fn entries_from_vault(vault: &tofa_core::store::Vault) -> Result<Vec<OtpEntry>, 
             .map_err(|e| e.to_string())?;
         let code = format_code(&code_raw);
         let seconds_left = tofa_core::totp::seconds_remaining_now(entry);
+        let (issuer, account) = if let Some(pos) = entry.name.find(':') {
+            (entry.name[..pos].to_string(), entry.name[pos + 1..].to_string())
+        } else {
+            (entry.name.clone(), String::new())
+        };
         Ok(OtpEntry {
             name: entry.name.clone(),
+            issuer,
+            account,
             code,
             seconds_left,
             period: entry.period,

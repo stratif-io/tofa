@@ -127,7 +127,9 @@ button[type="submit"]:hover { opacity: 0.85; }
   align-items: baseline;
 }
 
-.otp-name { color: var(--text); font-weight: 500; }
+.otp-name { display: flex; flex-direction: column; gap: 1px; }
+.otp-issuer { color: var(--text); font-weight: 500; font-size: 13px; }
+.otp-account { color: var(--dim); font-size: 11px; }
 
 .otp-code {
   color: var(--accent);

@@ -41,7 +41,6 @@ const btnSettings = document.getElementById('btn-settings');
 // Live state: array of { entry, expiresAt, barEl, codeEl }
 // expiresAt = Date.now() + seconds_left * 1000
 let liveRows = [];
-let countdownTimer = null;
 
 function renderEntries(entries) {
   otpList.innerHTML = '';
@@ -114,43 +113,51 @@ function updateRow(row, now) {
   const msLeft = Math.max(0, row.expiresAt - now);
   const pct = (msLeft / (row.entry.period * 1000)) * 100;
   const urgent = msLeft <= 5000;
-  row.barEl.style.width = pct.toFixed(2) + '%';
+  row.barEl.style.width = pct.toFixed(3) + '%';
   row.barEl.className = 'otp-bar' + (urgent ? ' urgent' : '');
 }
 
-function startCountdown(entries) {
-  if (countdownTimer) clearInterval(countdownTimer);
-  renderEntries(entries);
+let rafHandle = null;
+let apiRefreshTimer = null;
 
-  countdownTimer = setInterval(async () => {
-    const now = Date.now();
-    let needsRefresh = false;
-
+async function refreshCodes() {
+  try {
+    const fresh = await invoke('get_entries');
+    const refreshNow = Date.now();
     for (const row of liveRows) {
-      updateRow(row, now);
-      if (now >= row.expiresAt) needsRefresh = true;
-    }
-
-    if (needsRefresh) {
-      try {
-        const fresh = await invoke('get_entries');
-        const refreshNow = Date.now();
-        for (const row of liveRows) {
-          const updated = fresh.find(e => e.name === row.entry.name);
-          if (updated && updated.code !== row.codeEl.textContent) {
-            row.entry = updated;
-            row.expiresAt = refreshNow + updated.seconds_left * 1000;
-            row.codeEl.textContent = updated.code;
-          }
-        }
-      } catch (_) {
-        clearInterval(countdownTimer);
-        countdownTimer = null;
-        showView('locked');
-        setTimeout(() => inputPassphrase.focus(), 50);
+      const updated = fresh.find(e => e.name === row.entry.name);
+      if (updated) {
+        row.entry = updated;
+        row.expiresAt = refreshNow + updated.seconds_left * 1000;
+        row.codeEl.textContent = updated.code;
       }
     }
-  }, 100);
+  } catch (_) {
+    stopCountdown();
+    showView('locked');
+    setTimeout(() => inputPassphrase.focus(), 50);
+  }
+}
+
+function stopCountdown() {
+  if (rafHandle) { cancelAnimationFrame(rafHandle); rafHandle = null; }
+  if (apiRefreshTimer) { clearInterval(apiRefreshTimer); apiRefreshTimer = null; }
+}
+
+function startCountdown(entries) {
+  stopCountdown();
+  renderEntries(entries);
+
+  // Smooth bar via rAF
+  function tick() {
+    const now = Date.now();
+    for (const row of liveRows) updateRow(row, now);
+    rafHandle = requestAnimationFrame(tick);
+  }
+  rafHandle = requestAnimationFrame(tick);
+
+  // Code refresh every 10s
+  apiRefreshTimer = setInterval(refreshCodes, 10_000);
 }
 
 let settingsReturnView = 'locked';
@@ -191,14 +198,20 @@ formSettings.addEventListener('submit', async (e) => {
 
 // --- Scan Screen ---
 document.getElementById('btn-scan-screen').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-scan-screen');
+  btn.textContent = '⏳';
+  btn.disabled = true;
   try {
-    const uri = await invoke('scan_screen');
-    await invoke('add_from_uri', { uri, name: '' });
+    const added = await invoke('scan_screen');
     const entries = await invoke('get_entries');
-    renderEntries(entries);
+    startCountdown(entries);
     showView('unlocked');
+    if (added.length > 1) alert(`Added ${added.length} entries: ${added.join(', ')}`);
   } catch (err) {
     alert(err);
+  } finally {
+    btn.textContent = '🖥';
+    btn.disabled = false;
   }
 });
 

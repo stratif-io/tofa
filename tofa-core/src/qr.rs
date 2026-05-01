@@ -446,6 +446,18 @@ pub fn scan_qr_uri(path: &std::path::Path) -> Result<String, QrError> {
         .ok_or(QrError::NoQrFound)
 }
 
+pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> {
+    let img = image::open(path)
+        .map_err(|e| QrError::ImageLoad(e.to_string()))?
+        .to_luma8();
+    let mut img = rqrr::PreparedImage::prepare(img);
+    let uris: Vec<String> = img.detect_grids()
+        .into_iter()
+        .filter_map(|grid| grid.decode().ok().map(|(_, content)| content))
+        .collect();
+    if uris.is_empty() { Err(QrError::NoQrFound) } else { Ok(uris) }
+}
+
 fn parse_qr_image(path: &std::path::Path) -> Result<OtpSecret, QrError> {
     let img = image::open(path)
         .map_err(|e| QrError::ImageLoad(e.to_string()))?

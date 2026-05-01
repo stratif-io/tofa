@@ -107,7 +107,7 @@ pub fn delete_entry(name: String, state: State<Mutex<AppState>>) -> Result<(), S
 }
 
 #[tauri::command]
-pub fn scan_screen(app: tauri::AppHandle) -> Result<String, String> {
+pub fn scan_screen(app: tauri::AppHandle, state: State<Mutex<AppState>>) -> Result<Vec<String>, String> {
     if let Some(win) = app.get_webview_window("popover") {
         let _ = win.hide();
     }
@@ -117,14 +117,45 @@ pub fn scan_screen(app: tauri::AppHandle) -> Result<String, String> {
         .args(["-x", "-t", "png", tmp.to_str().unwrap_or_default()])
         .status()
         .map_err(|e| e.to_string())?;
-    let uri = tofa_core::qr::scan_qr_uri(&tmp)
+    let uris = tofa_core::qr::scan_all_qr_uris(&tmp)
         .map_err(|_| "No QR code found on screen.".to_string())?;
     let _ = std::fs::remove_file(&tmp);
+    // Auto-import all found URIs
+    let mut s = state.lock().map_err(|e| e.to_string())?;
+    let passphrase = s.cache.get().ok_or("locked")?.to_string();
+    let mut vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
+        .map_err(|e| e.to_string())?;
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let mut added = Vec::new();
+    for uri in &uris {
+        if let Ok(otp) = tofa_core::qr::parse_input(uri) {
+            let name = match (&otp.meta.issuer, &otp.meta.account) {
+                (Some(i), Some(a)) => format!("{i}:{a}"),
+                (Some(i), None) => i.clone(),
+                (None, Some(a)) => a.clone(),
+                _ => format!("Imported-{}", vault.entries().len() + 1),
+            };
+            vault.add_entry(tofa_core::store::VaultEntry {
+                name: name.clone(),
+                secret: otp.secret,
+                created_at: today.clone(),
+                period: otp.meta.period.unwrap_or(30),
+                digits: otp.meta.digits.unwrap_or(6),
+                algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
+            });
+            added.push(name);
+        }
+    }
+    vault.save(&s.vault_path, &passphrase).map_err(|e| e.to_string())?;
     if let Some(win) = app.get_webview_window("popover") {
         let _ = win.show();
         let _ = win.set_focus();
     }
-    Ok(uri)
+    if added.is_empty() {
+        Err("No valid OTP QR codes found.".to_string())
+    } else {
+        Ok(added)
+    }
 }
 
 #[tauri::command]

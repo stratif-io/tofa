@@ -19,8 +19,14 @@ pub struct Settings {
 #[tauri::command]
 pub fn unlock(passphrase: String, state: State<Mutex<AppState>>) -> Result<Vec<OtpEntry>, String> {
     let mut s = state.lock().map_err(|e| e.to_string())?;
+    if !s.vault_path.exists() {
+        return Err(format!(
+            "Vault not found at {}. Open Settings to set the correct path.",
+            s.vault_path.display()
+        ));
+    }
     let vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
-        .map_err(|_| "Wrong passphrase".to_string())?;
+        .map_err(|_| "Wrong passphrase.".to_string())?;
     s.cache.unlock(passphrase);
     entries_from_vault(&vault)
 }

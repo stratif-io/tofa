@@ -103,6 +103,8 @@ button[type="submit"]:hover { opacity: 0.85; }
   color: var(--urgent);
   font-size: 12px;
   margin-bottom: 8px;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 /* OTP list */

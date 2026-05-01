@@ -49,6 +49,32 @@
     </div>
   </div>
 
+  <!-- OTP detail modal -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-detail" class="modal-detail">
+      <div class="modal-header">
+        <div id="modal-name">
+          <span id="modal-issuer"></span>
+          <span id="modal-account"></span>
+        </div>
+        <button id="modal-close" class="icon-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-code-row">
+          <span id="modal-code" class="modal-code"></span>
+          <button id="modal-copy" class="icon-btn" title="Copy">⧉</button>
+        </div>
+        <div class="modal-bar-wrap"><div id="modal-bar" class="otp-bar"></div></div>
+        <div class="modal-meta">
+          <span class="tt-row"><span class="tt-label">Algorithm</span><span id="md-algorithm"></span></span>
+          <span class="tt-row"><span class="tt-label">Digits</span><span id="md-digits"></span></span>
+          <span class="tt-row"><span class="tt-label">Period</span><span id="md-period"></span></span>
+          <span class="tt-row"><span class="tt-label">Added</span><span id="md-created"></span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Add entry confirmation view -->
   <div id="view-add-confirm" class="view hidden">
     <div class="header">

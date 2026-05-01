@@ -202,6 +202,71 @@ button[type="submit"]:hover { opacity: 0.85; }
   background: color-mix(in srgb, var(--urgent) 12%, transparent);
 }
 
+.otp-copy-btn {
+  opacity: 0;
+  transition: opacity 0.15s;
+  font-size: 14px;
+  margin-left: auto;
+}
+
+.otp-entry:hover .otp-copy-btn { opacity: 1; }
+
+/* Detail modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-detail {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: 280px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+#modal-name { display: flex; flex-direction: column; gap: 2px; }
+#modal-issuer { font-weight: 600; color: var(--text); font-size: 13px; }
+#modal-account { color: var(--dim); font-size: 11px; }
+
+.modal-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+.modal-code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-code {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.modal-bar-wrap {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.modal-meta { display: flex; flex-direction: column; gap: 4px; }
+
 .header-actions {
   display: flex;
   gap: 4px;

@@ -65,8 +65,21 @@ function renderEntries(entries) {
     const codeEl = document.createElement('span');
     codeEl.className = 'otp-code';
     codeEl.textContent = entry.code;
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'otp-copy-btn icon-btn';
+    copyBtn.title = 'Copy';
+    copyBtn.textContent = '⧉';
+    copyBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await invoke('copy_code', { name: entry.name });
+      copyBtn.textContent = '✓';
+      setTimeout(() => { copyBtn.textContent = '⧉'; }, 1200);
+    });
+
     row.appendChild(nameEl);
     row.appendChild(codeEl);
+    row.appendChild(copyBtn);
 
     const tooltip = document.createElement('div');
     tooltip.className = 'otp-tooltip';
@@ -102,10 +115,8 @@ function renderEntries(entries) {
         }
         return;
       }
-      try {
-        await invoke('copy_code', { name: entry.name });
-      } catch (err) {
-        console.error('copy failed:', err);
+      if (!e.target.classList.contains('otp-copy-btn') && !e.target.classList.contains('tt-delete')) {
+        openDetailModal(entry);
       }
     });
     otpList.appendChild(el);
@@ -321,6 +332,52 @@ document.getElementById('btn-add-confirm').addEventListener('click', async () =>
     addError.textContent = err;
     addError.classList.remove('hidden');
   }
+});
+
+// --- OTP Detail Modal ---
+let modalEntry = null;
+let modalRaf = null;
+
+function openDetailModal(entry) {
+  modalEntry = entry;
+  document.getElementById('modal-issuer').textContent = entry.issuer;
+  document.getElementById('modal-account').textContent = entry.account;
+  document.getElementById('modal-code').textContent = entry.code;
+  document.getElementById('md-algorithm').textContent = entry.algorithm;
+  document.getElementById('md-digits').textContent = entry.digits;
+  document.getElementById('md-period').textContent = entry.period + 's';
+  document.getElementById('md-created').textContent = entry.created_at;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+
+  function tickModal() {
+    const row = liveRows.find(r => r.entry.name === modalEntry.name);
+    if (!row) return;
+    const now = Date.now();
+    const msLeft = Math.max(0, row.expiresAt - now);
+    const pct = (msLeft / (row.entry.period * 1000)) * 100;
+    document.getElementById('modal-bar').style.width = pct.toFixed(3) + '%';
+    document.getElementById('modal-code').textContent = row.codeEl.textContent;
+    modalRaf = requestAnimationFrame(tickModal);
+  }
+  modalRaf = requestAnimationFrame(tickModal);
+}
+
+function closeDetailModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  if (modalRaf) { cancelAnimationFrame(modalRaf); modalRaf = null; }
+  modalEntry = null;
+}
+
+document.getElementById('modal-close').addEventListener('click', closeDetailModal);
+document.getElementById('modal-overlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal-overlay')) closeDetailModal();
+});
+document.getElementById('modal-copy').addEventListener('click', async () => {
+  if (!modalEntry) return;
+  await invoke('copy_code', { name: modalEntry.name });
+  const btn = document.getElementById('modal-copy');
+  btn.textContent = '✓';
+  setTimeout(() => { btn.textContent = '⧉'; }, 1200);
 });
 
 // --- Tray events ---

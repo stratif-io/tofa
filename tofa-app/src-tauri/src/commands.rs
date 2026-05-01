@@ -63,9 +63,6 @@ pub fn copy_code(name: String, state: State<Mutex<AppState>>, app: tauri::AppHan
     let code = format_code(&code_raw);
     use tauri_plugin_clipboard_manager::ClipboardExt;
     app.clipboard().write_text(code).map_err(|e| e.to_string())?;
-    if let Some(win) = app.get_webview_window("popover") {
-        let _ = win.hide();
-    }
     Ok(())
 }
 

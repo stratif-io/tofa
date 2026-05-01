@@ -11,9 +11,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
     // Centre a column of content vertically and horizontally
-    let content_w: u16 = 28;
-    // title(1) + sep(1) + gap(1) + label(1) + input(1) + error(1) + gap(1) + footer(1) = 8
-    let content_h: u16 = 8;
+    let content_w: u16 = 26;
+    // title(1) + sep(1) + gap(1) + label(1) + input(3) + error(1) + gap(1) + footer(1) = 10
+    let content_h: u16 = 10;
 
     let vert = Layout::default()
         .direction(Direction::Vertical)
@@ -34,7 +34,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             Constraint::Length(1), // separator
             Constraint::Length(1), // gap
             Constraint::Length(1), // label
-            Constraint::Length(1), // input box
+            Constraint::Length(3), // input box (top border + content + bottom border)
             Constraint::Length(1), // error
             Constraint::Length(1), // gap
             Constraint::Length(1), // footer
@@ -55,7 +55,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     // Thin separator line in ACCENT
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "─".repeat(content_w as usize / 3),
+            "─".repeat(name.len() + 4),
             Style::default().fg(theme::ACCENT),
         )))
         .alignment(Alignment::Center),

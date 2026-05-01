@@ -1,5 +1,4 @@
 use crate::tui::{state::AppState, theme};
-use unicode_width::UnicodeWidthStr;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -72,7 +71,6 @@ fn render_header(f: &mut Frame, area: Rect, vault: &Vault, secs: u64) {
 fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault, secs: u64) {
     let timer_col = theme::timer_color(secs);
     let entries = vault.entries();
-    let width = area.width as usize;
 
     let items: Vec<ListItem> = entries
         .iter()
@@ -115,7 +113,7 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault, secs:
             // Expiry bar: 6 blocks representing seconds remaining in the 30s window
             const BAR_LEN: usize = 6;
             let bar_col = if selected { timer_col } else { theme::MUTED };
-            let (expiry_bar, bar_display_len) = if show {
+            let (expiry_bar, _) = if show {
                 let filled = ((secs as usize * BAR_LEN) / 30).min(BAR_LEN);
                 let bar = format!(
                     " {}{}",
@@ -128,18 +126,12 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault, secs:
                 (String::new(), 0)
             };
 
-            // Fixed 2-space gap between label and code, then bar at the end
-            const GAP: usize = 2;
-            let label_w = 2 + UnicodeWidthStr::width(label.as_str()); // cursor + label
-            let code_w  = UnicodeWidthStr::width(code_str.as_str());
-            let used    = label_w + GAP + code_w + bar_display_len;
-            // Extra padding so the bar is right-aligned when terminal is wide
-            let pad = width.saturating_sub(used);
+            const GAP: &str = "  "; // fixed 2-space gap between label and code
 
             let line = Line::from(vec![
                 Span::styled(cursor, Style::default().fg(theme::ACCENT)),
                 Span::styled(label, Style::default().fg(label_col).add_modifier(label_mod)),
-                Span::raw(" ".repeat(GAP + pad)),
+                Span::raw(GAP),
                 Span::styled(code_str, Style::default().fg(code_col)),
                 Span::styled(expiry_bar, Style::default().fg(bar_col)),
             ]);

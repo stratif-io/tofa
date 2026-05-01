@@ -147,7 +147,6 @@ button[type="submit"]:hover { opacity: 0.85; }
   height: 100%;
   border-radius: 1px;
   background: var(--accent);
-  transition: width 1s linear;
 }
 
 .otp-bar.urgent { background: var(--urgent); }

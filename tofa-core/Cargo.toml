@@ -1,0 +1,25 @@
+[package]
+name = "tofa-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Core library for tofa — encrypted TOTP vault"
+repository = "https://github.com/cabichahine/tofa"
+
+[dependencies]
+argon2 = "0.5"
+aes-gcm = "0.10"
+totp-rs = { version = "5", features = ["gen_secret"] }
+rqrr = "0.7"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+zeroize = { version = "1", features = ["derive"] }
+rand = "0.8"
+thiserror = "1"
+base64 = "0.22"
+data-encoding = "2"
+qrcode = { version = "0.14.1", features = ["image"] }
+
+[dev-dependencies]
+tempfile = "3"

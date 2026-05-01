@@ -47,8 +47,9 @@ pub fn copy_code(name: String, state: State<Mutex<AppState>>, app: tauri::AppHan
     let entry = vault.entries().iter()
         .find(|e| e.name == name)
         .ok_or_else(|| format!("entry '{}' not found", name))?;
-    let code = tofa_core::totp::generate_code_now(entry)
+    let code_raw = tofa_core::totp::generate_code_now(entry)
         .map_err(|e| e.to_string())?;
+    let code = format_code(&code_raw);
     use tauri_plugin_clipboard_manager::ClipboardExt;
     app.clipboard().write_text(code).map_err(|e| e.to_string())?;
     Ok(())
@@ -77,11 +78,19 @@ pub fn save_settings(settings: Settings) -> Result<(), String> {
     std::fs::write(&path, s).map_err(|e| e.to_string())
 }
 
+fn format_code(raw: &str) -> String {
+    if raw.len() == 6 {
+        format!("{} {}", &raw[..3], &raw[3..])
+    } else {
+        raw.to_string()
+    }
+}
+
 fn entries_from_vault(vault: &tofa_core::store::Vault) -> Result<Vec<OtpEntry>, String> {
     vault.entries().iter().map(|entry| {
         let code_raw = tofa_core::totp::generate_code_now(entry)
             .map_err(|e| e.to_string())?;
-        let code = format!("{} {}", &code_raw[..3], &code_raw[3..]);
+        let code = format_code(&code_raw);
         let seconds_left = tofa_core::totp::seconds_remaining_now(entry);
         Ok(OtpEntry {
             name: entry.name.clone(),

@@ -35,10 +35,6 @@ impl PassphraseCache {
         }
     }
 
-    pub fn is_locked(&mut self) -> bool {
-        self.get().is_none()
-    }
-
     pub fn lock(&mut self) {
         use zeroize::Zeroize;
         self.passphrase.zeroize();
@@ -96,7 +92,7 @@ mod tests {
     #[test]
     fn new_cache_is_locked() {
         let mut cache = PassphraseCache::new();
-        assert!(cache.is_locked());
+        assert!(cache.get().is_none());
         assert!(cache.get().is_none());
     }
 
@@ -104,7 +100,7 @@ mod tests {
     fn unlock_makes_passphrase_available() {
         let mut cache = PassphraseCache::new();
         cache.unlock("secret".to_string());
-        assert!(!cache.is_locked());
+        assert!(cache.get().is_some());
         assert_eq!(cache.get(), Some("secret"));
     }
 
@@ -113,7 +109,7 @@ mod tests {
         let mut cache = PassphraseCache::new();
         cache.unlock("secret".to_string());
         cache.lock();
-        assert!(cache.is_locked());
+        assert!(cache.get().is_none());
         assert!(cache.get().is_none());
     }
 }

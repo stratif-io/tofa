@@ -157,9 +157,13 @@ fn run_app(
                                 let list_start = 2;
                                 let list_end = list_start + v.entries().len() * 2;
                                 if row >= list_start && row < list_end {
-                                    let clicked = (row - list_start) / 2;
-                                    app_state.selected_index = clicked;
-                                    copy_selected_code(&mut app_state, v);
+                                    let entry_row = row - list_start;
+                                    let is_separator = entry_row % 2 == 1;
+                                    if !is_separator {
+                                        let clicked = entry_row / 2;
+                                        app_state.selected_index = clicked;
+                                        copy_selected_code(&mut app_state, v);
+                                    }
                                 }
                             }
                             Screen::Fullscreen => {

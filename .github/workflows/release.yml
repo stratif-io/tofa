@@ -43,7 +43,13 @@ jobs:
 
       - name: Install cross
         if: matrix.use_cross
-        run: cargo install cross --locked
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Install binutils for cross-compilation
+        if: matrix.use_cross
+        run: sudo apt-get install -y binutils-aarch64-linux-gnu
 
       - name: Build
         run: |
@@ -53,7 +59,13 @@ jobs:
           else
             cargo build --release --target ${{ matrix.target }} -p tofa
           fi
-          strip target/${{ matrix.target }}/release/tofa || true
+          case "${{ matrix.target }}" in
+            aarch64-*-linux-*)
+              aarch64-linux-gnu-strip target/${{ matrix.target }}/release/tofa 2>/dev/null || \
+                strip target/${{ matrix.target }}/release/tofa 2>/dev/null || true ;;
+            *)
+              strip target/${{ matrix.target }}/release/tofa 2>/dev/null || true ;;
+          esac
 
       - name: Package
         run: |

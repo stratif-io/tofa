@@ -24,6 +24,7 @@ formUnlock.addEventListener('submit', async (e) => {
     const entries = await invoke('unlock', { passphrase: inputPassphrase.value });
     inputPassphrase.value = '';
     renderEntries(entries);
+    startRefresh();
     showView('unlocked');
   } catch (err) {
     unlockError.textContent = err;
@@ -35,6 +36,8 @@ formUnlock.addEventListener('submit', async (e) => {
 const otpList = document.getElementById('otp-list');
 const btnSettings = document.getElementById('btn-settings');
 
+let refreshTimer = null;
+
 function renderEntries(entries) {
   otpList.innerHTML = '';
   entries.forEach(entry => {
@@ -43,15 +46,28 @@ function renderEntries(entries) {
 
     const el = document.createElement('div');
     el.className = 'otp-entry';
-    el.innerHTML = `
-      <div class="otp-row">
-        <span class="otp-name">${entry.name}</span>
-        <span class="otp-code">${entry.code}</span>
-      </div>
-      <div class="otp-bar-wrap">
-        <div class="otp-bar${urgent ? ' urgent' : ''}" style="width:${pct}%"></div>
-      </div>
-    `;
+
+    const row = document.createElement('div');
+    row.className = 'otp-row';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'otp-name';
+    nameEl.textContent = entry.name;
+    const codeEl = document.createElement('span');
+    codeEl.className = 'otp-code';
+    codeEl.textContent = entry.code;
+    row.appendChild(nameEl);
+    row.appendChild(codeEl);
+
+    const barWrap = document.createElement('div');
+    barWrap.className = 'otp-bar-wrap';
+    const bar = document.createElement('div');
+    bar.className = 'otp-bar' + (urgent ? ' urgent' : '');
+    bar.style.width = pct + '%';
+    barWrap.appendChild(bar);
+
+    el.appendChild(row);
+    el.appendChild(barWrap);
+
     el.addEventListener('click', async () => {
       try {
         await invoke('copy_code', { name: entry.name });
@@ -61,6 +77,24 @@ function renderEntries(entries) {
     });
     otpList.appendChild(el);
   });
+}
+
+async function refreshEntries() {
+  try {
+    const entries = await invoke('get_entries');
+    renderEntries(entries);
+  } catch (err) {
+    // locked — go back to lock screen
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+    showView('locked');
+    setTimeout(() => inputPassphrase.focus(), 50);
+  }
+}
+
+function startRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(refreshEntries, 10000);
 }
 
 btnSettings.addEventListener('click', async () => {

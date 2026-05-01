@@ -72,23 +72,30 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault, secs:
     let timer_col = theme::timer_color(secs);
     let entries = vault.entries();
 
+    // Build labels first so we can compute the max width for column alignment
+    let labels: Vec<String> = entries.iter().map(|entry| {
+        if let Some(pos) = entry.name.find(':') {
+            let issuer  = &entry.name[..pos];
+            let account = &entry.name[pos + 1..];
+            if account.is_empty() { entry.name.clone() } else { format!("{} · {}", issuer, account) }
+        } else {
+            entry.name.clone()
+        }
+    }).collect();
+
+    // cursor (2) + label + gap (2) — code column starts at this fixed offset
+    let max_label_w = labels.iter().map(|l| l.chars().count()).max().unwrap_or(0);
+    let code_col_offset = 2 + max_label_w + 2;
+
+    const BAR_LEN: usize = 6;
+    let filled = ((secs as usize * BAR_LEN) / 30).min(BAR_LEN);
+
     let items: Vec<ListItem> = entries
         .iter()
         .enumerate()
         .map(|(i, entry)| {
             let selected = i == state.selected_index;
-
-            let label = if let Some(pos) = entry.name.find(':') {
-                let issuer  = &entry.name[..pos];
-                let account = &entry.name[pos + 1..];
-                if account.is_empty() {
-                    entry.name.clone()
-                } else {
-                    format!("{} · {}", issuer, account)
-                }
-            } else {
-                entry.name.clone()
-            };
+            let label = &labels[i];
 
             let show = state.show_codes || selected;
             let code_str = if show {
@@ -110,33 +117,31 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault, secs:
                 )
             };
 
-            // Expiry bar: 6 blocks representing seconds remaining in the 30s window
-            const BAR_LEN: usize = 6;
             let bar_col = if selected { timer_col } else { theme::MUTED };
-            let (expiry_bar, _) = if show {
-                let filled = ((secs as usize * BAR_LEN) / 30).min(BAR_LEN);
-                let bar = format!(
-                    " {}{}",
-                    "█".repeat(filled),
-                    "░".repeat(BAR_LEN - filled),
-                );
-                let len = 1 + BAR_LEN; // space + bar chars (all single-width)
-                (bar, len)
+            let expiry_bar = if show {
+                format!(" {}{}", "█".repeat(filled), "░".repeat(BAR_LEN - filled))
             } else {
-                (String::new(), 0)
+                String::new()
             };
 
-            const GAP: &str = "  "; // fixed 2-space gap between label and code
+            // Pad label so all codes start at the same column
+            let pad = max_label_w.saturating_sub(label.chars().count());
 
-            let line = Line::from(vec![
+            let content = Line::from(vec![
                 Span::styled(cursor, Style::default().fg(theme::ACCENT)),
-                Span::styled(label, Style::default().fg(label_col).add_modifier(label_mod)),
-                Span::raw(GAP),
+                Span::styled(label.clone(), Style::default().fg(label_col).add_modifier(label_mod)),
+                Span::raw(" ".repeat(pad + 2)), // align to code column
                 Span::styled(code_str, Style::default().fg(code_col)),
                 Span::styled(expiry_bar, Style::default().fg(bar_col)),
             ]);
 
-            ListItem::new(line)
+            // Light separator line below each row
+            let separator = Line::from(Span::styled(
+                "─".repeat(code_col_offset + 9 + BAR_LEN + 1),
+                Style::default().fg(theme::BORDER),
+            ));
+
+            ListItem::new(vec![content, separator])
         })
         .collect();
 

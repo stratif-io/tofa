@@ -78,6 +78,7 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     }).collect();
 
     let max_label_w = labels.iter().map(|l| l.chars().count()).max().unwrap_or(0);
+    let max_code_w: usize = entries.iter().map(|e| if e.digits == 8 { 9usize } else { 7 }).max().unwrap_or(7);
     let code_col_offset = 2 + max_label_w + 2;
 
     const BAR_LEN: usize = 20;
@@ -122,17 +123,19 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             };
 
             let pad = max_label_w.saturating_sub(label.chars().count());
+            let code_pad = max_code_w.saturating_sub(code_str.chars().count());
 
             let content = Line::from(vec![
                 Span::styled(cursor, Style::default().fg(theme::ACCENT)),
                 Span::styled(label.clone(), Style::default().fg(label_col).add_modifier(label_mod)),
                 Span::raw(" ".repeat(pad + 2)),
                 Span::styled(code_str, Style::default().fg(code_col)),
+                Span::raw(" ".repeat(code_pad)),
                 Span::styled(expiry_bar, Style::default().fg(bar_col)),
             ]);
 
             let separator = Line::from(Span::styled(
-                "─".repeat(code_col_offset + 9 + BAR_LEN + 1),
+                "─".repeat(code_col_offset + max_code_w + BAR_LEN + 1),
                 Style::default().fg(theme::BORDER),
             ));
 

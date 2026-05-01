@@ -78,13 +78,17 @@ pub fn get_settings() -> Result<Settings, String> {
 }
 
 #[tauri::command]
-pub fn save_settings(settings: Settings) -> Result<(), String> {
+pub fn save_settings(settings: Settings, state: State<Mutex<AppState>>) -> Result<(), String> {
     let path = settings_path();
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     let s = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
-    std::fs::write(&path, s).map_err(|e| e.to_string())
+    std::fs::write(&path, s).map_err(|e| e.to_string())?;
+    let mut st = state.lock().map_err(|e| e.to_string())?;
+    st.vault_path = std::path::PathBuf::from(&settings.vault_path);
+    st.cache.lock();
+    Ok(())
 }
 
 fn format_code(raw: &str) -> String {

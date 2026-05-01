@@ -173,7 +173,10 @@ formSettings.addEventListener('submit', async (e) => {
 document.getElementById('btn-scan-screen').addEventListener('click', async () => {
   try {
     const uri = await invoke('scan_screen');
-    openAddConfirm(uri);
+    await invoke('add_from_uri', { uri, name: '' });
+    const entries = await invoke('get_entries');
+    renderEntries(entries);
+    showView('unlocked');
   } catch (err) {
     alert(err);
   }

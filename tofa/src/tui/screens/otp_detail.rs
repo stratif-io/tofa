@@ -8,7 +8,7 @@ use ratatui::{
 };
 use tofa_core::{
     store::Vault,
-    totp::{generate_code_now, seconds_remaining_now},
+    totp::{format_code, generate_code_now, seconds_remaining_now},
 };
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
@@ -83,7 +83,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     let field_rows: &[(&str, &str, bool)] = &[
         ("Name",    entry.name.as_str(),     false),
-        ("Code",    &format!("{} {}  {}s", &code[..3], &code[3..], secs), true),
+        ("Code",    &format!("{}  {}s", format_code(&code), secs), true),
         ("Secret",  &secret_display,         false),
         ("Created", entry.created_at.as_str(), false),
     ];

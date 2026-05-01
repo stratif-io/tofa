@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
-use tofa_core::{store::VaultEntry, totp::{generate_code_now, seconds_remaining_now}};
+use tofa_core::{store::VaultEntry, totp::{format_code, generate_code_now, seconds_remaining_now}};
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
@@ -89,7 +89,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         )),
         Line::from(vec![
             Span::styled(
-                format!("{}  {}", &code[..3], &code[3..]),
+                format!("{}  ", format_code(&code)),
                 Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD),
             ),
             Span::raw("  "),

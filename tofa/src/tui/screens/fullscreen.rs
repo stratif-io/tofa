@@ -8,7 +8,7 @@ use ratatui::{
 };
 use tofa_core::{
     store::Vault,
-    totp::{generate_code_now, seconds_remaining_now},
+    totp::{format_code, generate_code_now, seconds_remaining_now},
 };
 use tui_big_text::{BigText, PixelSize};
 
@@ -79,7 +79,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         chunks[0],
     );
 
-    let spaced = format!("{} {}", &code[..3], &code[3..]);
+    let spaced = format_code(&code);
     let pixel_size = if use_half_height { PixelSize::HalfHeight } else { PixelSize::Quadrant };
     let big_text = BigText::builder()
         .pixel_size(pixel_size)

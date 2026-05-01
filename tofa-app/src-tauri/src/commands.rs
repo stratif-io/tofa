@@ -88,11 +88,7 @@ pub fn save_settings(settings: Settings) -> Result<(), String> {
 }
 
 fn format_code(raw: &str) -> String {
-    if raw.len() == 6 {
-        format!("{} {}", &raw[..3], &raw[3..])
-    } else {
-        raw.to_string()
-    }
+    tofa_core::totp::format_code(raw)
 }
 
 fn entries_from_vault(vault: &tofa_core::store::Vault) -> Result<Vec<OtpEntry>, String> {

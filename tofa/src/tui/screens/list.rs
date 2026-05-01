@@ -9,7 +9,7 @@ use ratatui::{
 use std::time::SystemTime;
 use tofa_core::{
     store::Vault,
-    totp::{generate_code_now, seconds_remaining_now},
+    totp::{format_code, generate_code_now, mask_code, seconds_remaining_now},
 };
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
@@ -99,9 +99,9 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             let show = state.show_codes || selected;
             let code_str = if show {
                 let code = generate_code_now(entry).unwrap_or_else(|_| "000000".to_string());
-                format!("{} {}", &code[..3], &code[3..])
+                format_code(&code)
             } else {
-                "••• •••".to_string()
+                mask_code(entry).to_string()
             };
 
             let (cursor, label_col, label_mod, code_col) = if selected {

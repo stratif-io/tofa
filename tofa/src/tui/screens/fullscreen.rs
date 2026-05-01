@@ -22,11 +22,14 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let secs = seconds_remaining_now(entry);
     let timer_col = theme::timer_color(secs);
 
-    let use_half_height = area.width >= 68;
+    let is_8digit = entry.digits == 8;
+    let use_half_height = if is_8digit { area.width >= 80 } else { area.width >= 68 };
     let (modal_w, modal_h) = if use_half_height {
-        (area.width.min(70), 13u16)
+        let min_w = if is_8digit { 82u16 } else { 70u16 };
+        (area.width.min(min_w), 13u16)
     } else {
-        (area.width.min(38).max(28), 13u16)
+        let min_w = if is_8digit { 46u16 } else { 38u16 };
+        (area.width.min(min_w).max(min_w.min(area.width)), 13u16)
     };
     let modal_x = area.x + (area.width.saturating_sub(modal_w)) / 2;
     let modal_y = area.y + (area.height.saturating_sub(modal_h)) / 2;

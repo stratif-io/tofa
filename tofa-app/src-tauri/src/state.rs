@@ -18,18 +18,24 @@ impl PassphraseCache {
     }
 
     pub fn unlock(&mut self, passphrase: String) {
+        use zeroize::Zeroize;
+        self.passphrase.zeroize(); // scrub old bytes before overwriting
         *self.passphrase = passphrase;
         self.unlocked_at = Some(Instant::now());
     }
 
-    pub fn get(&self) -> Option<&str> {
+    pub fn get(&mut self) -> Option<&str> {
         match self.unlocked_at {
             Some(t) if t.elapsed() < CACHE_TTL => Some(self.passphrase.as_str()),
-            _ => None,
+            _ => {
+                // TTL expired — enforce in memory, not just visibility
+                self.lock();
+                None
+            }
         }
     }
 
-    pub fn is_locked(&self) -> bool {
+    pub fn is_locked(&mut self) -> bool {
         self.get().is_none()
     }
 
@@ -72,7 +78,7 @@ mod tests {
 
     #[test]
     fn new_cache_is_locked() {
-        let cache = PassphraseCache::new();
+        let mut cache = PassphraseCache::new();
         assert!(cache.is_locked());
         assert!(cache.get().is_none());
     }

@@ -153,11 +153,11 @@ fn run_app(
                         match app_state.screen {
                             Screen::List => {
                                 let v = vault.as_ref().expect("vault initialized");
-                                // Each list item = 2 lines (content + separator).
-                                // Header = 2 rows, so subtract them first.
-                                let row = (mouse.row as usize).saturating_sub(2);
-                                let clicked = row / 2;
-                                if clicked < v.entries().len() {
+                                let row = mouse.row as usize;
+                                let list_start = 2;
+                                let list_end = list_start + v.entries().len() * 2;
+                                if row >= list_start && row < list_end {
+                                    let clicked = (row - list_start) / 2;
                                     app_state.selected_index = clicked;
                                     copy_selected_code(&mut app_state, v);
                                 }

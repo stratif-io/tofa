@@ -115,9 +115,13 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             let period_ms = entry.period as u64 * 1000;
             let ms_into_period = now_ms % period_ms;
             let ms_left = period_ms - ms_into_period;
-            let filled = ((ms_left * BAR_LEN as u64) / period_ms) as usize;
             let expiry_bar = if show {
-                format!(" {}{}", "█".repeat(filled), "░".repeat(BAR_LEN - filled))
+                const EIGHTHS: &[char] = &[' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'];
+                let filled_eighths = ((ms_left * BAR_LEN as u64 * 8) / period_ms) as usize;
+                let full = filled_eighths / 8;
+                let partial = filled_eighths % 8;
+                let empty = BAR_LEN.saturating_sub(full + if partial > 0 { 1 } else { 0 });
+                format!(" {}{}{}", "█".repeat(full), EIGHTHS[partial], "░".repeat(empty))
             } else {
                 String::new()
             };

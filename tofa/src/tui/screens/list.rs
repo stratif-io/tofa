@@ -124,18 +124,22 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
             let pad = max_label_w.saturating_sub(label.chars().count());
             let code_pad = max_code_w.saturating_sub(code_str.chars().count());
+            let secs_str = format!("{:>2}s", secs);
+            let secs_col = if show { timer_col } else { theme::MUTED };
 
             let content = Line::from(vec![
                 Span::styled(cursor, Style::default().fg(theme::ACCENT)),
                 Span::styled(label.clone(), Style::default().fg(label_col).add_modifier(label_mod)),
                 Span::raw(" ".repeat(pad + 2)),
+                Span::styled(secs_str, Style::default().fg(secs_col)),
+                Span::raw(" "),
                 Span::styled(code_str, Style::default().fg(code_col)),
                 Span::raw(" ".repeat(code_pad)),
                 Span::styled(expiry_bar, Style::default().fg(bar_col)),
             ]);
 
             let separator = Line::from(Span::styled(
-                "─".repeat(code_col_offset + max_code_w + BAR_LEN + 1),
+                "─".repeat(code_col_offset + 4 + max_code_w + BAR_LEN + 1),
                 Style::default().fg(theme::BORDER),
             ));
 

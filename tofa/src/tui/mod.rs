@@ -409,6 +409,9 @@ fn handle_list_key(
         KeyCode::Char('y') if !accumulating => {
             copy_selected_code(state, vault);
         }
+        KeyCode::Char('l') if !accumulating => {
+            lock_screen(state);
+        }
         // Accumulate only if it looks like a file path (starts with '/' or '~'),
         // or we're already mid-accumulation. Anything else is ignored.
         KeyCode::Char(c) if accumulating || c == '/' || c == '~' => {
@@ -439,6 +442,7 @@ fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
             state.screen = Screen::OtpDetail;
         }
         KeyCode::Char('y') => copy_selected_code(state, vault),
+        KeyCode::Char('l') => lock_screen(state),
         KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
             state.selected_index -= 1;
         }
@@ -710,6 +714,7 @@ fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
             state.screen = Screen::Fullscreen;
         }
         KeyCode::Char('y') => copy_selected_code(state, vault),
+        KeyCode::Char('l') => lock_screen(state),
         KeyCode::Char('s') => {
             if state.detail_secret_visible {
                 state.detail_secret_visible = false;
@@ -894,6 +899,20 @@ fn handle_file_picker_key(
         _ => {}
     }
     Ok(())
+}
+
+fn lock_screen(state: &mut AppState) {
+    use zeroize::Zeroize;
+    if let Some(k) = &mut state.vault_key_cache {
+        k.zeroize();
+    }
+    state.vault_key_cache = None;
+    state.passphrase_input.zeroize();
+    state.passphrase_input = Zeroizing::new(String::new());
+    state.unlock_error = false;
+    state.unlock_error_msg = None;
+    state.unlock_confirming = false;
+    state.screen = Screen::Unlock;
 }
 
 fn list_row_content_width(vault: &Vault) -> usize {

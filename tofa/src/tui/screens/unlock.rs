@@ -10,98 +10,91 @@ use ratatui::{
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
-    let box_height = 10u16;
+    // Centre a column of content vertically and horizontally
+    let content_w: u16 = 28;
+    // title(1) + sep(1) + gap(1) + label(1) + input(1) + error(1) + gap(1) + footer(1) = 8
+    let content_h: u16 = 8;
+
     let vert = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Fill(1),
-            Constraint::Length(box_height),
+            Constraint::Length(content_h),
             Constraint::Fill(1),
         ])
         .split(area);
 
-    let box_width = area.width.min(52);
-    let pad = (area.width.saturating_sub(box_width)) / 2;
-    let outer = Rect {
-        x: area.x + pad,
-        y: vert[1].y,
-        width: box_width,
-        height: box_height,
-    };
-
-    f.render_widget(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(theme::BORDER))
-            .style(Style::default().bg(theme::BG)),
-        outer,
-    );
-
-    let inner = Rect {
-        x: outer.x + 1,
-        y: outer.y + 1,
-        width: outer.width.saturating_sub(2),
-        height: outer.height.saturating_sub(2),
-    };
+    let x = area.x + (area.width.saturating_sub(content_w)) / 2;
+    let content = Rect { x, y: vert[1].y, width: content_w, height: content_h };
 
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(1), // title
-            Constraint::Length(1), // subtitle
+            Constraint::Length(1), // separator
             Constraint::Length(1), // gap
             Constraint::Length(1), // label
-            Constraint::Length(1), // input
+            Constraint::Length(1), // input box
             Constraint::Length(1), // error
             Constraint::Length(1), // gap
-            Constraint::Length(1), // help
+            Constraint::Length(1), // footer
         ])
-        .split(inner);
+        .split(content);
 
+    // Title — large, bold, no letter-spacing
+    let name = env!("CARGO_PKG_NAME");
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            &env!("CARGO_PKG_NAME").chars().map(|c| c.to_string()).collect::<Vec<_>>().join(" "),
-            Style::default().fg(theme::TEXT).add_modifier(Modifier::BOLD),
+            name,
+            Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD),
         )))
         .alignment(Alignment::Center),
         rows[0],
     );
 
+    // Thin separator line in ACCENT
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "OTP Manager",
-            Style::default().fg(theme::DIM),
+            "─".repeat(content_w as usize / 3),
+            Style::default().fg(theme::ACCENT),
         )))
         .alignment(Alignment::Center),
         rows[1],
     );
 
+    // "Passphrase" label
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Passphrase",
             Style::default().fg(theme::DIM),
-        )))
-        .alignment(Alignment::Left),
+        ))),
         rows[3],
     );
 
+    // Input box with border
+    let input_dots = "•".repeat(state.passphrase_input.len());
     f.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled(
-                "•".repeat(state.passphrase_input.len()),
-                Style::default().fg(theme::DIM),
-            ),
+            Span::styled(input_dots, Style::default().fg(theme::DIM)),
             Span::styled("▌", Style::default().fg(theme::ACCENT)),
         ]))
-        .alignment(Alignment::Left),
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(
+                    if state.unlock_error { theme::URGENT } else { theme::BORDER },
+                ))
+                .style(Style::default().bg(theme::BG)),
+        ),
         rows[4],
     );
 
+    // Error message
     if state.unlock_error {
         f.render_widget(
             Paragraph::new(Line::from(Span::styled(
-                "Wrong passphrase. Try again.",
+                "Wrong passphrase.",
                 Style::default().fg(theme::URGENT),
             )))
             .alignment(Alignment::Center),
@@ -109,9 +102,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         );
     }
 
+    // Footer
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "[ Enter ] unlock   [ Ctrl+C ] quit",
+            "⏎ unlock · ^C quit",
             Style::default().fg(theme::MUTED),
         )))
         .alignment(Alignment::Center),

@@ -77,9 +77,42 @@ jobs:
           name: tofa-${{ matrix.target }}
           path: ${{ env.ARCHIVE }}
 
+  tauri-build:
+    name: Build macOS App (Tauri)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: tauri-universal
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Build universal app
+        working-directory: tofa-app/src-tauri
+        run: cargo tauri build --target universal-apple-darwin
+
+      - name: Rename DMG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mv tofa-app/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg \
+             "tofa-${VERSION}.dmg"
+          echo "DMG_FILE=tofa-${VERSION}.dmg" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tofa-dmg
+          path: ${{ env.DMG_FILE }}
+
   release:
     name: Publish GitHub Release
-    needs: build
+    needs: [build, tauri-build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -91,6 +124,7 @@ jobs:
         run: |
           cd artifacts
           sha256sum *.tar.gz > SHA256SUMS
+          sha256sum *.dmg >> SHA256SUMS
           cat SHA256SUMS
 
       - name: Publish release
@@ -98,6 +132,7 @@ jobs:
         with:
           files: |
             artifacts/*.tar.gz
+            artifacts/*.dmg
             artifacts/SHA256SUMS
           generate_release_notes: true
 
@@ -107,6 +142,7 @@ jobs:
           SHA_MAC_X86=$(grep "x86_64-apple-darwin" artifacts/SHA256SUMS | awk '{print $1}')
           SHA_LINUX_ARM=$(grep "aarch64-unknown-linux-musl" artifacts/SHA256SUMS | awk '{print $1}')
           SHA_LINUX_X86=$(grep "x86_64-unknown-linux-musl" artifacts/SHA256SUMS | awk '{print $1}')
+          SHA_DMG=$(grep "\.dmg" artifacts/SHA256SUMS | awk '{print $1}')
           curl -s -X POST \
             -H "Authorization: Bearer ${{ secrets.TAP_DISPATCH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
@@ -117,6 +153,7 @@ jobs:
                 \"version\": \"$VERSION\",
                 \"sha_mac_x86\": \"$SHA_MAC_X86\",
                 \"sha_linux_arm\": \"$SHA_LINUX_ARM\",
-                \"sha_linux_x86\": \"$SHA_LINUX_X86\"
+                \"sha_linux_x86\": \"$SHA_LINUX_X86\",
+                \"sha_dmg\": \"$SHA_DMG\"
               }
             }"

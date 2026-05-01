@@ -130,20 +130,26 @@ function startCountdown(entries) {
   }, 100);
 }
 
-btnSettings.addEventListener('click', async () => {
+let settingsReturnView = 'locked';
+
+async function openSettings(returnTo) {
+  settingsReturnView = returnTo;
   try {
     const s = await invoke('get_settings');
     document.getElementById('input-vault-path').value = s.vault_path;
   } catch (_) {}
   showView('settings');
-});
+}
+
+btnSettings.addEventListener('click', () => openSettings('unlocked'));
+document.getElementById('btn-settings-locked').addEventListener('click', () => openSettings('locked'));
 
 // --- Settings view ---
 const formSettings = document.getElementById('form-settings');
 const btnBack = document.getElementById('btn-back');
 const settingsError = document.getElementById('settings-error');
 
-btnBack.addEventListener('click', () => showView('unlocked'));
+btnBack.addEventListener('click', () => showView(settingsReturnView));
 
 formSettings.addEventListener('submit', async (e) => {
   e.preventDefault();

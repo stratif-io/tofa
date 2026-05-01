@@ -333,7 +333,7 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
         ("demo@example.com", "Demo TOTP SHA256", "JBSWY3DPEHPK3PXP", 2, 1, 2),
         ("demo@example.com", "Demo TOTP SHA512", "JBSWY3DPEHPK3PXP", 3, 1, 2),
         ("demo@example.com", "Demo TOTP 8-digit","JBSWY3DPEHPK3PXP", 1, 2, 2),
-        ("demo2@example.com","Demo TOTP 60s",    "MFRA22LOMFRA22LO", 1, 1, 2),
+        ("demo2@example.com","Demo HOTP",         "MFRA22LOMFRA22LO", 1, 1, 1),
     ];
 
     let mut payload: Vec<u8> = Vec::new();

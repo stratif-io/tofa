@@ -6,14 +6,17 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
+use std::path::Path;
 
-pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
+pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
-    // Centre a column of content vertically and horizontally
-    let content_w: u16 = 26;
-    // title(1) + sep(1) + gap(1) + label(1) + input(3) + error(1) + gap(1) + footer(1) = 10
-    let content_h: u16 = 10;
+    let content_w: u16 = area.width.min(54);
+    let is_new = state.is_new_vault;
+
+    // Height: title(1) + sep(1) + vault_path(1) + gap(1) + [warning(2)+gap(1) if new] + label(1) + input(3) + [confirm_label(1)+confirm_input(3) if confirming] + error(1) + gap(1) + footer(1)
+    let extra: u16 = if is_new { 3 } else { 0 } + if state.unlock_confirming { 4 } else { 0 };
+    let content_h: u16 = 11 + extra;
 
     let vert = Layout::default()
         .direction(Direction::Vertical)
@@ -27,21 +30,36 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     let x = area.x + (area.width.saturating_sub(content_w)) / 2;
     let content = Rect { x, y: vert[1].y, width: content_w, height: content_h };
 
+    // Build constraint list dynamically
+    let mut constraints = vec![
+        Constraint::Length(1), // title
+        Constraint::Length(1), // separator
+        Constraint::Length(1), // vault path
+        Constraint::Length(1), // gap
+    ];
+    if is_new {
+        constraints.push(Constraint::Length(1)); // warning line 1
+        constraints.push(Constraint::Length(1)); // warning line 2
+        constraints.push(Constraint::Length(1)); // gap
+    }
+    constraints.push(Constraint::Length(1)); // passphrase label
+    constraints.push(Constraint::Length(3)); // passphrase input
+    if state.unlock_confirming {
+        constraints.push(Constraint::Length(1)); // confirm label
+        constraints.push(Constraint::Length(3)); // confirm input
+    }
+    constraints.push(Constraint::Length(1)); // error
+    constraints.push(Constraint::Length(1)); // gap
+    constraints.push(Constraint::Length(1)); // footer
+
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // title
-            Constraint::Length(1), // separator
-            Constraint::Length(1), // gap
-            Constraint::Length(1), // label
-            Constraint::Length(3), // input box (top border + content + bottom border)
-            Constraint::Length(1), // error
-            Constraint::Length(1), // gap
-            Constraint::Length(1), // footer
-        ])
+        .constraints(constraints)
         .split(content);
 
-    // Title — large, bold, no letter-spacing
+    let mut idx = 0;
+
+    // Title
     let name = env!("CARGO_PKG_NAME");
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
@@ -49,66 +67,168 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD),
         )))
         .alignment(Alignment::Center),
-        rows[0],
+        rows[idx],
     );
+    idx += 1;
 
-    // Thin separator line in ACCENT
+    // Separator
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "─".repeat(name.len() + 4),
             Style::default().fg(theme::ACCENT),
         )))
         .alignment(Alignment::Center),
-        rows[1],
+        rows[idx],
     );
+    idx += 1;
 
-    // "Passphrase" label
+    // Vault path with clipboard shortcut
+    let raw_path = vault_path.to_string_lossy();
+    let display_path = if let Some(home) = dirs::home_dir() {
+        let home_str = home.to_string_lossy();
+        if raw_path.starts_with(home_str.as_ref()) {
+            format!("~{}", &raw_path[home_str.len()..])
+        } else {
+            raw_path.to_string()
+        }
+    } else {
+        raw_path.to_string()
+    };
+    // Truncate if too wide
+    let max_path_w = content_w.saturating_sub(6) as usize;
+    let shown_path = if display_path.len() > max_path_w {
+        format!("…{}", &display_path[display_path.len() - max_path_w..])
+    } else {
+        display_path
+    };
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            "Passphrase",
-            Style::default().fg(theme::DIM),
-        ))),
-        rows[3],
+        Paragraph::new(Line::from(vec![
+            Span::styled("📋 ", Style::default().fg(theme::DIM)),
+            Span::styled(shown_path, Style::default().fg(theme::DIM)),
+            Span::styled("  [ Tab ] copy", Style::default().fg(theme::MUTED)),
+        ])),
+        rows[idx],
     );
+    idx += 1;
 
-    // Input box with border
+    // Gap
+    idx += 1;
+
+    // Warning (new vault only)
+    if is_new {
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                "⚠  Creating a new vault.",
+                Style::default().fg(theme::URGENT).add_modifier(Modifier::BOLD),
+            )))
+            .alignment(Alignment::Center),
+            rows[idx],
+        );
+        idx += 1;
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                "Remember your passphrase — it cannot be recovered.",
+                Style::default().fg(theme::URGENT),
+            )))
+            .alignment(Alignment::Center),
+            rows[idx],
+        );
+        idx += 1;
+        idx += 1; // gap
+    }
+
+    // Passphrase label + input
+    let pass_label = if is_new { "Choose a passphrase" } else { "Passphrase" };
+    f.render_widget(
+        Paragraph::new(Line::from(Span::styled(pass_label, Style::default().fg(theme::DIM)))),
+        rows[idx],
+    );
+    idx += 1;
+
     let input_dots = "•".repeat(state.passphrase_input.len());
+    let pass_active = !state.unlock_confirming;
     f.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled(input_dots, Style::default().fg(theme::DIM)),
-            Span::styled("▌", Style::default().fg(theme::ACCENT)),
+            Span::styled(if pass_active { "▌" } else { "" }, Style::default().fg(theme::ACCENT)),
         ]))
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(
-                    if state.unlock_error { theme::URGENT } else { theme::BORDER },
+                    if state.unlock_error && pass_active { theme::URGENT } else { theme::BORDER },
                 ))
                 .style(Style::default().bg(theme::BG)),
         ),
-        rows[4],
+        rows[idx],
     );
+    idx += 1;
+
+    // Confirm passphrase (new vault, second step)
+    if state.unlock_confirming {
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled("Confirm passphrase", Style::default().fg(theme::DIM)))),
+            rows[idx],
+        );
+        idx += 1;
+
+        let confirm_dots = "•".repeat(state.passphrase_confirm.len());
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(confirm_dots, Style::default().fg(theme::DIM)),
+                Span::styled("▌", Style::default().fg(theme::ACCENT)),
+            ]))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .border_style(Style::default().fg(
+                        if state.unlock_error { theme::URGENT } else { theme::BORDER },
+                    ))
+                    .style(Style::default().bg(theme::BG)),
+            ),
+            rows[idx],
+        );
+        idx += 1;
+    }
 
     // Error message
-    if state.unlock_error {
+    if let Some(msg) = &state.unlock_error_msg {
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                msg.as_str(),
+                Style::default().fg(theme::URGENT),
+            )))
+            .alignment(Alignment::Center),
+            rows[idx],
+        );
+    } else if state.unlock_error {
         f.render_widget(
             Paragraph::new(Line::from(Span::styled(
                 "Wrong passphrase.",
                 Style::default().fg(theme::URGENT),
             )))
             .alignment(Alignment::Center),
-            rows[5],
+            rows[idx],
         );
     }
+    idx += 1;
+
+    // Gap
+    idx += 1;
 
     // Footer
+    let footer = if state.unlock_confirming {
+        "⏎ confirm · Esc back · ^C quit"
+    } else if is_new {
+        "⏎ continue · ^C quit"
+    } else {
+        "⏎ unlock · ^C quit"
+    };
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            "⏎ unlock · ^C quit",
-            Style::default().fg(theme::MUTED),
-        )))
-        .alignment(Alignment::Center),
-        rows[7],
+        Paragraph::new(Line::from(Span::styled(footer, Style::default().fg(theme::MUTED))))
+            .alignment(Alignment::Center),
+        rows[idx],
     );
 }

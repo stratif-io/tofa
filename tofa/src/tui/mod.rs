@@ -58,12 +58,13 @@ fn run_app(
     let mut app_state = AppState::new();
     let mut vault: Option<Vault> = None;
     let path = vault_path();
+    app_state.is_new_vault = !path.exists();
 
     loop {
         terminal.draw(|f| {
             let area = f.area();
             match app_state.screen {
-                Screen::Unlock => screens::unlock::render(f, area, &app_state),
+                Screen::Unlock => screens::unlock::render(f, area, &app_state, &path),
                 Screen::List => screens::list::render(
                     f,
                     area,
@@ -263,30 +264,96 @@ fn run_app(
 }
 
 fn handle_unlock_key(key: KeyCode, state: &mut AppState, vault: &mut Option<Vault>, path: &Path) {
+    // Tab copies vault path to clipboard
+    if key == KeyCode::Tab {
+        let path_str = path.to_string_lossy().to_string();
+        let _ = arboard::Clipboard::new().and_then(|mut cb| cb.set_text(path_str));
+        return;
+    }
+
+    if state.unlock_confirming {
+        // Second step: confirm passphrase
+        match key {
+            KeyCode::Char(c) => state.passphrase_confirm.push(c),
+            KeyCode::Backspace => { state.passphrase_confirm.pop(); }
+            KeyCode::Esc => {
+                state.unlock_confirming = false;
+                state.passphrase_confirm = Zeroizing::new(String::new());
+                state.unlock_error = false;
+                state.unlock_error_msg = None;
+            }
+            KeyCode::Enter => {
+                if *state.passphrase_input == *state.passphrase_confirm {
+                    match Vault::load_or_new(path, &state.passphrase_input) {
+                        Ok(v) => {
+                            state.unlock_error = false;
+                            state.unlock_error_msg = None;
+                            state.is_new_vault = false;
+                            state.unlock_confirming = false;
+                            state.screen = if v.entries().is_empty() {
+                                state.clear_add_form();
+                                Screen::AddForm
+                            } else {
+                                Screen::List
+                            };
+                            let pass_bytes = Zeroizing::new(state.passphrase_input.as_bytes().to_vec());
+                            state.vault_key_cache = Some(pass_bytes);
+                            state.passphrase_input.clear();
+                            state.passphrase_confirm = Zeroizing::new(String::new());
+                            *vault = Some(v);
+                        }
+                        Err(e) => {
+                            state.unlock_error = true;
+                            state.unlock_error_msg = Some(format!("Error: {e}"));
+                            state.passphrase_confirm = Zeroizing::new(String::new());
+                        }
+                    }
+                } else {
+                    state.unlock_error = true;
+                    state.unlock_error_msg = Some("Passphrases do not match.".to_string());
+                    state.passphrase_confirm = Zeroizing::new(String::new());
+                }
+            }
+            _ => {}
+        }
+        return;
+    }
+
     match key {
         KeyCode::Char(c) => state.passphrase_input.push(c),
-        KeyCode::Backspace => {
-            state.passphrase_input.pop();
+        KeyCode::Backspace => { state.passphrase_input.pop(); }
+        KeyCode::Enter => {
+            if state.is_new_vault {
+                // First-time: move to confirmation step
+                if !state.passphrase_input.is_empty() {
+                    state.unlock_confirming = true;
+                    state.unlock_error = false;
+                    state.unlock_error_msg = None;
+                }
+            } else {
+                match Vault::load_or_new(path, &state.passphrase_input) {
+                    Ok(v) => {
+                        state.unlock_error = false;
+                        state.unlock_error_msg = None;
+                        state.screen = if v.entries().is_empty() {
+                            state.clear_add_form();
+                            Screen::AddForm
+                        } else {
+                            Screen::List
+                        };
+                        *vault = Some(v);
+                        let pass_bytes = Zeroizing::new(state.passphrase_input.as_bytes().to_vec());
+                        state.vault_key_cache = Some(pass_bytes);
+                        state.passphrase_input.clear();
+                    }
+                    Err(_) => {
+                        state.unlock_error = true;
+                        state.unlock_error_msg = None;
+                        state.passphrase_input.clear();
+                    }
+                }
+            }
         }
-        KeyCode::Enter => match Vault::load_or_new(path, &state.passphrase_input) {
-            Ok(v) => {
-                state.unlock_error = false;
-                state.screen = if v.entries().is_empty() {
-                    state.clear_add_form();
-                    Screen::AddForm
-                } else {
-                    Screen::List
-                };
-                *vault = Some(v);
-                let pass_bytes = Zeroizing::new(state.passphrase_input.as_bytes().to_vec());
-                state.vault_key_cache = Some(pass_bytes);
-                state.passphrase_input.clear();
-            }
-            Err(_) => {
-                state.unlock_error = true;
-                state.passphrase_input.clear();
-            }
-        },
         _ => {}
     }
 }

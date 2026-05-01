@@ -81,18 +81,6 @@ function renderEntries(entries) {
     row.appendChild(codeEl);
     row.appendChild(copyBtn);
 
-    const tooltip = document.createElement('div');
-    tooltip.className = 'otp-tooltip';
-    const rows = [
-      entry.issuer  ? `<span class="tt-row"><span class="tt-label">Issuer</span><span>${entry.issuer}</span></span>` : '',
-      entry.account ? `<span class="tt-row"><span class="tt-label">Account</span><span>${entry.account}</span></span>` : '',
-      `<span class="tt-row"><span class="tt-label">Algorithm</span><span>${entry.algorithm}</span></span>`,
-      `<span class="tt-row"><span class="tt-label">Digits</span><span>${entry.digits}</span></span>`,
-      `<span class="tt-row"><span class="tt-label">Period</span><span>${entry.period}s</span></span>`,
-      `<span class="tt-row"><span class="tt-label">Added</span><span>${entry.created_at}</span></span>`,
-      `<button class="tt-delete" data-name="${entry.name}">Delete</button>`,
-    ];
-    tooltip.innerHTML = rows.join('');
 
     const barWrap = document.createElement('div');
     barWrap.className = 'otp-bar-wrap';
@@ -101,21 +89,10 @@ function renderEntries(entries) {
     barWrap.appendChild(bar);
 
     el.appendChild(row);
-    el.appendChild(tooltip);
     el.appendChild(barWrap);
 
-    el.addEventListener('click', async (e) => {
-      if (e.target.classList.contains('tt-delete')) {
-        try {
-          await invoke('delete_entry', { name: e.target.dataset.name });
-          const entries = await invoke('get_entries');
-          renderEntries(entries);
-        } catch (err) {
-          console.error('delete failed:', err);
-        }
-        return;
-      }
-      if (!e.target.classList.contains('otp-copy-btn') && !e.target.classList.contains('tt-delete')) {
+    el.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('otp-copy-btn')) {
         openDetailModal(entry);
       }
     });
@@ -342,11 +319,16 @@ function openDetailModal(entry) {
   modalEntry = entry;
   document.getElementById('modal-issuer').textContent = entry.issuer;
   document.getElementById('modal-account').textContent = entry.account;
+  document.getElementById('md-issuer-row').style.display = entry.issuer ? '' : 'none';
+  document.getElementById('md-account-row').style.display = entry.account ? '' : 'none';
+  document.getElementById('md-issuer').textContent = entry.issuer;
+  document.getElementById('md-account').textContent = entry.account;
   document.getElementById('modal-code').textContent = entry.code;
   document.getElementById('md-algorithm').textContent = entry.algorithm;
   document.getElementById('md-digits').textContent = entry.digits;
   document.getElementById('md-period').textContent = entry.period + 's';
   document.getElementById('md-created').textContent = entry.created_at;
+  document.getElementById('modal-delete').dataset.name = entry.name;
   document.getElementById('modal-overlay').classList.remove('hidden');
 
   function tickModal() {
@@ -372,6 +354,18 @@ document.getElementById('modal-close').addEventListener('click', closeDetailModa
 document.getElementById('modal-overlay').addEventListener('click', (e) => {
   if (e.target === document.getElementById('modal-overlay')) closeDetailModal();
 });
+document.getElementById('modal-delete').addEventListener('click', async (e) => {
+  const name = e.target.dataset.name;
+  try {
+    await invoke('delete_entry', { name });
+    closeDetailModal();
+    const entries = await invoke('get_entries');
+    renderEntries(entries);
+  } catch (err) {
+    console.error('delete failed:', err);
+  }
+});
+
 document.getElementById('modal-copy').addEventListener('click', async () => {
   if (!modalEntry) return;
   await invoke('copy_code', { name: modalEntry.name });

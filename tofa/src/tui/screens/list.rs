@@ -131,11 +131,11 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
                 Span::styled(cursor, Style::default().fg(theme::ACCENT)),
                 Span::styled(label.clone(), Style::default().fg(label_col).add_modifier(label_mod)),
                 Span::raw(" ".repeat(pad + 2)),
-                Span::styled(secs_str, Style::default().fg(secs_col)),
-                Span::raw(" "),
                 Span::styled(code_str, Style::default().fg(code_col)),
                 Span::raw(" ".repeat(code_pad)),
                 Span::styled(expiry_bar, Style::default().fg(bar_col)),
+                Span::raw(" "),
+                Span::styled(secs_str, Style::default().fg(secs_col)),
             ]);
 
             let separator = Line::from(Span::styled(

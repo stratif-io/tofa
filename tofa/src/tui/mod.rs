@@ -286,10 +286,11 @@ fn handle_list_key(
             state.selected_index += 1;
         }
         KeyCode::Down | KeyCode::Char('j') if !accumulating => {}
-        KeyCode::Enter | KeyCode::Char(' ') if !accumulating && len > 0 => {
+        KeyCode::Enter if !accumulating => {}
+        KeyCode::Char(' ') if !accumulating && len > 0 => {
             state.screen = Screen::Fullscreen;
         }
-        KeyCode::Enter | KeyCode::Char(' ') if !accumulating => {}
+        KeyCode::Char(' ') if !accumulating => {}
         KeyCode::Char('a') if !accumulating => {
             state.clear_add_form();
             state.screen = Screen::AddForm;
@@ -337,7 +338,7 @@ fn handle_list_key(
 fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
     let len = vault.entries().len();
     match key {
-        KeyCode::Esc | KeyCode::Char('q') => state.screen = Screen::List,
+        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char(' ') => state.screen = Screen::List,
         KeyCode::Char('y') => copy_selected_code(state, vault),
         KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
             state.selected_index -= 1;

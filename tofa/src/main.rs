@@ -4,7 +4,7 @@ fn main() {
     let cli = tofa::cli::Cli::parse();
     match cli.command {
         None => {
-            if let Err(e) = tofa::tui::run() {
+            if let Err(e) = tofa::tui::run(cli.vault) {
                 eprintln!("Error: {e}");
                 std::process::exit(1);
             }

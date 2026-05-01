@@ -24,21 +24,21 @@ use std::{
 const IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "gif", "bmp", "webp"];
 use zeroize::Zeroizing;
 
-pub fn vault_path() -> PathBuf {
+pub fn default_vault_path() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("tofa")
         .join("vault.enc")
 }
 
-pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(vault_override: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let res = run_app(&mut terminal);
+    let res = run_app(&mut terminal, vault_override);
 
     // Always restore terminal regardless of result
     let _ = disable_raw_mode();
@@ -54,10 +54,17 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_app(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    vault_override: Option<PathBuf>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut app_state = AppState::new();
     let mut vault: Option<Vault> = None;
-    let path = vault_path();
+    let path = vault_override
+        .map(|p| if p.starts_with("~") {
+            dirs::home_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join(p.strip_prefix("~").unwrap_or(&p))
+        } else { p })
+        .unwrap_or_else(default_vault_path);
     app_state.is_new_vault = !path.exists();
 
     loop {

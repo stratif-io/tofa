@@ -1,10 +1,13 @@
 const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
 
 // --- Views ---
 const views = {
   locked: document.getElementById('view-locked'),
   unlocked: document.getElementById('view-unlocked'),
   settings: document.getElementById('view-settings'),
+  camera: document.getElementById('view-camera'),
+  'add-confirm': document.getElementById('view-add-confirm'),
 };
 
 function showView(name) {
@@ -163,6 +166,116 @@ formSettings.addEventListener('submit', async (e) => {
   } catch (err) {
     settingsError.textContent = err;
     settingsError.classList.remove('hidden');
+  }
+});
+
+// --- Scan Screen ---
+document.getElementById('btn-scan-screen').addEventListener('click', async () => {
+  try {
+    const uri = await invoke('scan_screen');
+    openAddConfirm(uri);
+  } catch (err) {
+    alert(err);
+  }
+});
+
+// --- Scan Camera ---
+let cameraStream = null;
+let cameraTimer = null;
+
+document.getElementById('btn-scan-camera').addEventListener('click', () => startCamera());
+document.getElementById('btn-camera-back').addEventListener('click', () => stopCamera());
+
+async function startCamera() {
+  showView('camera');
+  const video = document.getElementById('camera-video');
+  const status = document.getElementById('camera-status');
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    video.srcObject = cameraStream;
+    status.textContent = 'Point camera at a QR code…';
+    cameraTimer = setInterval(captureFrame, 400);
+  } catch (err) {
+    status.textContent = 'Camera unavailable: ' + err.message;
+  }
+}
+
+function stopCamera() {
+  clearInterval(cameraTimer);
+  cameraTimer = null;
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  showView('unlocked');
+}
+
+async function captureFrame() {
+  const video = document.getElementById('camera-video');
+  const canvas = document.getElementById('camera-canvas');
+  if (video.readyState < 2) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/png');
+  const base64 = dataUrl.split(',')[1];
+  try {
+    const uri = await invoke('scan_image_data', { data: base64 });
+    stopCamera();
+    openAddConfirm(uri);
+  } catch (_) { /* no QR yet */ }
+}
+
+// --- Add confirm ---
+let pendingUri = null;
+
+function openAddConfirm(uri) {
+  pendingUri = uri;
+  const info = document.getElementById('add-confirm-info');
+  const nameInput = document.getElementById('input-entry-name');
+  const addError = document.getElementById('add-error');
+  addError.classList.add('hidden');
+  try {
+    const url = new URL(uri);
+    const label = decodeURIComponent(url.pathname.replace(/^\/\/totp\//, ''));
+    const issuer = url.searchParams.get('issuer') || '';
+    info.textContent = issuer ? `${issuer} · ${label}` : label;
+    nameInput.value = issuer && label ? `${issuer}:${label}` : label;
+  } catch (_) {
+    info.textContent = uri;
+    nameInput.value = '';
+  }
+  showView('add-confirm');
+  setTimeout(() => nameInput.focus(), 50);
+}
+
+document.getElementById('btn-add-back').addEventListener('click', () => showView('unlocked'));
+
+document.getElementById('btn-add-confirm').addEventListener('click', async () => {
+  const name = document.getElementById('input-entry-name').value.trim();
+  const addError = document.getElementById('add-error');
+  addError.classList.add('hidden');
+  try {
+    await invoke('add_from_uri', { uri: pendingUri, name });
+    pendingUri = null;
+    const entries = await invoke('get_entries');
+    renderEntries(entries);
+    showView('unlocked');
+  } catch (err) {
+    addError.textContent = err;
+    addError.classList.remove('hidden');
+  }
+});
+
+// --- Tray events ---
+listen('tray-action', (event) => {
+  const action = event.payload;
+  if (action === 'scan-screen') {
+    document.getElementById('btn-scan-screen').click();
+  } else if (action === 'scan-camera') {
+    document.getElementById('btn-scan-camera').click();
+  } else if (action === 'settings') {
+    openSettings(views.unlocked.classList.contains('hidden') ? 'locked' : 'unlocked');
   }
 });
 

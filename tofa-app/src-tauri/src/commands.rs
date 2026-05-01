@@ -91,6 +91,68 @@ pub fn save_settings(settings: Settings, state: State<Mutex<AppState>>) -> Resul
     Ok(())
 }
 
+#[tauri::command]
+pub fn scan_screen(app: tauri::AppHandle) -> Result<String, String> {
+    if let Some(win) = app.get_webview_window("popover") {
+        let _ = win.hide();
+    }
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    let tmp = std::env::temp_dir().join("tofa_scan.png");
+    std::process::Command::new("screencapture")
+        .args(["-x", "-t", "png", tmp.to_str().unwrap_or_default()])
+        .status()
+        .map_err(|e| e.to_string())?;
+    let uri = tofa_core::qr::scan_qr_uri(&tmp)
+        .map_err(|_| "No QR code found on screen.".to_string())?;
+    let _ = std::fs::remove_file(&tmp);
+    if let Some(win) = app.get_webview_window("popover") {
+        let _ = win.show();
+        let _ = win.set_focus();
+    }
+    Ok(uri)
+}
+
+#[tauri::command]
+pub fn scan_image_data(data: String) -> Result<String, String> {
+    use base64::{Engine, engine::general_purpose::STANDARD};
+    let bytes = STANDARD.decode(&data).map_err(|e| e.to_string())?;
+    let tmp = std::env::temp_dir().join("tofa_camera_frame.png");
+    std::fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
+    let uri = tofa_core::qr::scan_qr_uri(&tmp)
+        .map_err(|_| "No QR code detected.".to_string())?;
+    let _ = std::fs::remove_file(&tmp);
+    Ok(uri)
+}
+
+#[tauri::command]
+pub fn add_from_uri(uri: String, name: String, state: State<Mutex<AppState>>) -> Result<(), String> {
+    let mut s = state.lock().map_err(|e| e.to_string())?;
+    let passphrase = s.cache.get().ok_or("locked")?.to_string();
+    let mut vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
+        .map_err(|e| e.to_string())?;
+    let otp = tofa_core::qr::parse_input(&uri).map_err(|e| e.to_string())?;
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let entry_name = if name.trim().is_empty() {
+        match (&otp.meta.issuer, &otp.meta.account) {
+            (Some(i), Some(a)) => format!("{i}:{a}"),
+            (Some(i), None) => i.clone(),
+            (None, Some(a)) => a.clone(),
+            _ => "Imported".to_string(),
+        }
+    } else {
+        name
+    };
+    vault.add_entry(tofa_core::store::VaultEntry {
+        name: entry_name,
+        secret: otp.secret,
+        created_at: today,
+        period: otp.meta.period.unwrap_or(30),
+        digits: otp.meta.digits.unwrap_or(6),
+        algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
+    });
+    vault.save(&s.vault_path, &passphrase).map_err(|e| e.to_string())
+}
+
 fn format_code(raw: &str) -> String {
     tofa_core::totp::format_code(raw)
 }

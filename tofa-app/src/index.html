@@ -27,9 +27,41 @@
   <div id="view-unlocked" class="view hidden">
     <div class="header">
       <span class="app-name">tofa</span>
-      <button id="btn-settings" class="icon-btn" title="Settings">⚙</button>
+      <div class="header-actions">
+        <button id="btn-scan-screen" class="icon-btn" title="Scan screen for QR code">🖥</button>
+        <button id="btn-scan-camera" class="icon-btn" title="Scan QR code with camera">📷</button>
+        <button id="btn-settings" class="icon-btn" title="Settings">⚙</button>
+      </div>
     </div>
     <div id="otp-list" class="otp-list"></div>
+  </div>
+
+  <!-- Camera scan view -->
+  <div id="view-camera" class="view hidden">
+    <div class="header">
+      <button id="btn-camera-back" class="icon-btn" title="Back">←</button>
+      <span class="app-name">Scan QR</span>
+    </div>
+    <div class="camera-container">
+      <video id="camera-video" autoplay playsinline></video>
+      <canvas id="camera-canvas" style="display:none"></canvas>
+      <p id="camera-status" class="dim">Point camera at a QR code…</p>
+    </div>
+  </div>
+
+  <!-- Add entry confirmation view -->
+  <div id="view-add-confirm" class="view hidden">
+    <div class="header">
+      <button id="btn-add-back" class="icon-btn" title="Back">←</button>
+      <span class="app-name">Add Entry</span>
+    </div>
+    <div class="content">
+      <p id="add-confirm-info" class="dim"></p>
+      <label for="input-entry-name">Name</label>
+      <input id="input-entry-name" type="text" spellcheck="false">
+      <p id="add-error" class="error hidden"></p>
+      <button id="btn-add-confirm">Add</button>
+    </div>
   </div>
 
   <!-- Settings view -->

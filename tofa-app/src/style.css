@@ -156,3 +156,26 @@ button[type="submit"]:hover { opacity: 0.85; }
   font-size: 11px;
   text-align: right;
 }
+
+.header-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.camera-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  flex: 1;
+}
+
+#camera-video {
+  width: 100%;
+  border-radius: var(--radius);
+  background: #000;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "name": "carlo.abichahine@gmail.com",
+    "secret": "K5HFMDJH6KCVC576MOZ7DY5IRTCNAHJS",
+    "created_at": "2026-05-01",
+    "period": 30,
+    "digits": 6,
+    "algorithm": "SHA1"
+  },
+  {
+    "name": "Test",
+    "secret": "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ",
+    "created_at": "2026-05-01",
+    "period": 30,
+    "digits": 6,
+    "algorithm": "SHA1"
+  },
+  {
+    "name": "Demo TOTP SHA1:demo@example.com",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "created_at": "2026-05-01",
+    "period": 30,
+    "digits": 6,
+    "algorithm": "SHA1"
+  },
+  {
+    "name": "Demo TOTP SHA256:demo@example.com",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "created_at": "2026-05-01",
+    "period": 30,
+    "digits": 6,
+    "algorithm": "SHA256"
+  },
+  {
+    "name": "Demo TOTP SHA512:demo@example.com",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "created_at": "2026-05-01",
+    "period": 30,
+    "digits": 6,
+    "algorithm": "SHA512"
+  },
+  {
+    "name": "Demo TOTP 8-digit:demo@example.com",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "created_at": "2026-05-01",
+    "period": 30,
+    "digits": 8,
+    "algorithm": "SHA1"
+  },
+  {
+    "name": "Demo TOTP 60s:demo2@example.com",
+    "secret": "MFRA22LOMFRA22LO",
+    "created_at": "2026-05-01",
+    "period": 30,
+    "digits": 6,
+    "algorithm": "SHA1"
+  }
+]

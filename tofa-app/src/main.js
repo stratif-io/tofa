@@ -102,7 +102,15 @@ function startCountdown(entries) {
     if (needsRefresh) {
       try {
         const fresh = await invoke('get_entries');
-        renderEntries(fresh);
+        // Only reset rows whose code changed — leave others counting down
+        for (const row of liveRows) {
+          const updated = fresh.find(e => e.name === row.entry.name);
+          if (updated && updated.code !== row.codeEl.textContent) {
+            row.entry = updated;
+            row.secsLeft = updated.seconds_left;
+            row.codeEl.textContent = updated.code;
+          }
+        }
       } catch (_) {
         // TTL expired — go back to lock screen
         clearInterval(countdownTimer);

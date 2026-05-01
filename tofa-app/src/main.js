@@ -158,7 +158,8 @@ formSettings.addEventListener('submit', async (e) => {
     await invoke('save_settings', {
       settings: { vault_path: document.getElementById('input-vault-path').value }
     });
-    showView('unlocked');
+    showView('locked');
+    setTimeout(() => inputPassphrase.focus(), 50);
   } catch (err) {
     settingsError.textContent = err;
     settingsError.classList.remove('hidden');

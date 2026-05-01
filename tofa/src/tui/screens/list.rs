@@ -6,6 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame,
 };
+use std::time::SystemTime;
 use tofa_core::{
     store::Vault,
     totp::{generate_code_now, seconds_remaining_now},
@@ -79,7 +80,12 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let max_label_w = labels.iter().map(|l| l.chars().count()).max().unwrap_or(0);
     let code_col_offset = 2 + max_label_w + 2;
 
-    const BAR_LEN: usize = 6;
+    const BAR_LEN: usize = 20;
+
+    let now_ms = SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64;
 
     let items: Vec<ListItem> = entries
         .iter()
@@ -105,7 +111,10 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             };
 
             let bar_col = if selected { timer_col } else { theme::MUTED };
-            let filled = ((secs as usize * BAR_LEN) / entry.period as usize).min(BAR_LEN);
+            let period_ms = entry.period as u64 * 1000;
+            let ms_into_period = now_ms % period_ms;
+            let ms_left = period_ms - ms_into_period;
+            let filled = ((ms_left * BAR_LEN as u64) / period_ms) as usize;
             let expiry_bar = if show {
                 format!(" {}{}", "█".repeat(filled), "░".repeat(BAR_LEN - filled))
             } else {

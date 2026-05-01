@@ -141,7 +141,7 @@ fn run_app(
             continue;
         }
 
-        if event::poll(Duration::from_millis(500))? {
+        if event::poll(Duration::from_millis(100))? {
             match event::read()? {
               Event::Mouse(mouse) => {
                 if let MouseEventKind::Down(MouseButton::Left) = mouse.kind {

@@ -69,7 +69,8 @@ function renderEntries(entries) {
       `<span class="tt-row"><span class="tt-label">Algorithm</span><span>${entry.algorithm}</span></span>` +
       `<span class="tt-row"><span class="tt-label">Digits</span><span>${entry.digits}</span></span>` +
       `<span class="tt-row"><span class="tt-label">Period</span><span>${entry.period}s</span></span>` +
-      `<span class="tt-row"><span class="tt-label">Added</span><span>${entry.created_at}</span></span>`;
+      `<span class="tt-row"><span class="tt-label">Added</span><span>${entry.created_at}</span></span>` +
+      `<button class="tt-delete" data-name="${entry.name}">Delete</button>`;
 
     const barWrap = document.createElement('div');
     barWrap.className = 'otp-bar-wrap';
@@ -81,7 +82,17 @@ function renderEntries(entries) {
     el.appendChild(tooltip);
     el.appendChild(barWrap);
 
-    el.addEventListener('click', async () => {
+    el.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('tt-delete')) {
+        try {
+          await invoke('delete_entry', { name: e.target.dataset.name });
+          const entries = await invoke('get_entries');
+          renderEntries(entries);
+        } catch (err) {
+          console.error('delete failed:', err);
+        }
+        return;
+      }
       try {
         await invoke('copy_code', { name: entry.name });
       } catch (err) {

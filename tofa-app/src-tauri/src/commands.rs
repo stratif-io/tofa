@@ -95,6 +95,18 @@ pub fn save_settings(settings: Settings, state: State<Mutex<AppState>>) -> Resul
 }
 
 #[tauri::command]
+pub fn delete_entry(name: String, state: State<Mutex<AppState>>) -> Result<(), String> {
+    let mut s = state.lock().map_err(|e| e.to_string())?;
+    let passphrase = s.cache.get().ok_or("locked")?.to_string();
+    let mut vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
+        .map_err(|e| e.to_string())?;
+    let idx = vault.entries().iter().position(|e| e.name == name)
+        .ok_or_else(|| format!("entry '{}' not found", name))?;
+    vault.remove_entry(idx);
+    vault.save(&s.vault_path, &passphrase).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn scan_screen(app: tauri::AppHandle) -> Result<String, String> {
     if let Some(win) = app.get_webview_window("popover") {
         let _ = win.hide();

@@ -24,6 +24,7 @@ pub fn run() {
             commands::scan_screen,
             commands::scan_image_data,
             commands::add_from_uri,
+            commands::delete_entry,
         ])
         .setup(|app| {
             let _window = WebviewWindowBuilder::new(

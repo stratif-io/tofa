@@ -144,14 +144,32 @@ fn run_app(
         if event::poll(Duration::from_millis(500))? {
             match event::read()? {
               Event::Mouse(mouse) => {
-                if app_state.screen == Screen::List {
-                    if let MouseEventKind::Down(MouseButton::Left) = mouse.kind {
-                        let v = vault.as_ref().expect("vault initialized");
-                        // Each list item = 3 lines. Row 0 = top of terminal = item 0.
-                        let clicked = (mouse.row as usize) / 3;
-                        if clicked < v.entries().len() {
-                            app_state.selected_index = clicked;
-                            copy_selected_code(&mut app_state, v);
+                if let MouseEventKind::Down(MouseButton::Left) = mouse.kind {
+                    // Dismiss toast on any click
+                    if app_state.status_message.is_some() {
+                        app_state.status_message = None;
+                        app_state.status_message_at = None;
+                    } else {
+                        match app_state.screen {
+                            Screen::List => {
+                                let v = vault.as_ref().expect("vault initialized");
+                                // Each list item = 2 lines (content + separator).
+                                // Header = 2 rows, so subtract them first.
+                                let row = (mouse.row as usize).saturating_sub(2);
+                                let clicked = row / 2;
+                                if clicked < v.entries().len() {
+                                    app_state.selected_index = clicked;
+                                    copy_selected_code(&mut app_state, v);
+                                }
+                            }
+                            Screen::Fullscreen => {
+                                app_state.screen = Screen::List;
+                            }
+                            Screen::OtpDetail => {
+                                app_state.reset_detail_reveal();
+                                app_state.screen = Screen::List;
+                            }
+                            _ => {}
                         }
                     }
                 }

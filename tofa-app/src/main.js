@@ -148,15 +148,25 @@ function startCountdown(entries) {
   stopCountdown();
   renderEntries(entries);
 
-  // Smooth bar via rAF
+  let refreshing = false;
+
+  // Smooth bar via rAF — triggers immediate refresh on expiry
   function tick() {
     const now = Date.now();
-    for (const row of liveRows) updateRow(row, now);
+    let anyExpired = false;
+    for (const row of liveRows) {
+      updateRow(row, now);
+      if (now >= row.expiresAt) anyExpired = true;
+    }
+    if (anyExpired && !refreshing) {
+      refreshing = true;
+      refreshCodes().finally(() => { refreshing = false; });
+    }
     rafHandle = requestAnimationFrame(tick);
   }
   rafHandle = requestAnimationFrame(tick);
 
-  // Code refresh every 10s
+  // Background refresh every 10s as safety net
   apiRefreshTimer = setInterval(refreshCodes, 10_000);
 }
 

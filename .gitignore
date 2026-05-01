@@ -6,3 +6,5 @@ tofa.app/
 tofa.icns
 tofa.iconset/
 tofa-app/src-tauri/target/
+.DS_Store
+*.json

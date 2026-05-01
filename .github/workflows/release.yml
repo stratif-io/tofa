@@ -104,7 +104,6 @@ jobs:
       - name: Dispatch tap update
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          SHA_MAC_ARM=$(grep "aarch64-apple-darwin" artifacts/SHA256SUMS | awk '{print $1}')
           SHA_MAC_X86=$(grep "x86_64-apple-darwin" artifacts/SHA256SUMS | awk '{print $1}')
           SHA_LINUX_ARM=$(grep "aarch64-unknown-linux-musl" artifacts/SHA256SUMS | awk '{print $1}')
           SHA_LINUX_X86=$(grep "x86_64-unknown-linux-musl" artifacts/SHA256SUMS | awk '{print $1}')
@@ -116,7 +115,6 @@ jobs:
               \"event_type\": \"new-release\",
               \"client_payload\": {
                 \"version\": \"$VERSION\",
-                \"sha_mac_arm\": \"$SHA_MAC_ARM\",
                 \"sha_mac_x86\": \"$SHA_MAC_X86\",
                 \"sha_linux_arm\": \"$SHA_LINUX_ARM\",
                 \"sha_linux_x86\": \"$SHA_LINUX_X86\"

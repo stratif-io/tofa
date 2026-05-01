@@ -163,7 +163,7 @@ fn render_footer(f: &mut Frame, area: Rect) {
     );
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "↑↓ nav  space fullscreen  h codes  a add  d del  y copy  q quit",
+            "↑↓ nav  spc fullscreen  i detail  h codes  a add  d del  y copy  e export  q quit",
             Style::default().fg(theme::MUTED),
         )))
         .style(Style::default().bg(theme::BG)),

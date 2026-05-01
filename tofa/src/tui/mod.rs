@@ -306,6 +306,7 @@ fn handle_list_key(
             state.reset_detail_reveal();
             state.screen = Screen::OtpDetail;
         }
+        KeyCode::Char('i') if !accumulating => {}
         KeyCode::Char('e') if !accumulating && len > 0 => {
             state.export_checked = vec![true; len];
             state.export_selected = state.selected_index.min(len.saturating_sub(1));
@@ -591,7 +592,7 @@ fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
     }
 
     match key {
-        KeyCode::Esc | KeyCode::Char('q') => {
+        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('i') => {
             state.reset_detail_reveal();
             state.screen = Screen::List;
         }

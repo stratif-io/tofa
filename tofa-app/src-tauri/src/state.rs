@@ -76,15 +76,17 @@ impl AppState {
 }
 
 pub fn default_vault_path() -> PathBuf {
-    let mut p = dirs::home_dir().unwrap_or_else(|| PathBuf::from("~"));
-    p.push(".config/tofa/vault.enc");
-    p
+    dirs::config_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("tofa")
+        .join("vault.enc")
 }
 
 pub fn settings_path() -> PathBuf {
-    let mut p = dirs::home_dir().unwrap_or_else(|| PathBuf::from("~"));
-    p.push(".config/tofa/settings.json");
-    p
+    dirs::config_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("tofa")
+        .join("tofa-app-settings.json")
 }
 
 #[cfg(test)]

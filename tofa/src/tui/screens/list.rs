@@ -1,4 +1,5 @@
 use crate::tui::{state::AppState, theme};
+use unicode_width::UnicodeWidthStr;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -25,14 +26,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         ])
         .split(area);
 
-    render_header(f, chunks[0], vault);
-    render_list(f, chunks[1], state, vault);
+    let secs = seconds_remaining_now();
+
+    render_header(f, chunks[0], vault, secs);
+    render_list(f, chunks[1], state, vault, secs);
     render_footer(f, chunks[2]);
     render_toast(f, area, state);
 }
 
-fn render_header(f: &mut Frame, area: Rect, vault: &Vault) {
-    let secs = seconds_remaining_now();
+fn render_header(f: &mut Frame, area: Rect, vault: &Vault, secs: u64) {
     let timer_col = theme::timer_color(secs);
     let count = vault.entries().len();
 
@@ -67,8 +69,7 @@ fn render_header(f: &mut Frame, area: Rect, vault: &Vault) {
     );
 }
 
-fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
-    let secs = seconds_remaining_now();
+fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault, secs: u64) {
     let timer_col = theme::timer_color(secs);
     let entries = vault.entries();
     let width = area.width as usize;
@@ -111,8 +112,8 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
                 )
             };
 
-            let label_display_len = 2 + label.chars().count();
-            let code_display_len  = code_str.chars().count();
+            let label_display_len = 2 + UnicodeWidthStr::width(label.as_str());
+            let code_display_len  = UnicodeWidthStr::width(code_str.as_str());
             let pad = width
                 .saturating_sub(label_display_len)
                 .saturating_sub(code_display_len);

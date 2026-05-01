@@ -169,6 +169,9 @@ fn run_app(
                                 app_state.reset_detail_reveal();
                                 app_state.screen = Screen::List;
                             }
+                            Screen::Export => {
+                                app_state.screen = Screen::List;
+                            }
                             _ => {}
                         }
                     }

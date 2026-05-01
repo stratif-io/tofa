@@ -1,0 +1,25 @@
+# Maintainer: Carlo Abi Chahine <carlo.abichahine@gmail.com>
+pkgname=tofa-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Eye-candy terminal OTP manager (pre-built binary)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/cabichahine/tofa"
+license=('MIT')
+provides=('tofa')
+conflicts=('tofa')
+
+source_x86_64=("$url/releases/download/v$pkgver/tofa-$pkgver-x86_64-unknown-linux-musl.tar.gz")
+source_aarch64=("$url/releases/download/v$pkgver/tofa-$pkgver-aarch64-unknown-linux-musl.tar.gz")
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+  install -Dm755 tofa "$pkgdir/usr/bin/tofa"
+  "$pkgdir/usr/bin/tofa" completions bash | install -Dm644 /dev/stdin \
+    "$pkgdir/usr/share/bash-completion/completions/tofa"
+  "$pkgdir/usr/bin/tofa" completions zsh | install -Dm644 /dev/stdin \
+    "$pkgdir/usr/share/zsh/site-functions/_tofa"
+  "$pkgdir/usr/bin/tofa" completions fish | install -Dm644 /dev/stdin \
+    "$pkgdir/usr/share/fish/vendor_completions.d/tofa.fish"
+}

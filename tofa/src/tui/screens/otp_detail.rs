@@ -17,8 +17,8 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         None => return,
     };
 
-    let code = generate_code_now(&entry.secret).unwrap_or_else(|_| "------".to_string());
-    let secs = seconds_remaining_now();
+    let code = generate_code_now(entry).unwrap_or_else(|_| "------".to_string());
+    let secs = seconds_remaining_now(entry);
     let timer_col = theme::timer_color(secs);
 
     let secret_display = if state.detail_secret_visible {

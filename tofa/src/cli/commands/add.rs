@@ -1,0 +1,101 @@
+use crate::cli::{open_vault, read_passphrase, CliResult};
+use clap::Args;
+use tofa_core::{
+    qr::OtpSecret,
+    totp::{generate_code_now, seconds_remaining_now},
+    Vault, VaultEntry,
+};
+use std::path::PathBuf;
+
+#[derive(Args)]
+pub struct AddArgs {
+    /// Account name (required when using --secret)
+    #[arg(long, value_name = "NAME")]
+    pub name: Option<String>,
+    /// Base32-encoded TOTP secret
+    #[arg(long, value_name = "BASE32")]
+    pub secret: Option<String>,
+    /// otpauth:// URI
+    #[arg(long, value_name = "URI")]
+    pub uri: Option<String>,
+    /// Path to a QR code image
+    #[arg(long, value_name = "PATH")]
+    pub qr: Option<PathBuf>,
+}
+
+pub fn run(args: AddArgs, vault_path: PathBuf) -> CliResult {
+    let pass = read_passphrase("Passphrase: ")?;
+    let mut vault = open_vault(&vault_path, &pass)?;
+
+    if let Some(qr_path) = &args.qr {
+        let uri = tofa_core::qr::scan_qr_uri(qr_path)?;
+        if uri.starts_with("otpauth-migration://") {
+            return import_migration(&uri, &mut vault, &vault_path, &pass, &args.name);
+        }
+        let otp = tofa_core::qr::parse_input(&uri)?;
+        let name = args.name.unwrap_or_else(|| make_name(&otp));
+        return add_single(&name, otp, &mut vault, &vault_path, &pass);
+    }
+
+    if let Some(uri) = &args.uri {
+        let otp = tofa_core::qr::parse_input(uri)?;
+        let name = args.name.unwrap_or_else(|| make_name(&otp));
+        return add_single(&name, otp, &mut vault, &vault_path, &pass);
+    }
+
+    if let Some(secret) = &args.secret {
+        let name = args.name.ok_or("--name is required when using --secret")?;
+        let otp = OtpSecret { secret: secret.clone(), meta: Default::default() };
+        return add_single(&name, otp, &mut vault, &vault_path, &pass);
+    }
+
+    Err("Provide --secret, --uri, or --qr.".into())
+}
+
+fn make_name(otp: &OtpSecret) -> String {
+    match (&otp.meta.issuer, &otp.meta.account) {
+        (Some(i), Some(a)) => format!("{i}:{a}"),
+        (Some(i), None) => i.clone(),
+        (None, Some(a)) => a.clone(),
+        (None, None) => "unknown".to_string(),
+    }
+}
+
+pub fn add_single(name: &str, otp: OtpSecret, vault: &mut Vault, path: &PathBuf, pass: &str) -> CliResult {
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let entry = VaultEntry {
+        name: name.to_string(),
+        secret: otp.secret,
+        created_at: today,
+        period: otp.meta.period.unwrap_or(30),
+        digits: otp.meta.digits.unwrap_or(6),
+        algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
+    };
+    let code = generate_code_now(&entry).unwrap_or_else(|_| "------".into());
+    let secs = seconds_remaining_now(&entry);
+    vault.add_entry(entry);
+    vault.save(path, pass)?;
+    println!("Added {name}");
+    println!("Current code: {} {}  ({}s)", &code[..3], &code[3..], secs);
+    Ok(())
+}
+
+fn import_migration(uri: &str, vault: &mut Vault, path: &PathBuf, pass: &str, name_override: &Option<String>) -> CliResult {
+    let accounts = tofa_core::qr::parse_migration(uri)?;
+    let count = accounts.len();
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    for otp in accounts {
+        let name = name_override.clone().unwrap_or_else(|| make_name(&otp));
+        vault.add_entry(VaultEntry {
+            name,
+            secret: otp.secret,
+            created_at: today.clone(),
+            period: otp.meta.period.unwrap_or(30),
+            digits: otp.meta.digits.unwrap_or(6),
+            algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
+        });
+    }
+    vault.save(path, pass)?;
+    println!("Imported {count} account(s).");
+    Ok(())
+}

@@ -21,9 +21,6 @@ jobs:
           - os: macos-latest
             target: x86_64-apple-darwin
             use_cross: false
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            use_cross: false
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             use_cross: true
@@ -80,80 +77,9 @@ jobs:
           name: tofa-${{ matrix.target }}
           path: ${{ env.ARCHIVE }}
 
-  dmg:
-    name: Build macOS DMG
-    needs: build
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download macOS binaries
-        uses: actions/download-artifact@v4
-        with:
-          pattern: tofa-*-apple-darwin
-          merge-multiple: true
-          path: mac-bins
-
-      - name: Extract binaries
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          tar xf "mac-bins/tofa-${VERSION}-x86_64-apple-darwin.tar.gz" -C mac-bins
-          mv mac-bins/tofa mac-bins/tofa-x86_64
-          tar xf "mac-bins/tofa-${VERSION}-aarch64-apple-darwin.tar.gz" -C mac-bins
-          mv mac-bins/tofa mac-bins/tofa-aarch64
-
-      - name: Create universal binary
-        run: |
-          lipo -create mac-bins/tofa-x86_64 mac-bins/tofa-aarch64 -output tofa-universal
-
-      - name: Generate icon
-        run: |
-          brew install imagemagick 2>/dev/null || true
-          bash assets/generate-icon.sh
-          mkdir -p tofa.iconset
-          for SIZE in 16 32 64 128 256 512 1024; do
-            sips -z $SIZE $SIZE assets/icon.png --out "tofa.iconset/icon_${SIZE}x${SIZE}.png"
-            if [ $SIZE -le 512 ]; then
-              sips -z $((SIZE*2)) $((SIZE*2)) assets/icon.png --out "tofa.iconset/icon_${SIZE}x${SIZE}@2x.png"
-            fi
-          done
-          iconutil -c icns tofa.iconset -o tofa.icns
-
-      - name: Assemble .app bundle
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          APP="tofa.app/Contents"
-          mkdir -p "$APP/MacOS" "$APP/Resources"
-          cp tofa-universal "$APP/MacOS/tofa"
-          cp packaging/macos/tofa-launcher "$APP/MacOS/tofa-launcher"
-          chmod +x "$APP/MacOS/tofa-launcher"
-          cp tofa.icns "$APP/Resources/tofa.icns"
-          sed "s/%%VERSION%%/$VERSION/g" packaging/macos/Info.plist.template > "$APP/Info.plist"
-          codesign --sign - --force --deep tofa.app
-
-      - name: Create DMG
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          brew install create-dmg 2>/dev/null || true
-          create-dmg \
-            --volname "tofa" \
-            --background-color "#0d1117" \
-            --window-size 500 300 \
-            --icon-size 128 \
-            --icon "tofa.app" 125 150 \
-            --app-drop-link 375 150 \
-            "tofa-${VERSION}.dmg" \
-            "tofa.app"
-          echo "DMG_FILE=tofa-${VERSION}.dmg" >> "$GITHUB_ENV"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: tofa-dmg
-          path: ${{ env.DMG_FILE }}
-
   release:
     name: Publish GitHub Release
-    needs: [build, dmg]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -164,7 +90,7 @@ jobs:
       - name: Compute SHA256SUMS
         run: |
           cd artifacts
-          sha256sum *.tar.gz *.dmg > SHA256SUMS
+          sha256sum *.tar.gz > SHA256SUMS
           cat SHA256SUMS
 
       - name: Publish release
@@ -172,7 +98,6 @@ jobs:
         with:
           files: |
             artifacts/*.tar.gz
-            artifacts/*.dmg
             artifacts/SHA256SUMS
           generate_release_notes: true
 
@@ -183,7 +108,6 @@ jobs:
           SHA_MAC_X86=$(grep "x86_64-apple-darwin" artifacts/SHA256SUMS | awk '{print $1}')
           SHA_LINUX_ARM=$(grep "aarch64-unknown-linux-musl" artifacts/SHA256SUMS | awk '{print $1}')
           SHA_LINUX_X86=$(grep "x86_64-unknown-linux-musl" artifacts/SHA256SUMS | awk '{print $1}')
-          SHA_DMG=$(grep "\.dmg" artifacts/SHA256SUMS | awk '{print $1}')
           curl -s -X POST \
             -H "Authorization: Bearer ${{ secrets.TAP_DISPATCH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
@@ -195,7 +119,6 @@ jobs:
                 \"sha_mac_arm\": \"$SHA_MAC_ARM\",
                 \"sha_mac_x86\": \"$SHA_MAC_X86\",
                 \"sha_linux_arm\": \"$SHA_LINUX_ARM\",
-                \"sha_linux_x86\": \"$SHA_LINUX_X86\",
-                \"sha_dmg\": \"$SHA_DMG\"
+                \"sha_linux_x86\": \"$SHA_LINUX_X86\"
               }
             }"

@@ -18,8 +18,8 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         None => return,
     };
 
-    let code = generate_code_now(&entry.secret).unwrap_or_else(|_| "------".to_string());
-    let secs = seconds_remaining_now();
+    let code = generate_code_now(entry).unwrap_or_else(|_| "------".to_string());
+    let secs = seconds_remaining_now(entry);
     let timer_col = theme::timer_color(secs);
 
     let use_half_height = area.width >= 68;
@@ -89,7 +89,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         .build();
     f.render_widget(big_text, chunks[2]);
 
-    let ratio = secs as f64 / 30.0;
+    let ratio = secs as f64 / entry.period as f64;
     let gauge_area = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([

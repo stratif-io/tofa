@@ -6,14 +6,29 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
-use tofa_core::totp::{generate_code_now, seconds_remaining_now};
+use tofa_core::{store::VaultEntry, totp::{generate_code_now, seconds_remaining_now}};
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
-    let code = generate_code_now(&state.add_parsed_secret)
-        .unwrap_or_else(|_| "------".to_string());
-    let secs = seconds_remaining_now();
+    // Build a temporary entry to generate a code with the correct params
+    let tmp_entry = {
+        let (period, digits, algorithm) = state.add_meta.as_ref().map(|m| (
+            m.period.unwrap_or(30),
+            m.digits.unwrap_or(6),
+            m.algorithm.clone().unwrap_or_else(|| "SHA1".to_string()),
+        )).unwrap_or((30, 6, "SHA1".to_string()));
+        VaultEntry {
+            name: String::new(),
+            secret: state.add_parsed_secret.as_str().to_string(),
+            created_at: String::new(),
+            period,
+            digits,
+            algorithm,
+        }
+    };
+    let code = generate_code_now(&tmp_entry).unwrap_or_else(|_| "------".to_string());
+    let secs = seconds_remaining_now(&tmp_entry);
     let timer_col = theme::timer_color(secs);
 
     let error_line = if let Some(msg) = &state.status_message {

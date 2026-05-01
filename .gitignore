@@ -1,2 +1,8 @@
 /target
 .superpowers/
+
+# Tauri build outputs and local test artifacts
+tofa.app/
+tofa.icns
+tofa.iconset/
+tofa-app/src-tauri/target/

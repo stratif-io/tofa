@@ -402,6 +402,9 @@ fn try_import_migration(
                     name,
                     secret: otp.secret,
                     created_at: today.clone(),
+                    period: otp.meta.period.unwrap_or(30),
+                    digits: otp.meta.digits.unwrap_or(6),
+                    algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
                 });
             }
             save_vault(state, vault, path);
@@ -417,7 +420,7 @@ fn try_parse_and_advance(state: &mut AppState, raw: &str) {
     match parse_input(raw) {
         Ok(otp) => {
             state.status_message = None;
-            state.add_parsed_secret = otp.secret;
+            state.add_parsed_secret = Zeroizing::new(otp.secret);
             state.add_name = match (&otp.meta.issuer, &otp.meta.account) {
                 (Some(i), Some(a)) => format!("{i}:{a}"),
                 (Some(i), None) => i.clone(),
@@ -519,10 +522,18 @@ fn handle_add_name_key(
                 return Ok(());
             }
             let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+            let (period, digits, algorithm) = state.add_meta.as_ref().map(|m| (
+                m.period.unwrap_or(30),
+                m.digits.unwrap_or(6),
+                m.algorithm.clone().unwrap_or_else(|| "SHA1".to_string()),
+            )).unwrap_or((30, 6, "SHA1".to_string()));
             vault.add_entry(VaultEntry {
                 name,
-                secret: state.add_parsed_secret.clone(),
+                secret: state.add_parsed_secret.as_str().to_string(),
                 created_at: today,
+                period,
+                digits,
+                algorithm,
             });
             save_vault(state, vault, path);
             state.screen = Screen::List;
@@ -564,7 +575,7 @@ fn handle_delete_confirm_key(
 
 fn copy_selected_code(state: &mut AppState, vault: &Vault) {
     if let Some(entry) = vault.entries().get(state.selected_index) {
-        match generate_code_now(&entry.secret) {
+        match generate_code_now(entry) {
             Ok(code) => match arboard::Clipboard::new().and_then(|mut cb| cb.set_text(code)) {
                 Ok(_) => {
                     state.status_message = Some("Copied to clipboard".to_string());
@@ -599,7 +610,7 @@ fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
                 let correct = state.vault_key_cache
                     .as_ref()
                     .and_then(|k| std::str::from_utf8(k).ok())
-                    .map(|k| k == state.detail_passphrase)
+                    .map(|k| k == state.detail_passphrase.as_str())
                     .unwrap_or(false);
                 if correct {
                     state.detail_secret_visible = true;

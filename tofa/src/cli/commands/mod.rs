@@ -1,0 +1,14 @@
+pub mod add;
+pub mod cam;
+pub mod code;
+pub mod completions;
+pub mod destroy;
+pub mod export;
+pub mod import;
+pub mod init;
+pub mod list;
+pub mod qr;
+pub mod rekey;
+pub mod scan;
+pub mod remove;
+pub mod rename;

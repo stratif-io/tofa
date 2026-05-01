@@ -1,0 +1,22 @@
+{
+  "productName": "tofa",
+  "version": "0.1.0",
+  "identifier": "com.cabichahine.tofa",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app"],
+    "icon": ["icons/icon.png"],
+    "macOS": {
+      "infoPlist": "Info.plist"
+    }
+  }
+}

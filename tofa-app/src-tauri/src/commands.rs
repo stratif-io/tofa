@@ -9,6 +9,9 @@ pub struct OtpEntry {
     pub code: String,
     pub seconds_left: u64,
     pub period: u32,
+    pub digits: u32,
+    pub algorithm: String,
+    pub created_at: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -168,6 +171,9 @@ fn entries_from_vault(vault: &tofa_core::store::Vault) -> Result<Vec<OtpEntry>, 
             code,
             seconds_left,
             period: entry.period,
+            digits: entry.digits as u32,
+            algorithm: entry.algorithm.clone(),
+            created_at: entry.created_at.clone(),
         })
     }).collect()
 }

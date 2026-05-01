@@ -63,6 +63,14 @@ function renderEntries(entries) {
     row.appendChild(nameEl);
     row.appendChild(codeEl);
 
+    const tooltip = document.createElement('div');
+    tooltip.className = 'otp-tooltip';
+    tooltip.innerHTML =
+      `<span class="tt-row"><span class="tt-label">Algorithm</span><span>${entry.algorithm}</span></span>` +
+      `<span class="tt-row"><span class="tt-label">Digits</span><span>${entry.digits}</span></span>` +
+      `<span class="tt-row"><span class="tt-label">Period</span><span>${entry.period}s</span></span>` +
+      `<span class="tt-row"><span class="tt-label">Added</span><span>${entry.created_at}</span></span>`;
+
     const barWrap = document.createElement('div');
     barWrap.className = 'otp-bar-wrap';
     const bar = document.createElement('div');
@@ -70,6 +78,7 @@ function renderEntries(entries) {
     barWrap.appendChild(bar);
 
     el.appendChild(row);
+    el.appendChild(tooltip);
     el.appendChild(barWrap);
 
     el.addEventListener('click', async () => {

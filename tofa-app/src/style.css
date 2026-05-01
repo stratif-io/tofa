@@ -157,6 +157,30 @@ button[type="submit"]:hover { opacity: 0.85; }
   text-align: right;
 }
 
+.otp-tooltip {
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 0 4px;
+  border-top: 1px solid var(--border);
+}
+
+.otp-entry:hover .otp-tooltip {
+  display: flex;
+}
+
+.tt-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.tt-label {
+  color: var(--dim);
+  opacity: 0.6;
+}
+
 .header-actions {
   display: flex;
   gap: 4px;

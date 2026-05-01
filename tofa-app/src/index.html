@@ -1,2 +1,52 @@
 <!DOCTYPE html>
-<html><body><p>tofa</p></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tofa</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Locked view -->
+  <div id="view-locked" class="view">
+    <div class="header">
+      <span class="app-name">tofa</span>
+    </div>
+    <div class="content">
+      <form id="form-unlock">
+        <label for="input-passphrase">Passphrase</label>
+        <input id="input-passphrase" type="password" autocomplete="current-password" autofocus>
+        <p id="unlock-error" class="error hidden"></p>
+        <button type="submit">Unlock</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Unlocked view -->
+  <div id="view-unlocked" class="view hidden">
+    <div class="header">
+      <span class="app-name">tofa</span>
+      <button id="btn-settings" class="icon-btn" title="Settings">⚙</button>
+    </div>
+    <div id="otp-list" class="otp-list"></div>
+  </div>
+
+  <!-- Settings view -->
+  <div id="view-settings" class="view hidden">
+    <div class="header">
+      <button id="btn-back" class="icon-btn" title="Back">←</button>
+      <span class="app-name">Settings</span>
+    </div>
+    <div class="content">
+      <form id="form-settings">
+        <label for="input-vault-path">Vault path</label>
+        <input id="input-vault-path" type="text" spellcheck="false">
+        <p id="settings-error" class="error hidden"></p>
+        <button type="submit">Save</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

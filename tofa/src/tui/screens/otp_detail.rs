@@ -29,7 +29,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     // Extra rows when the passphrase prompt is active
     let extra_rows: u16 = if state.detail_revealing { 3 } else { 0 };
-    let box_h = (7 + extra_rows).min(area.height.saturating_sub(4));
+    let box_h = (8 + extra_rows).min(area.height.saturating_sub(4));
     let box_w = area.width.min(62);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
@@ -52,12 +52,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         height: modal.height.saturating_sub(2),
     };
 
+    let algo_str = format!("{} · {}d · {}s", entry.algorithm, entry.digits, entry.period);
+
     // Title row + field rows + optional reveal prompt + help row
     let mut constraints = vec![
         Constraint::Length(1), // title
         Constraint::Length(1), // gap
         Constraint::Length(1), // name
         Constraint::Length(1), // code
+        Constraint::Length(1), // algorithm · digits · period
         Constraint::Length(1), // secret
         Constraint::Length(1), // created
     ];
@@ -82,9 +85,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     );
 
     let field_rows: &[(&str, &str, bool)] = &[
-        ("Name",    entry.name.as_str(),     false),
+        ("Name",    entry.name.as_str(),       false),
         ("Code",    &format!("{}  {}s", format_code(&code), secs), true),
-        ("Secret",  &secret_display,         false),
+        ("Params",  &algo_str,                 false),
+        ("Secret",  &secret_display,           false),
         ("Created", entry.created_at.as_str(), false),
     ];
 
@@ -102,10 +106,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     let help_idx = if state.detail_revealing {
         // render passphrase prompt rows
-        let gap_idx = 6;
-        let label_idx = 7;
-        let input_idx = 8;
-        let help_idx = 9;
+        let gap_idx = 7;
+        let label_idx = 8;
+        let input_idx = 9;
+        let help_idx = 10;
 
         f.render_widget(Paragraph::new(Line::from("")), chunks[gap_idx]);
 
@@ -130,7 +134,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
         help_idx
     } else {
-        6
+        7
     };
 
     let reveal_hint = if state.detail_secret_visible {

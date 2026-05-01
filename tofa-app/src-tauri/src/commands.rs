@@ -17,26 +17,77 @@ pub struct Settings {
 }
 
 #[tauri::command]
-pub fn unlock(_passphrase: String, _state: State<Mutex<AppState>>) -> Result<Vec<OtpEntry>, String> {
-    Ok(vec![])
+pub fn unlock(passphrase: String, state: State<Mutex<AppState>>) -> Result<Vec<OtpEntry>, String> {
+    let mut s = state.lock().map_err(|e| e.to_string())?;
+    let vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
+        .map_err(|_| "Wrong passphrase".to_string())?;
+    s.cache.unlock(passphrase);
+    entries_from_vault(&vault)
 }
 
 #[tauri::command]
-pub fn get_entries(_state: State<Mutex<AppState>>) -> Result<Vec<OtpEntry>, String> {
-    Ok(vec![])
+pub fn get_entries(state: State<Mutex<AppState>>) -> Result<Vec<OtpEntry>, String> {
+    let mut s = state.lock().map_err(|e| e.to_string())?;
+    let passphrase = s.cache.get()
+        .ok_or("locked")?
+        .to_string();
+    let vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
+        .map_err(|e| e.to_string())?;
+    entries_from_vault(&vault)
 }
 
 #[tauri::command]
-pub fn copy_code(_name: String, _state: State<Mutex<AppState>>, _app: tauri::AppHandle) -> Result<(), String> {
+pub fn copy_code(name: String, state: State<Mutex<AppState>>, app: tauri::AppHandle) -> Result<(), String> {
+    let mut s = state.lock().map_err(|e| e.to_string())?;
+    let passphrase = s.cache.get()
+        .ok_or("locked")?
+        .to_string();
+    let vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
+        .map_err(|e| e.to_string())?;
+    let entry = vault.entries().iter()
+        .find(|e| e.name == name)
+        .ok_or_else(|| format!("entry '{}' not found", name))?;
+    let code = tofa_core::totp::generate_code_now(entry)
+        .map_err(|e| e.to_string())?;
+    use tauri_plugin_clipboard_manager::ClipboardExt;
+    app.clipboard().write_text(code).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn get_settings() -> Result<Settings, String> {
-    Ok(Settings { vault_path: default_vault_path().to_string_lossy().to_string() })
+    let path = settings_path();
+    if path.exists() {
+        let s = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&s).map_err(|e| e.to_string())
+    } else {
+        Ok(Settings {
+            vault_path: default_vault_path().to_string_lossy().to_string(),
+        })
+    }
 }
 
 #[tauri::command]
-pub fn save_settings(_settings: Settings) -> Result<(), String> {
-    Ok(())
+pub fn save_settings(settings: Settings) -> Result<(), String> {
+    let path = settings_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let s = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    std::fs::write(&path, s).map_err(|e| e.to_string())
+}
+
+fn entries_from_vault(vault: &tofa_core::store::Vault) -> Result<Vec<OtpEntry>, String> {
+    vault.entries().iter().map(|entry| {
+        let code_raw = tofa_core::totp::generate_code_now(entry)
+            .map_err(|e| e.to_string())?;
+        let code = format!("{} {}", &code_raw[..3], &code_raw[3..]);
+        let seconds_left = tofa_core::totp::seconds_remaining_now(entry);
+        Ok(OtpEntry {
+            name: entry.name.clone(),
+            code,
+            seconds_left,
+            period: entry.period,
+        })
+    }).collect()
 }

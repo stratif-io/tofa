@@ -53,10 +53,25 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
+        let vault_path = Self::load_vault_path();
         Self {
             cache: PassphraseCache::new(),
-            vault_path: default_vault_path(),
+            vault_path,
         }
+    }
+
+    fn load_vault_path() -> PathBuf {
+        let path = settings_path();
+        if path.exists() {
+            if let Ok(s) = std::fs::read_to_string(&path) {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&s) {
+                    if let Some(p) = v["vault_path"].as_str() {
+                        return PathBuf::from(p);
+                    }
+                }
+            }
+        }
+        default_vault_path()
     }
 }
 

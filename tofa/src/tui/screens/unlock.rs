@@ -11,12 +11,39 @@ use std::path::Path;
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
+    // Vault path — bottom of screen, very discreet
+    let raw_path = vault_path.to_string_lossy();
+    let display_path = if let Some(home) = dirs::home_dir() {
+        let home_str = home.to_string_lossy();
+        if raw_path.starts_with(home_str.as_ref()) {
+            format!("~{}", &raw_path[home_str.len()..])
+        } else {
+            raw_path.to_string()
+        }
+    } else {
+        raw_path.to_string()
+    };
+    let max_path_w = (area.width as usize).saturating_sub(20);
+    let shown_path = if display_path.len() > max_path_w {
+        format!("…{}", &display_path[display_path.len() - max_path_w..])
+    } else {
+        display_path
+    };
+    f.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(shown_path, Style::default().fg(theme::MUTED)),
+            Span::styled("  [ Tab ] copy", Style::default().fg(theme::MUTED)),
+        ]))
+        .alignment(Alignment::Center),
+        Rect { x: area.x, y: area.y + area.height.saturating_sub(1), width: area.width, height: 1 },
+    );
+
+    // Centred modal content
     let content_w: u16 = area.width.min(54);
     let is_new = state.is_new_vault;
 
-    // Height: title(1) + sep(1) + vault_path(1) + gap(1) + [warning(2)+gap(1) if new] + label(1) + input(3) + [confirm_label(1)+confirm_input(3) if confirming] + error(1) + gap(1) + footer(1)
     let extra: u16 = if is_new { 3 } else { 0 } + if state.unlock_confirming { 4 } else { 0 };
-    let content_h: u16 = 11 + extra;
+    let content_h: u16 = 10 + extra;
 
     let vert = Layout::default()
         .direction(Direction::Vertical)
@@ -30,11 +57,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     let x = area.x + (area.width.saturating_sub(content_w)) / 2;
     let content = Rect { x, y: vert[1].y, width: content_w, height: content_h };
 
-    // Build constraint list dynamically
     let mut constraints = vec![
         Constraint::Length(1), // title
         Constraint::Length(1), // separator
-        Constraint::Length(1), // vault path
         Constraint::Length(1), // gap
     ];
     if is_new {
@@ -78,35 +103,6 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
             Style::default().fg(theme::ACCENT),
         )))
         .alignment(Alignment::Center),
-        rows[idx],
-    );
-    idx += 1;
-
-    // Vault path with clipboard shortcut
-    let raw_path = vault_path.to_string_lossy();
-    let display_path = if let Some(home) = dirs::home_dir() {
-        let home_str = home.to_string_lossy();
-        if raw_path.starts_with(home_str.as_ref()) {
-            format!("~{}", &raw_path[home_str.len()..])
-        } else {
-            raw_path.to_string()
-        }
-    } else {
-        raw_path.to_string()
-    };
-    // Truncate if too wide
-    let max_path_w = content_w.saturating_sub(6) as usize;
-    let shown_path = if display_path.len() > max_path_w {
-        format!("…{}", &display_path[display_path.len() - max_path_w..])
-    } else {
-        display_path
-    };
-    f.render_widget(
-        Paragraph::new(Line::from(vec![
-            Span::styled("📋 ", Style::default().fg(theme::DIM)),
-            Span::styled(shown_path, Style::default().fg(theme::DIM)),
-            Span::styled("  [ Tab ] copy", Style::default().fg(theme::MUTED)),
-        ])),
         rows[idx],
     );
     idx += 1;

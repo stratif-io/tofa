@@ -6,7 +6,6 @@ pub const BORDER:      Color = Color::Rgb(33,  38,  45);   // #21262d
 pub const TEXT:        Color = Color::Rgb(230, 237, 243);  // #e6edf3
 pub const DIM:         Color = Color::Rgb(110, 118, 129);  // #6e7681
 pub const MUTED:       Color = Color::Rgb(48,  54,  61);   // #30363d
-pub const SELECTED:    Color = Color::Rgb(48,  54,  61);   // #30363d - same as MUTED for highlight state
 pub const ACCENT:      Color = Color::Rgb(88,  166, 255);  // #58a6ff
 pub const CODE:        Color = Color::Rgb(121, 192, 255);  // #79c0ff
 pub const WARNING:     Color = Color::Rgb(210, 153, 34);   // #d29922

@@ -1,7 +1,7 @@
 <div align="center">
   <img src="tofa-app/src-tauri/icons/128x128@2x.png" width="96" alt="tofa" />
   <h1>tofa</h1>
-  <p><strong>Offline, encrypted 2FA for macOS — lives in your menu bar.</strong></p>
+  <p><strong>Offline, encrypted 2FA for macOS — menu bar app and eye-candy terminal TUI.</strong></p>
 
   [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![Rust](https://img.shields.io/badge/rust-1.78%2B-orange.svg)](https://www.rust-lang.org)
@@ -11,17 +11,18 @@
 
 ---
 
-tofa is a local-first TOTP authenticator that runs as a macOS menu bar app and a terminal CLI. Every secret stays encrypted on disk — no cloud sync, no account, no telemetry.
+tofa is a local-first TOTP authenticator with two interfaces: a macOS menu bar app and a full-featured terminal TUI. Every secret stays encrypted on disk — no cloud sync, no account, no telemetry.
 
 ## Features
 
 - **Always one click away** — tray icon opens a compact popover with live codes and countdown rings
+- **Eye-candy TUI** (`rotp`) — violet accent, per-entry progress bars, mouse support, live countdown
 - **AES-256-GCM vault** encrypted with an Argon2id-derived key; secrets never hit disk in plaintext
 - **QR scanning** — scan your screen, drop an image, or use the camera to add accounts instantly
 - **Google Authenticator migration** — import `otpauth-migration://` QR codes directly
 - **Manual entry** — paste a raw Base32 secret or a full `otpauth://` URI
 - **Session lock** — auto-locks after 5 minutes of inactivity; lock manually from the menu
-- **CLI companion** (`rotp`) — add, list, copy codes, import/export, and pipe into scripts
+- **Scriptable CLI** (`rotp`) — add, list, copy codes, import/export, and pipe into scripts
 
 ## Quick start
 
@@ -32,16 +33,18 @@ cd tofa/tofa-app
 cargo tauri build        # → src-tauri/target/release/bundle/macos/tofa.app
 ```
 
-Or build the CLI only:
+Or build the CLI + TUI:
 
 ```bash
 cargo install --path tofa
-rotp --help
+rotp          # open the TUI
+rotp --help   # CLI reference
 ```
 
-## CLI (`rotp`)
+## CLI & TUI (`rotp`)
 
 ```
+rotp                               # open the interactive TUI
 rotp init                          # create a new encrypted vault
 rotp add --name GitHub:you --secret JBSWY3DPEHPK3PXP
 rotp add --uri "otpauth://totp/..."
@@ -64,7 +67,7 @@ rotp completions zsh               # shell completions
 |---|---|
 | `tofa-core` | Rust library — crypto, TOTP generation, QR parsing, vault I/O |
 | `tofa-app` | Tauri v2 menu bar app — thin shell over `tofa-core` |
-| `tofa` (`rotp`) | Clap CLI — thin shell over `tofa-core` |
+| `tofa` (`rotp`) | Clap CLI + Ratatui TUI — thin shell over `tofa-core` |
 
 All business logic lives in `tofa-core`. The app and CLI are pure UI layers.
 
@@ -77,7 +80,7 @@ All business logic lives in `tofa-core`. The app and CLI are pure UI layers.
 
 ## Built with
 
-[Rust](https://www.rust-lang.org) · [Tauri v2](https://tauri.app) · [totp-rs](https://github.com/constantoine/totp-rs) · [Argon2](https://github.com/RustCrypto/password-hashes) · [rqrr](https://github.com/WanzenBug/rqrr) · [Clap](https://github.com/clap-rs/clap)
+[Rust](https://www.rust-lang.org) · [Tauri v2](https://tauri.app) · [Ratatui](https://ratatui.rs) · [totp-rs](https://github.com/constantoine/totp-rs) · [Argon2](https://github.com/RustCrypto/password-hashes) · [rqrr](https://github.com/WanzenBug/rqrr) · [Clap](https://github.com/clap-rs/clap)
 
 ## License
 

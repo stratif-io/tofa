@@ -230,23 +230,31 @@ let cameraTimer = null;
 document.getElementById('btn-scan-camera').addEventListener('click', () => startCamera());
 document.getElementById('btn-camera-back').addEventListener('click', () => stopCamera());
 
+let cameraSent = false;
+let steadyCount = 0;
+
 async function startCamera() {
   showView('camera');
+  cameraSent = false;
+  steadyCount = 0;
   const video = document.getElementById('camera-video');
   const status = document.getElementById('camera-status');
   try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 } }
+    });
     video.srcObject = cameraStream;
-    status.textContent = 'Point camera at a QR code…';
-    cameraTimer = setInterval(captureFrame, 400);
+    await video.play();
+    status.textContent = 'Scanning for QR code…';
+    cameraTick();
   } catch (err) {
     status.textContent = 'Camera unavailable: ' + err.message;
   }
 }
 
 function stopCamera() {
-  clearInterval(cameraTimer);
-  cameraTimer = null;
+  cameraSent = true;
+  if (cameraTimer) { cancelAnimationFrame(cameraTimer); cameraTimer = null; }
   if (cameraStream) {
     cameraStream.getTracks().forEach(t => t.stop());
     cameraStream = null;
@@ -254,20 +262,48 @@ function stopCamera() {
   showView('unlocked');
 }
 
-async function captureFrame() {
+function cameraTick() {
+  if (cameraSent) return;
   const video = document.getElementById('camera-video');
-  const canvas = document.getElementById('camera-canvas');
-  if (video.readyState < 2) return;
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  const dataUrl = canvas.toDataURL('image/png');
-  const base64 = dataUrl.split(',')[1];
-  try {
-    const uri = await invoke('scan_image_data', { data: base64 });
-    stopCamera();
-    openAddConfirm(uri);
-  } catch (_) { /* no QR yet */ }
+  if ('BarcodeDetector' in window) {
+    const bd = new BarcodeDetector({ formats: ['qr_code'] });
+    bd.detect(video).then(codes => {
+      if (codes.length > 0) onCameraFound(codes[0].rawValue);
+      else { steadyCount = 0; cameraTimer = requestAnimationFrame(cameraTick); }
+    }).catch(() => { cameraTimer = requestAnimationFrame(cameraTick); });
+  } else {
+    if (!window._jsqrLoaded) {
+      window._jsqrLoaded = true;
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+      s.onload = cameraTick;
+      document.head.appendChild(s);
+      return;
+    }
+    if (typeof jsQR === 'undefined') { cameraTimer = requestAnimationFrame(cameraTick); return; }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const img = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(img.data, img.width, img.height);
+    if (code) onCameraFound(code.data);
+    else { steadyCount = 0; cameraTimer = requestAnimationFrame(cameraTick); }
+  }
+}
+
+function onCameraFound(uri) {
+  if (cameraSent) return;
+  steadyCount++;
+  const status = document.getElementById('camera-status');
+  if (steadyCount < 3) {
+    status.textContent = 'QR detected — hold steady…';
+    cameraTimer = requestAnimationFrame(cameraTick);
+    return;
+  }
+  cameraSent = true;
+  status.textContent = 'Got it!';
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+  openAddConfirm(uri);
 }
 
 // --- Add confirm ---

@@ -43,9 +43,13 @@
       <span class="app-name">Scan QR</span>
     </div>
     <div class="camera-container">
-      <video id="camera-video" autoplay playsinline></video>
-      <canvas id="camera-canvas" style="display:none"></canvas>
-      <p id="camera-status" class="dim">Point camera at a QR code…</p>
+      <div class="cam-wrap">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <div class="cam-overlay">
+          <div class="cam-finder"><span></span><div class="cam-scanline"></div></div>
+        </div>
+      </div>
+      <p id="camera-status" class="dim">Starting camera…</p>
     </div>
   </div>
 

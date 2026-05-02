@@ -1,125 +1,84 @@
-# rotp
+<div align="center">
+  <img src="tofa-app/src-tauri/icons/128x128@2x.png" width="96" alt="tofa" />
+  <h1>tofa</h1>
+  <p><strong>Offline, encrypted 2FA for macOS — lives in your menu bar.</strong></p>
 
-> Eye-candy terminal OTP manager — encrypted vault, beautiful TUI, full CLI.
-
-```
-rotp                     # open the TUI
-rotp code github         # get your GitHub code instantly
-rotp add --qr ~/qr.png  # scan a QR code
-```
+  [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+  [![Rust](https://img.shields.io/badge/rust-1.78%2B-orange.svg)](https://www.rust-lang.org)
+  [![Tauri](https://img.shields.io/badge/tauri-v2-purple.svg)](https://tauri.app)
+  [![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#)
+</div>
 
 ---
+
+tofa is a local-first TOTP authenticator that runs as a macOS menu bar app and a terminal CLI. Every secret stays encrypted on disk — no cloud sync, no account, no telemetry.
 
 ## Features
 
-- **Encrypted vault** — AES-256-GCM + Argon2id key derivation
-- **Beautiful TUI** — violet accent, per-entry progress bars, mouse click to copy
-- **Full CLI** — scriptable, pipeable, shell-completion ready
-- **QR import/export** — Google Authenticator migration format
-- **Zero cloud** — your secrets never leave your machine
-
----
-
-## Installation
-
-```bash
-cargo install rotp
-```
-
-Or build from source:
-
-```bash
-git clone https://github.com/carlo/rotp
-cd rotp
-cargo build --release
-# binary at target/release/rotp
-```
-
-### Shell completions
-
-```bash
-rotp completions bash >> ~/.bashrc
-rotp completions zsh  > ~/.zfunc/_rotp   # add ~/.zfunc to $fpath
-rotp completions fish > ~/.config/fish/completions/rotp.fish
-```
-
----
+- **Always one click away** — tray icon opens a compact popover with live codes and countdown rings
+- **AES-256-GCM vault** encrypted with an Argon2id-derived key; secrets never hit disk in plaintext
+- **QR scanning** — scan your screen, drop an image, or use the camera to add accounts instantly
+- **Google Authenticator migration** — import `otpauth-migration://` QR codes directly
+- **Manual entry** — paste a raw Base32 secret or a full `otpauth://` URI
+- **Session lock** — auto-locks after 5 minutes of inactivity; lock manually from the menu
+- **CLI companion** (`rotp`) — add, list, copy codes, import/export, and pipe into scripts
 
 ## Quick start
 
 ```bash
-# Create your vault
-rotp init
-
-# Add accounts
-rotp add --uri "otpauth://totp/GitHub:you?secret=YOURSECRET"
-rotp add --qr  ~/Downloads/github-qr.png
-rotp add --secret JBSWY3DPEHPK3PXP --name "GitHub:you"
-
-# Get a code
-rotp code github           # → 480 152
-rotp code github --raw     # → 480152  (for scripts)
-rotp code github --copy    # copies to clipboard
-rotp code github --watch   # live countdown
-
-# Manage accounts
-rotp list
-rotp list --codes
-rotp rename "GitHub:you" "GitHub:work"
-rotp remove "GitHub:work"
-
-# Export / backup
-rotp qr github                        # display QR in terminal
-rotp qr --all --output backup.png     # migration QR for all accounts
-rotp export --output backup.json      # plain-text JSON (keep safe!)
-rotp import backup.json               # restore from JSON
-rotp import migration-qr.png          # import from Google Authenticator
-
-# Vault management
-rotp rekey                # change passphrase
-rotp destroy              # delete vault
+# Clone and build the menu bar app
+git clone https://github.com/cabichahine/tofa
+cd tofa/tofa-app
+cargo tauri build        # → src-tauri/target/release/bundle/macos/tofa.app
 ```
 
----
+Or build the CLI only:
 
-## Command reference
+```bash
+cargo install --path tofa
+rotp --help
+```
 
-| Command | Description |
+## CLI (`rotp`)
+
+```
+rotp init                          # create a new encrypted vault
+rotp add --name GitHub:you --secret JBSWY3DPEHPK3PXP
+rotp add --uri "otpauth://totp/..."
+rotp add --qr ~/Downloads/qr.png
+rotp list                          # show all entries
+rotp code GitHub:you               # print current TOTP code
+rotp code GitHub:you | pbcopy      # copy to clipboard
+rotp remove GitHub:you
+rotp rename GitHub:you GitHub:me
+rotp rekey                         # change vault passphrase
+rotp export                        # dump vault as JSON
+rotp import accounts.json
+rotp qr GitHub:you                 # display QR in terminal
+rotp completions zsh               # shell completions
+```
+
+## Architecture
+
+| Package | Role |
 |---|---|
-| `rotp` | Launch TUI |
-| `rotp init` | Create a new vault |
-| `rotp destroy` | Delete the vault |
-| `rotp list [--codes]` | List accounts (optionally with codes) |
-| `rotp code <name> [--raw\|--copy\|--watch]` | Show current TOTP code |
-| `rotp add [--name] [--secret\|--uri\|--qr]` | Add an account |
-| `rotp remove <name>` | Remove an account |
-| `rotp rename <name> <new>` | Rename an account |
-| `rotp qr <name\|--all> [--output]` | Export QR code |
-| `rotp rekey` | Change passphrase |
-| `rotp completions <bash\|zsh\|fish>` | Print shell completions |
-| `rotp export [--output]` | Export vault as plain-text JSON |
-| `rotp import <file>` | Import from JSON or migration QR |
+| `tofa-core` | Rust library — crypto, TOTP generation, QR parsing, vault I/O |
+| `tofa-app` | Tauri v2 menu bar app — thin shell over `tofa-core` |
+| `tofa` (`rotp`) | Clap CLI — thin shell over `tofa-core` |
 
----
+All business logic lives in `tofa-core`. The app and CLI are pure UI layers.
 
-## Vault location
+## Vault security
 
-Default: `~/.config/rotp/vault.enc`
+- Key derivation: **Argon2id** (m=64 MiB, t=3, p=1)
+- Encryption: **AES-256-GCM** with a random 96-bit nonce per write
+- Atomic writes: vault saved to a temp file then renamed — no partial writes
+- Passphrase cached in memory with a 5-minute TTL; zeroed on lock via `zeroize`
 
-Override with `--vault <path>` or `ROTP_VAULT` environment variable.
+## Built with
 
----
+[Rust](https://www.rust-lang.org) · [Tauri v2](https://tauri.app) · [totp-rs](https://github.com/constantoine/totp-rs) · [Argon2](https://github.com/RustCrypto/password-hashes) · [rqrr](https://github.com/WanzenBug/rqrr) · [Clap](https://github.com/clap-rs/clap)
 
-## Environment variables
+## License
 
-| Variable | Description |
-|---|---|
-| `ROTP_VAULT` | Override vault path |
-| `ROTP_PASSPHRASE` | Passphrase for non-interactive use (shows a warning) |
-| `ROTP_NEW_PASSPHRASE` | New passphrase for `rotp rekey` (non-interactive) |
-
----
-
-## Licence
-
-MIT
+MIT © Carlo Abi Chahine

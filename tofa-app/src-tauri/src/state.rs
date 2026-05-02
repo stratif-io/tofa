@@ -28,11 +28,19 @@ impl PassphraseCache {
         match self.unlocked_at {
             Some(t) if t.elapsed() < CACHE_TTL => Some(self.passphrase.as_str()),
             _ => {
-                // TTL expired — enforce in memory, not just visibility
                 self.lock();
                 None
             }
         }
+    }
+
+    /// Run `f` with the passphrase borrowed in-place — no heap clone, no unprotected String.
+    pub fn with_passphrase<F, R>(&mut self, f: F) -> Option<R>
+    where
+        F: FnOnce(&str) -> R,
+    {
+        let p = self.get()?;
+        Some(f(p))
     }
 
     pub fn lock(&mut self) {

@@ -123,6 +123,61 @@ fn run_app(
             }
         }
 
+        // Two-phase vault write: first iteration shows "Saving…" toast,
+        // second iteration executes the actual save (Argon2 ~300ms).
+        if let Some(action) = app_state.pending_vault_action.take() {
+            let v = vault.as_mut().expect("vault initialized");
+            use state::PendingVaultAction;
+            match action {
+                PendingVaultAction::DeleteEntry(idx) => {
+                    v.remove_entry(idx);
+                    if app_state.selected_index > 0
+                        && app_state.selected_index >= v.entries().len()
+                    {
+                        app_state.selected_index -= 1;
+                    }
+                    if save_vault(&mut app_state, v, &path) {
+                        if v.entries().is_empty() {
+                            app_state.clear_add_form();
+                            app_state.screen = Screen::AddForm;
+                        } else {
+                            app_state.screen = Screen::List;
+                            app_state.status_message = Some("Deleted.".to_string());
+                            app_state.status_message_at = Some(Instant::now());
+                        }
+                    }
+                    // On save failure: status_message is already set by save_vault (persistent)
+                }
+                PendingVaultAction::AddEntry => {
+                    let name = app_state.add_name.trim().to_string();
+                    let secret = app_state.add_parsed_secret.clone();
+                    let meta = app_state.add_meta.take();
+                    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+                    v.add_entry(tofa_core::store::VaultEntry {
+                        name: name.clone(),
+                        secret: secret.to_string(),
+                        created_at: today,
+                        period: meta.as_ref().and_then(|m| m.period).unwrap_or(30),
+                        digits: meta.as_ref().and_then(|m| m.digits).unwrap_or(6),
+                        algorithm: meta.as_ref().and_then(|m| m.algorithm.clone())
+                            .unwrap_or_else(|| "SHA1".to_string()),
+                    });
+                    if save_vault(&mut app_state, v, &path) {
+                        app_state.selected_index = v.entries().len().saturating_sub(1);
+                        app_state.clear_add_form();
+                        app_state.screen = Screen::List;
+                        app_state.status_message = Some(format!("Added: {name}"));
+                        app_state.status_message_at = Some(Instant::now());
+                    }
+                    // On save failure: revert the in-memory add to prevent divergence
+                    else if let Some(idx) = v.entries().iter().rposition(|e| e.name == name) {
+                        v.remove_entry(idx);
+                    }
+                }
+            }
+            continue;
+        }
+
         // Two-phase scan: first iteration switches to ScanningQr (draws loader),
         // second iteration does the actual scan and transitions.
         if matches!(app_state.screen, Screen::List | Screen::AddForm)
@@ -491,8 +546,9 @@ fn try_import_migration(
                     algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
                 });
             }
-            save_vault(state, vault, path);
-            state.status_message = Some(format!("Imported {count} account(s)."));
+            if save_vault(state, vault, path) {
+                state.status_message = Some(format!("Imported {count} account(s)."));
+            }
         }
         Err(e) => {
             state.status_message = Some(format!("Import failed: {e}"));
@@ -587,8 +643,8 @@ fn handle_add_form_key(
 fn handle_add_name_key(
     key: KeyCode,
     state: &mut AppState,
-    vault: &mut Vault,
-    path: &Path,
+    _vault: &mut Vault,
+    _path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     match key {
         KeyCode::Esc => {
@@ -605,23 +661,11 @@ fn handle_add_name_key(
                 state.status_message = Some("Name is required.".to_string());
                 return Ok(());
             }
-            let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-            let (period, digits, algorithm) = state.add_meta.as_ref().map(|m| (
-                m.period.unwrap_or(30),
-                m.digits.unwrap_or(6),
-                m.algorithm.clone().unwrap_or_else(|| "SHA1".to_string()),
-            )).unwrap_or((30, 6, "SHA1".to_string()));
-            vault.add_entry(VaultEntry {
-                name,
-                secret: state.add_parsed_secret.as_str().to_string(),
-                created_at: today,
-                period,
-                digits,
-                algorithm,
-            });
-            save_vault(state, vault, path);
+            state.add_name = name;
+            state.pending_vault_action = Some(state::PendingVaultAction::AddEntry);
+            state.status_message = Some("Saving…".to_string());
+            state.status_message_at = None;
             state.screen = Screen::List;
-            state.clear_add_form();
         }
         _ => {}
     }
@@ -631,23 +675,15 @@ fn handle_add_name_key(
 fn handle_delete_confirm_key(
     key: KeyCode,
     state: &mut AppState,
-    vault: &mut Vault,
-    path: &Path,
+    _vault: &mut Vault,
+    _path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     match key {
         KeyCode::Char('y') | KeyCode::Char('Y') => {
-            vault.remove_entry(state.selected_index);
-            if state.selected_index > 0 && state.selected_index >= vault.entries().len() {
-                state.selected_index -= 1;
-            }
-            save_vault(state, vault, path);
-            if vault.entries().is_empty() {
-                state.clear_add_form();
-                state.screen = Screen::AddForm;
-            } else {
-                state.screen = Screen::List;
-                state.status_message = Some("Entry deleted.".to_string());
-            }
+            state.pending_vault_action = Some(state::PendingVaultAction::DeleteEntry(state.selected_index));
+            state.status_message = Some("Saving…".to_string());
+            state.status_message_at = None; // don't auto-dismiss until save completes
+            state.screen = Screen::List;
         }
         KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
             state.screen = Screen::List;
@@ -939,12 +975,31 @@ fn list_row_content_width(vault: &Vault) -> usize {
     2 + max_label_w + 2 + max_code_w + 1 + BAR_LEN + 1 + 3
 }
 
-fn save_vault(state: &mut AppState, vault: &Vault, path: &Path) {
-    if let Some(key_bytes) = &state.vault_key_cache {
-        let pass = std::str::from_utf8(key_bytes).unwrap_or("");
-        match vault.save(path, pass) {
-            Ok(_) => {}
-            Err(e) => state.status_message = Some(format!("Save failed: {e}")),
+/// Returns true on success. On failure sets a persistent (non-auto-dismissing) error message.
+fn save_vault(state: &mut AppState, vault: &Vault, path: &Path) -> bool {
+    let key_bytes = match &state.vault_key_cache {
+        Some(k) => k.clone(),
+        None => {
+            // No key in cache — vault-disk divergence would happen silently; refuse loudly.
+            state.status_message = Some("SAVE ERROR: vault is locked — changes not persisted!".to_string());
+            state.status_message_at = None; // persistent, never auto-dismiss
+            return false;
+        }
+    };
+    let pass = match std::str::from_utf8(&key_bytes) {
+        Ok(p) => p.to_string(),
+        Err(_) => {
+            state.status_message = Some("SAVE ERROR: corrupted passphrase cache".to_string());
+            state.status_message_at = None;
+            return false;
+        }
+    };
+    match vault.save(path, &pass) {
+        Ok(_) => true,
+        Err(e) => {
+            state.status_message = Some(format!("SAVE ERROR: {e}"));
+            state.status_message_at = None; // persistent until dismissed
+            false
         }
     }
 }

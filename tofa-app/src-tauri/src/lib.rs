@@ -6,7 +6,7 @@ use state::AppState;
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager, WebviewUrl, WebviewWindowBuilder,
+    Emitter, Listener, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 use tauri_plugin_positioner::WindowExt;
 
@@ -16,13 +16,16 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .manage(Mutex::new(AppState::new()))
         .invoke_handler(tauri::generate_handler![
+            commands::vault_exists,
+            commands::create_vault,
             commands::unlock,
             commands::get_entries,
             commands::copy_code,
             commands::get_settings,
             commands::save_settings,
+            commands::lock,
             commands::scan_screen,
-            commands::scan_image_data,
+            commands::scan_image_bytes,
             commands::add_from_uri,
             commands::delete_entry,
         ])
@@ -39,23 +42,53 @@ pub fn run() {
             .inner_size(320.0, 480.0)
             .build()?;
 
+            let item_scan_screen = MenuItem::with_id(app, "scan-screen", "Scan Screen", false, None::<&str>)?;
+            let item_scan_camera = MenuItem::with_id(app, "scan-camera", "Scan Camera", false, None::<&str>)?;
+            let item_lock = MenuItem::with_id(app, "lock", "Lock", false, None::<&str>)?;
+
             let menu = Menu::with_items(app, &[
-                &MenuItem::with_id(app, "scan-screen", "Scan Screen", true, None::<&str>)?,
-                &MenuItem::with_id(app, "scan-camera", "Scan Camera", true, None::<&str>)?,
+                &item_scan_screen,
+                &item_scan_camera,
                 &MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?,
+                &PredefinedMenuItem::separator(app)?,
+                &item_lock,
                 &PredefinedMenuItem::separator(app)?,
                 &PredefinedMenuItem::quit(app, None)?,
             ])?;
 
+            // Enable scan/lock items when unlocked, disable when locked
+            let ss = item_scan_screen.clone();
+            let sc = item_scan_camera.clone();
+            let lk = item_lock.clone();
+            app.listen("session-unlocked", move |_| {
+                let _ = ss.set_enabled(true);
+                let _ = sc.set_enabled(true);
+                let _ = lk.set_enabled(true);
+            });
+
+            let ss2 = item_scan_screen.clone();
+            let sc2 = item_scan_camera.clone();
+            let lk2 = item_lock.clone();
+            app.listen("session-locked", move |_| {
+                let _ = ss2.set_enabled(false);
+                let _ = sc2.set_enabled(false);
+                let _ = lk2.set_enabled(false);
+            });
+
+            let tray_icon = tauri::image::Image::from_bytes(
+                include_bytes!("../icons/tray_icon.png")
+            ).unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
+
             let tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
                 .menu(&menu)
-                .menu_on_left_click(false)
+                .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {
                     let action = match event.id.as_ref() {
                         "scan-screen" => "scan-screen",
                         "scan-camera" => "scan-camera",
                         "settings" => "settings",
+                        "lock" => "lock",
                         _ => return,
                     };
                     if let Some(win) = app.get_webview_window("popover") {

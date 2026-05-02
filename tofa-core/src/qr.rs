@@ -33,6 +33,30 @@ pub struct OtpMeta {
     pub period: Option<u32>,
 }
 
+impl OtpMeta {
+    /// Derive a vault entry name from issuer/account metadata.
+    /// Format: "Issuer:account" when both present, else whichever is available.
+    pub fn derive_name(&self) -> String {
+        match (&self.issuer, &self.account) {
+            (Some(i), Some(a)) => format!("{i}:{a}"),
+            (Some(i), None)    => i.clone(),
+            (None,    Some(a)) => a.clone(),
+            (None,    None)    => "Imported".to_string(),
+        }
+    }
+
+    /// Split a vault entry name back into (issuer, account).
+    /// "GitHub:alice@example.com" → ("GitHub", "alice@example.com")
+    /// "alice@example.com"        → ("",        "alice@example.com")
+    pub fn split_name(name: &str) -> (String, String) {
+        if let Some(pos) = name.find(':') {
+            (name[..pos].to_string(), name[pos + 1..].to_string())
+        } else {
+            (String::new(), name.to_string())
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct OtpSecret {
     pub secret: String,
@@ -447,14 +471,34 @@ pub fn scan_qr_uri(path: &std::path::Path) -> Result<String, QrError> {
 }
 
 pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> {
-    let img = image::open(path)
-        .map_err(|e| QrError::ImageLoad(e.to_string()))?
-        .to_luma8();
-    let mut img = rqrr::PreparedImage::prepare(img);
-    let uris: Vec<String> = img.detect_grids()
-        .into_iter()
-        .filter_map(|grid| grid.decode().ok().map(|(_, content)| content))
-        .collect();
+    let raw = image::open(path)
+        .map_err(|e| QrError::ImageLoad(e.to_string()))?;
+
+    // rqrr misses QR codes when the image is too large (Retina) or when codes
+    // appear at different sizes. Scan at multiple scales and deduplicate results.
+    let widths: &[u32] = &[1920, 1280, 960];
+    let mut seen = std::collections::HashSet::new();
+    let mut uris: Vec<String> = Vec::new();
+
+    for &max_w in widths {
+        let gray = if raw.width() > max_w {
+            let scale = max_w as f32 / raw.width() as f32;
+            let h = (raw.height() as f32 * scale) as u32;
+            raw.resize(max_w, h, image::imageops::FilterType::Lanczos3).to_luma8()
+        } else {
+            raw.to_luma8()
+        };
+
+        let mut prepared = rqrr::PreparedImage::prepare(gray);
+        for grid in prepared.detect_grids() {
+            if let Ok((_, content)) = grid.decode() {
+                if seen.insert(content.clone()) {
+                    uris.push(content);
+                }
+            }
+        }
+    }
+
     if uris.is_empty() { Err(QrError::NoQrFound) } else { Ok(uris) }
 }
 

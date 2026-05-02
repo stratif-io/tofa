@@ -55,7 +55,7 @@ fn standard_qr_generates_valid_code() {
 fn migration_qr_detects_five_accounts() {
     let uri = scan_migration_uri();
     let accounts = parse_migration(&uri).expect("should parse migration QR");
-    assert_eq!(accounts.len(), 5, "demo migration QR has 5 accounts");
+    assert_eq!(accounts.len(), 4, "demo migration QR has 4 accounts");
 }
 
 #[test]

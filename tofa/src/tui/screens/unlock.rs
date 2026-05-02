@@ -43,7 +43,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     let is_new = state.is_new_vault;
 
     let extra: u16 = if is_new { 3 } else { 0 } + if state.unlock_confirming { 4 } else { 0 };
-    let content_h: u16 = 10 + extra;
+    let content_h: u16 = 11 + extra;
 
     let vert = Layout::default()
         .direction(Direction::Vertical)
@@ -59,6 +59,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
 
     let mut constraints = vec![
         Constraint::Length(1), // title
+        Constraint::Length(1), // tagline
         Constraint::Length(1), // separator
         Constraint::Length(1), // gap
     ];
@@ -90,6 +91,17 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
         Paragraph::new(Line::from(Span::styled(
             name,
             Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD),
+        )))
+        .alignment(Alignment::Center),
+        rows[idx],
+    );
+    idx += 1;
+
+    // Tagline
+    f.render_widget(
+        Paragraph::new(Line::from(Span::styled(
+            "Leave your phone in your pocket.",
+            Style::default().fg(theme::DIM),
         )))
         .alignment(Alignment::Center),
         rows[idx],

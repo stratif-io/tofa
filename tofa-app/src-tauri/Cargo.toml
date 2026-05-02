@@ -21,3 +21,4 @@ zeroize = { version = "1", features = ["derive"] }
 dirs = "5"
 base64 = "0.22"
 chrono = "0.4"
+tokio = { version = "1", features = ["rt", "macros"] }

@@ -7,18 +7,49 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <!-- Loader bar -->
+  <div id="loader-bar"><div id="loader-bar-inner"></div></div>
+
   <!-- Locked view -->
   <div id="view-locked" class="view">
     <div class="header">
-      <span class="app-name">tofa</span>
-      <button id="btn-settings-locked" class="icon-btn" title="Settings">⚙</button>
+      <div class="app-brand">
+        <svg class="app-logo" width="22" height="22" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="56" height="56" rx="16" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+          <circle cx="32" cy="32" r="22" stroke="#21262d" stroke-width="5"/>
+          <path d="M 32 10 A 22 22 0 1 1 10 32" stroke="#4493f8" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <circle cx="10" cy="32" r="3.5" fill="#4493f8"/>
+          <rect x="20" y="22" width="24" height="4.5" rx="2.25" fill="#e6edf3"/>
+          <rect x="29.75" y="26.5" width="4.5" height="16" rx="2.25" fill="#e6edf3"/>
+        </svg>
+        <span class="app-name">tofa</span>
+      </div>
+      <button id="btn-settings-locked" class="icon-btn" title="Settings" aria-label="Settings">
+        <!-- settings/gear icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
     <div class="content">
+      <p class="app-tagline-locked">Leave your phone in your pocket.</p>
       <form id="form-unlock">
-        <label for="input-passphrase">Passphrase</label>
-        <input id="input-passphrase" type="password" autocomplete="current-password" autofocus>
-        <p id="unlock-error" class="error hidden"></p>
-        <button type="submit">Unlock</button>
+        <label id="label-passphrase" for="input-passphrase">Passphrase</label>
+        <div class="input-wrap">
+          <input id="input-passphrase" type="password" autocomplete="current-password" autofocus>
+          <button type="button" id="btn-toggle-pass" class="input-eye" tabindex="-1" aria-label="Show passphrase">
+            <svg id="eye-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div id="confirm-wrap" class="hidden">
+          <label for="input-passphrase-confirm">Confirm passphrase</label>
+          <input id="input-passphrase-confirm" type="password" autocomplete="new-password">
+          <p class="dim" style="font-size:11px;margin-top:-6px;margin-bottom:10px">Remember it — it cannot be recovered.</p>
+        </div>
+        <p id="unlock-error" class="error hidden" role="alert"></p>
+        <button type="submit" id="btn-unlock-submit">Unlock</button>
       </form>
     </div>
   </div>
@@ -26,11 +57,54 @@
   <!-- Unlocked view -->
   <div id="view-unlocked" class="view hidden">
     <div class="header">
-      <span class="app-name">tofa</span>
+      <div class="app-brand">
+        <svg class="app-logo" width="22" height="22" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="56" height="56" rx="16" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+          <circle cx="32" cy="32" r="22" stroke="#21262d" stroke-width="5"/>
+          <path d="M 32 10 A 22 22 0 1 1 10 32" stroke="#4493f8" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <circle cx="10" cy="32" r="3.5" fill="#4493f8"/>
+          <rect x="20" y="22" width="24" height="4.5" rx="2.25" fill="#e6edf3"/>
+          <rect x="29.75" y="26.5" width="4.5" height="16" rx="2.25" fill="#e6edf3"/>
+        </svg>
+        <span class="app-name">tofa</span>
+      </div>
       <div class="header-actions">
-        <button id="btn-scan-screen" class="icon-btn" title="Scan screen for QR code">🖥</button>
-        <button id="btn-scan-camera" class="icon-btn" title="Scan QR code with camera">📷</button>
-        <button id="btn-settings" class="icon-btn" title="Settings">⚙</button>
+        <!-- monitor/screen icon -->
+        <button id="btn-scan-screen" class="icon-btn" title="Scan screen for QR code" aria-label="Scan screen for QR code">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+        </button>
+        <!-- camera icon -->
+        <button id="btn-scan-camera" class="icon-btn" title="Scan QR code with camera" aria-label="Scan QR code with camera">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </button>
+        <!-- image upload icon -->
+        <input type="file" accept="image/*" id="header-file-input" style="display:none">
+        <button id="btn-image-upload" class="icon-btn" title="Scan QR from image" aria-label="Scan QR from image">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </button>
+        <!-- manual add icon -->
+        <button id="btn-manual-add" class="icon-btn" title="Add manually" aria-label="Add manually">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+        <!-- settings icon -->
+        <button id="btn-settings" class="icon-btn" title="Settings" aria-label="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       </div>
     </div>
     <div id="otp-list" class="otp-list"></div>
@@ -39,8 +113,14 @@
   <!-- Camera scan view -->
   <div id="view-camera" class="view hidden">
     <div class="header">
-      <button id="btn-camera-back" class="icon-btn" title="Back">←</button>
+      <!-- chevron-left / back icon -->
+      <button id="btn-camera-back" class="icon-btn" title="Back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
       <span class="app-name">Scan QR</span>
+      <div style="width:28px"></div><!-- spacer -->
     </div>
     <div class="camera-container">
       <div class="cam-wrap">
@@ -49,7 +129,7 @@
           <div class="cam-finder"><span></span><div class="cam-scanline"></div></div>
         </div>
       </div>
-      <p id="camera-status" class="dim">Starting camera…</p>
+      <p id="camera-status">Starting camera…</p>
     </div>
   </div>
 
@@ -61,12 +141,24 @@
           <span id="modal-issuer"></span>
           <span id="modal-account"></span>
         </div>
-        <button id="modal-close" class="icon-btn">✕</button>
+        <!-- close icon -->
+        <button id="modal-close" class="icon-btn" title="Close" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
       <div class="modal-body">
         <div class="modal-code-row">
           <span id="modal-code" class="modal-code"></span>
-          <button id="modal-copy" class="icon-btn" title="Copy">⧉</button>
+          <!-- copy icon -->
+          <button id="modal-copy" class="icon-btn" title="Copy" aria-label="Copy code">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </button>
         </div>
         <div class="modal-bar-wrap"><div id="modal-bar" class="otp-bar"></div></div>
         <div class="modal-meta">
@@ -77,19 +169,49 @@
           <span class="tt-row"><span class="tt-label">Period</span><span id="md-period"></span></span>
           <span class="tt-row"><span class="tt-label">Added</span><span id="md-created"></span></span>
         </div>
-        <button id="modal-delete" class="tt-delete" style="align-self:flex-start">Delete</button>
+        <button id="modal-delete" class="tt-delete">Delete</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Manual add view -->
+  <div id="view-manual-add" class="view hidden">
+    <div class="header">
+      <button id="btn-manual-back" class="icon-btn" title="Back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span class="app-name">Add Manually</span>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content">
+      <label for="input-manual-uri">URI or secret</label>
+      <input id="input-manual-uri" type="text" spellcheck="false" autocomplete="off"
+             placeholder="otpauth://totp/… or JBSWY3DPEHPK3PXP">
+      <p class="dim" style="font-size:11px;margin-top:-6px;margin-bottom:10px">
+        Paste an <code>otpauth://</code> URL or a raw Base32 secret.
+      </p>
+      <label for="input-manual-name">Name <span class="dim" style="font-weight:400">(optional)</span></label>
+      <input id="input-manual-name" type="text" spellcheck="false" autocomplete="off" placeholder="GitHub, AWS…">
+      <p id="manual-error" class="error hidden"></p>
+      <button id="btn-manual-confirm">Add</button>
     </div>
   </div>
 
   <!-- Add entry confirmation view -->
   <div id="view-add-confirm" class="view hidden">
     <div class="header">
-      <button id="btn-add-back" class="icon-btn" title="Back">←</button>
+      <button id="btn-add-back" class="icon-btn" title="Back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
       <span class="app-name">Add Entry</span>
+      <div style="width:28px"></div>
     </div>
     <div class="content">
-      <p id="add-confirm-info" class="dim"></p>
+      <p id="add-confirm-info" class="dim" style="margin-bottom:4px"></p>
       <label for="input-entry-name">Name</label>
       <input id="input-entry-name" type="text" spellcheck="false">
       <p id="add-error" class="error hidden"></p>
@@ -100,8 +222,13 @@
   <!-- Settings view -->
   <div id="view-settings" class="view hidden">
     <div class="header">
-      <button id="btn-back" class="icon-btn" title="Back">←</button>
+      <button id="btn-back" class="icon-btn" title="Back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
       <span class="app-name">Settings</span>
+      <div style="width:28px"></div>
     </div>
     <div class="content">
       <form id="form-settings">
@@ -110,8 +237,40 @@
         <p id="settings-error" class="error hidden"></p>
         <button type="submit">Save</button>
       </form>
+      <div class="settings-section">
+        <label>Vault</label>
+        <button id="btn-reload-vault" class="btn-secondary">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          Reload entries
+        </button>
+      </div>
+      <div class="settings-section">
+        <label>Session</label>
+        <button id="btn-lock" class="btn-secondary btn-lock">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Lock
+        </button>
+      </div>
     </div>
   </div>
+
+  <!-- Scan countdown overlay -->
+  <div id="scan-overlay" class="scan-overlay hidden">
+    <div class="scan-overlay-inner">
+      <div class="scan-ring"></div>
+      <span id="scan-countdown" class="scan-countdown"></span>
+      <span id="scan-label" class="scan-label"></span>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
   <script src="main.js"></script>
 </body>

@@ -8,7 +8,8 @@ fn entry(secret: &str) -> VaultEntry {
 }
 
 fn entry_with(secret: &str, period: u32, digits: u8, algorithm: &str) -> VaultEntry {
-    VaultEntry { period, digits, algorithm: algorithm.into(), ..entry(secret) }
+    let base = entry(secret);
+    VaultEntry { period, digits, algorithm: algorithm.into(), name: base.name.clone(), secret: base.secret.clone(), created_at: base.created_at.clone() }
 }
 
 // RFC 6238 test vector: secret = "12345678901234567890" (ASCII), SHA1, 30s window

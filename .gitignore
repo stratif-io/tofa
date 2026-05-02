@@ -8,3 +8,7 @@ tofa.iconset/
 tofa-app/src-tauri/target/
 .DS_Store
 *.json
+
+# Superpowers AI tooling — not part of the project
+docs/superpowers/
+CLAUDE.md

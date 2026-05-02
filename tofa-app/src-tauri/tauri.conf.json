@@ -15,7 +15,8 @@
   "bundle": {
     "active": true,
     "targets": ["dmg", "app"],
-    "icon": ["icons/icon.png"],
+    "icon": ["icons/icon.png", "icons/icon.icns"],
+    "resources": ["icons/tray_icon.png"],
     "macOS": {
       "infoPlist": "Info.plist"
     }

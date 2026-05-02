@@ -16,6 +16,12 @@ pub enum Screen {
     ScanningQr,
 }
 
+#[derive(Debug)]
+pub enum PendingVaultAction {
+    DeleteEntry(usize),
+    AddEntry,
+}
+
 pub struct OtpMetaDisplay {
     pub issuer: Option<String>,
     pub account: Option<String>,
@@ -53,6 +59,8 @@ pub struct AppState {
     pub fp_query: String,
     // pending QR scan
     pub pending_scan_path: Option<PathBuf>,
+    // pending vault write (deferred one tick so "Saving…" toast renders first)
+    pub pending_vault_action: Option<PendingVaultAction>,
     // OTP detail secret reveal
     pub detail_revealing: bool,
     pub detail_passphrase: Zeroizing<String>,
@@ -93,6 +101,7 @@ impl AppState {
             fp_selected: 0,
             fp_query: String::new(),
             pending_scan_path: None,
+            pending_vault_action: None,
             detail_revealing: false,
             detail_passphrase: Zeroizing::new(String::new()),
             detail_secret_visible: false,

@@ -16,13 +16,13 @@ tofa is a local-first TOTP authenticator with two interfaces: a macOS menu bar a
 ## Features
 
 - **Always one click away** — tray icon opens a compact popover with live codes and countdown rings
-- **Eye-candy TUI** (`rotp`) — violet accent, per-entry progress bars, mouse support, live countdown
+- **Eye-candy TUI** — violet accent, per-entry progress bars, mouse support, live countdown
 - **AES-256-GCM vault** encrypted with an Argon2id-derived key; secrets never hit disk in plaintext
 - **QR scanning** — scan your screen, drop an image, or use the camera to add accounts instantly
 - **Google Authenticator migration** — import `otpauth-migration://` QR codes directly
 - **Manual entry** — paste a raw Base32 secret or a full `otpauth://` URI
 - **Session lock** — auto-locks after 5 minutes of inactivity; lock manually from the menu
-- **Scriptable CLI** (`rotp`) — add, list, copy codes, import/export, and pipe into scripts
+- **Scriptable CLI** — add, list, copy codes, import/export, and pipe into scripts
 
 ## Quick start
 
@@ -37,28 +37,28 @@ Or build the CLI + TUI:
 
 ```bash
 cargo install --path tofa
-rotp          # open the TUI
-rotp --help   # CLI reference
+tofa          # open the TUI
+tofa --help   # CLI reference
 ```
 
-## CLI & TUI (`rotp`)
+## CLI & TUI
 
 ```
-rotp                               # open the interactive TUI
-rotp init                          # create a new encrypted vault
-rotp add --name GitHub:you --secret JBSWY3DPEHPK3PXP
-rotp add --uri "otpauth://totp/..."
-rotp add --qr ~/Downloads/qr.png
-rotp list                          # show all entries
-rotp code GitHub:you               # print current TOTP code
-rotp code GitHub:you | pbcopy      # copy to clipboard
-rotp remove GitHub:you
-rotp rename GitHub:you GitHub:me
-rotp rekey                         # change vault passphrase
-rotp export                        # dump vault as JSON
-rotp import accounts.json
-rotp qr GitHub:you                 # display QR in terminal
-rotp completions zsh               # shell completions
+tofa                               # open the interactive TUI
+tofa init                          # create a new encrypted vault
+tofa add --name GitHub:you --secret JBSWY3DPEHPK3PXP
+tofa add --uri "otpauth://totp/..."
+tofa add --qr ~/Downloads/qr.png
+tofa list                          # show all entries
+tofa code GitHub:you               # print current TOTP code
+tofa code GitHub:you | pbcopy      # copy to clipboard
+tofa remove GitHub:you
+tofa rename GitHub:you GitHub:me
+tofa rekey                         # change vault passphrase
+tofa export                        # dump vault as JSON
+tofa import accounts.json
+tofa qr GitHub:you                 # display QR in terminal
+tofa completions zsh               # shell completions
 ```
 
 ## Architecture
@@ -67,7 +67,7 @@ rotp completions zsh               # shell completions
 |---|---|
 | `tofa-core` | Rust library — crypto, TOTP generation, QR parsing, vault I/O |
 | `tofa-app` | Tauri v2 menu bar app — thin shell over `tofa-core` |
-| `tofa` (`rotp`) | Clap CLI + Ratatui TUI — thin shell over `tofa-core` |
+| `tofa` | Clap CLI + Ratatui TUI — thin shell over `tofa-core` |
 
 All business logic lives in `tofa-core`. The app and CLI are pure UI layers.
 

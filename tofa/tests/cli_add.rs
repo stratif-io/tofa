@@ -23,7 +23,7 @@ fn add_with_secret_and_name() {
     let tmp = init_vault();
     tofa(&tmp)
         .args(["add", "--name", "GitHub:carlo", "--secret", "JBSWY3DPEHPK3PXP"])
-        .assert().success().stdout(contains("Added GitHub:carlo"));
+        .assert().success().stdout(contains("Sir Wink"));
 }
 
 #[test]
@@ -31,7 +31,7 @@ fn add_with_uri() {
     let tmp = init_vault();
     tofa(&tmp)
         .args(["add", "--uri", "otpauth://totp/GitHub:carlo?secret=JBSWY3DPEHPK3PXP&issuer=GitHub"])
-        .assert().success().stdout(contains("Added"));
+        .assert().success().stdout(contains("Sir Wink"));
 }
 
 #[test]

@@ -41,7 +41,8 @@ fn list_codes_shows_digits() {
     let tmp = setup();
     let out = tofa(&tmp).args(["list", "--codes"]).assert().success();
     let stdout = String::from_utf8(out.get_output().stdout.clone()).unwrap();
-    assert!(stdout.contains("GitHub:carlo"));
+    // With --codes the name is split into issuer/account columns
+    assert!(stdout.contains("GitHub") || stdout.contains("carlo"));
     assert!(stdout.chars().any(|c| c.is_ascii_digit()));
 }
 

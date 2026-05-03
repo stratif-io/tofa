@@ -1,6 +1,5 @@
 pub mod screens;
 pub mod state;
-pub mod theme;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton},

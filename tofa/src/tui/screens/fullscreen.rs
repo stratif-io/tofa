@@ -1,4 +1,5 @@
-use crate::tui::{state::AppState, theme};
+use crate::tui::state::AppState;
+use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -20,7 +21,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     let code = generate_code_now(entry).unwrap_or_else(|_| "------".to_string());
     let secs = seconds_remaining_now(entry);
-    let timer_col = theme::timer_color(secs);
+    let timer_col = tofa_theme::palette::timer_color(secs);
 
     let is_8digit = entry.digits == 8;
     let use_half_height = if is_8digit { area.width >= 80 } else { area.width >= 68 };
@@ -76,7 +77,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             header,
-            Style::default().fg(theme::DIM),
+            Style::default().fg(theme::TEXT_MUTED),
         )))
         .alignment(Alignment::Center),
         chunks[0],
@@ -120,7 +121,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "[ y ] copy   [ Esc ] back",
-            Style::default().fg(theme::DIM),
+            Style::default().fg(theme::TEXT_MUTED),
         )))
         .alignment(Alignment::Center),
         chunks[7],

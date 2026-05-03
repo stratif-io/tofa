@@ -1,4 +1,5 @@
-use crate::tui::{state::AppState, theme};
+use crate::tui::state::AppState;
+use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -20,7 +21,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(theme::ACCENT))
+            .border_style(Style::default().fg(theme::BRAND))
             .style(Style::default().bg(theme::BG)),
         modal,
     );
@@ -59,13 +60,13 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             let selected = i == state.export_selected;
             let checkbox = if checked { "[✓]" } else { "[ ]" };
             let row_style = if selected {
-                Style::default().fg(theme::ACCENT).bg(theme::MUTED).add_modifier(Modifier::BOLD)
+                Style::default().fg(theme::BRAND).bg(theme::SURFACE).add_modifier(Modifier::BOLD)
             } else if checked {
                 Style::default().fg(theme::TEXT)
             } else {
-                Style::default().fg(theme::DIM)
+                Style::default().fg(theme::TEXT_MUTED)
             };
-            let cb_style = if checked { row_style.fg(theme::ACCENT) } else { row_style };
+            let cb_style = if checked { row_style.fg(theme::BRAND) } else { row_style };
             ListItem::new(Line::from(vec![
                 Span::styled(format!("{checkbox} "), cb_style),
                 Span::styled(entry.name.clone(), row_style),
@@ -84,7 +85,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "[ Space ] toggle  [ Enter ] generate QR  [ Esc ] back",
-            Style::default().fg(theme::DIM),
+            Style::default().fg(theme::TEXT_MUTED),
         ))),
         chunks[3],
     );

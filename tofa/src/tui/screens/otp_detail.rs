@@ -1,4 +1,5 @@
-use crate::tui::{state::AppState, theme};
+use crate::tui::state::AppState;
+use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -19,7 +20,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     let code = generate_code_now(entry).unwrap_or_else(|_| "------".to_string());
     let secs = seconds_remaining_now(entry);
-    let timer_col = theme::timer_color(secs);
+    let timer_col = tofa_theme::palette::timer_color(secs);
 
     let secret_display = if state.detail_secret_visible {
         entry.secret.clone()
@@ -97,7 +98,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         let value_mod = if *is_code { Modifier::BOLD } else { Modifier::empty() };
         f.render_widget(
             Paragraph::new(Line::from(vec![
-                Span::styled(format!("{label:<10}"), Style::default().fg(theme::DIM)),
+                Span::styled(format!("{label:<10}"), Style::default().fg(theme::TEXT_MUTED)),
                 Span::styled(*value, Style::default().fg(value_col).add_modifier(value_mod)),
             ])),
             chunks[2 + i],
@@ -116,7 +117,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         f.render_widget(
             Paragraph::new(Line::from(Span::styled(
                 "Passphrase to reveal secret:",
-                Style::default().fg(theme::DIM),
+                Style::default().fg(theme::TEXT_MUTED),
             ))),
             chunks[label_idx],
         );
@@ -125,9 +126,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             Paragraph::new(Line::from(vec![
                 Span::styled(
                     "•".repeat(state.detail_passphrase.len()),
-                    Style::default().fg(theme::DIM),
+                    Style::default().fg(theme::TEXT_MUTED),
                 ),
-                Span::styled("▌", Style::default().fg(theme::ACCENT)),
+                Span::styled("▌", Style::default().fg(theme::BRAND)),
             ])),
             chunks[input_idx],
         );
@@ -145,7 +146,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             format!("[ y ] copy · {reveal_hint} · [ ↑↓ ] navigate · [ Esc ] back"),
-            Style::default().fg(theme::DIM),
+            Style::default().fg(theme::TEXT_MUTED),
         )))
         .alignment(Alignment::Center),
         chunks[help_idx],

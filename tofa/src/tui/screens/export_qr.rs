@@ -1,4 +1,5 @@
-use crate::tui::{state::AppState, theme};
+use crate::tui::state::AppState;
+use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -37,7 +38,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(theme::ACCENT))
+            .border_style(Style::default().fg(theme::BRAND))
             .style(Style::default().bg(theme::BG)),
         modal,
     );
@@ -89,7 +90,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "[ Esc ] back",
-            Style::default().fg(theme::DIM),
+            Style::default().fg(theme::TEXT_MUTED),
         )))
         .alignment(Alignment::Center),
         chunks[3],
@@ -108,7 +109,7 @@ fn render_too_small(f: &mut Frame, area: Rect, needed_w: u16, needed_h: u16) {
         Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(theme::URGENT))
+            .border_style(Style::default().fg(theme::DANGER))
             .style(Style::default().bg(theme::BG)),
         modal,
     );
@@ -134,7 +135,7 @@ fn render_too_small(f: &mut Frame, area: Rect, needed_w: u16, needed_h: u16) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Terminal too small",
-            Style::default().fg(theme::URGENT).add_modifier(Modifier::BOLD),
+            Style::default().fg(theme::DANGER).add_modifier(Modifier::BOLD),
         )))
         .alignment(Alignment::Center),
         rows[1],
@@ -143,7 +144,7 @@ fn render_too_small(f: &mut Frame, area: Rect, needed_w: u16, needed_h: u16) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             format!("Need at least {}×{} — resize and retry", needed_w, needed_h),
-            Style::default().fg(theme::DIM),
+            Style::default().fg(theme::TEXT_MUTED),
         )))
         .alignment(Alignment::Center),
         rows[2],
@@ -152,7 +153,7 @@ fn render_too_small(f: &mut Frame, area: Rect, needed_w: u16, needed_h: u16) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "[ Esc ] back",
-            Style::default().fg(theme::DIM),
+            Style::default().fg(theme::TEXT_MUTED),
         )))
         .alignment(Alignment::Center),
         rows[3],

@@ -1,4 +1,5 @@
-use crate::tui::{state::AppState, theme};
+use crate::tui::state::AppState;
+use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -19,7 +20,7 @@ pub fn render(f: &mut Frame, area: Rect, _state: &AppState) {
         Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(theme::ACCENT))
+            .border_style(Style::default().fg(theme::BRAND))
             .style(Style::default().bg(theme::BG)),
         modal,
     );
@@ -38,8 +39,8 @@ pub fn render(f: &mut Frame, area: Rect, _state: &AppState) {
 
     f.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled("⟳ ", Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD)),
-            Span::styled("Analyzing QR code…", Style::default().fg(theme::DIM)),
+            Span::styled("⟳ ", Style::default().fg(theme::BRAND).add_modifier(Modifier::BOLD)),
+            Span::styled("Analyzing QR code…", Style::default().fg(theme::TEXT_MUTED)),
         ]))
         .alignment(Alignment::Center),
         rows[1],

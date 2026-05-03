@@ -1,4 +1,5 @@
-use crate::tui::{state::AppState, theme};
+use crate::tui::state::AppState;
+use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -35,13 +36,13 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 }
 
 fn render_header(f: &mut Frame, area: Rect, vault: &Vault, secs: u64) {
-    let timer_col = theme::timer_color(secs);
+    let timer_col = tofa_theme::palette::timer_color(secs);
     let count = vault.entries().len();
 
     let left = Line::from(vec![
-        Span::styled("tofa", Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD)),
+        Span::styled("tofa", Style::default().fg(theme::BRAND).add_modifier(Modifier::BOLD)),
         Span::raw(" "),
-        Span::styled(format!("[{}]", count), Style::default().fg(theme::ACCENT).bg(theme::BADGE_BG)),
+        Span::styled(format!("[{}]", count), Style::default().fg(theme::BRAND).bg(theme::SURFACE)),
     ]);
     let right = Line::from(vec![
         Span::styled(format!("{}s", secs), Style::default().fg(timer_col)),
@@ -95,7 +96,7 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             let selected = i == state.selected_index;
             let label = &labels[i];
             let secs = seconds_remaining_now(entry);
-            let timer_col = theme::timer_color(secs);
+            let timer_col = tofa_theme::palette::timer_color(secs);
 
             let show = state.show_codes || selected;
             let code_str = if show {
@@ -108,10 +109,10 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             let (cursor, label_col, label_mod, code_col) = if selected {
                 ("› ", theme::TEXT, Modifier::BOLD, timer_col)
             } else {
-                ("  ", theme::DIM, Modifier::empty(), if state.show_codes { theme::DIM } else { theme::MUTED })
+                ("  ", theme::TEXT_MUTED, Modifier::empty(), if state.show_codes { theme::TEXT_MUTED } else { theme::SURFACE })
             };
 
-            let bar_col = if selected { timer_col } else { theme::MUTED };
+            let bar_col = if selected { timer_col } else { theme::SURFACE };
             let period_ms = entry.period as u64 * 1000;
             let ms_into_period = now_ms % period_ms;
             let ms_left = period_ms - ms_into_period;
@@ -131,10 +132,10 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             let pad = max_label_w.saturating_sub(label.chars().count());
             let code_pad = max_code_w.saturating_sub(code_str.chars().count());
             let secs_str = format!("{:>2}s", secs);
-            let secs_col = if show { timer_col } else { theme::MUTED };
+            let secs_col = if show { timer_col } else { theme::SURFACE };
 
             let content = Line::from(vec![
-                Span::styled(cursor, Style::default().fg(theme::ACCENT)),
+                Span::styled(cursor, Style::default().fg(theme::BRAND)),
                 Span::styled(label.clone(), Style::default().fg(label_col).add_modifier(label_mod)),
                 Span::raw(" ".repeat(pad + 2)),
                 Span::styled(code_str, Style::default().fg(code_col)),
@@ -170,7 +171,7 @@ fn render_footer(f: &mut Frame, area: Rect) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "↑↓ nav  spc fullscreen  i detail  h codes  a add  d del  y copy  e export  l lock  q quit",
-            Style::default().fg(theme::MUTED),
+            Style::default().fg(theme::SURFACE),
         )))
         .style(Style::default().bg(theme::BG)),
         Rect { x: area.x, y: area.y + 1, width: area.width, height: 1 },

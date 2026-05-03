@@ -1,4 +1,5 @@
-use crate::tui::{state::AppState, theme};
+use crate::tui::state::AppState;
+use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -59,15 +60,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         path_str.to_string()
     };
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(truncated, Style::default().fg(theme::DIM)))),
+        Paragraph::new(Line::from(Span::styled(truncated, Style::default().fg(theme::TEXT_MUTED)))),
         chunks[0],
     );
 
     f.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled("/ ", Style::default().fg(theme::DIM)),
+            Span::styled("/ ", Style::default().fg(theme::TEXT_MUTED)),
             Span::styled(state.fp_query.clone(), Style::default().fg(theme::TEXT).add_modifier(Modifier::BOLD)),
-            Span::styled("▌", Style::default().fg(theme::ACCENT)),
+            Span::styled("▌", Style::default().fg(theme::BRAND)),
         ])),
         chunks[1],
     );
@@ -78,8 +79,8 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         .enumerate()
         .map(|(i, (name, is_dir))| {
             let selected = i == state.fp_selected;
-            let border_col = if selected { theme::ACCENT } else { theme::BG };
-            let text_col = if *is_dir { theme::DIM } else { theme::TEXT };
+            let border_col = if selected { theme::BRAND } else { theme::BG };
+            let text_col = if *is_dir { theme::TEXT_MUTED } else { theme::TEXT };
             let icon = if *is_dir { "▸ " } else { "  " };
             ListItem::new(Line::from(vec![
                 Span::styled("▌ ", Style::default().fg(border_col)),
@@ -94,7 +95,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_stateful_widget(
         List::new(items)
             .block(Block::default().style(Style::default().bg(theme::BG)))
-            .highlight_style(Style::default().bg(theme::MUTED)),
+            .highlight_style(Style::default().bg(theme::SURFACE)),
         chunks[3],
         &mut list_state,
     );
@@ -102,7 +103,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "[ type ] filter  [ ↑↓ ] navigate  [ Enter ] open  [ Esc ] back",
-            Style::default().fg(theme::DIM),
+            Style::default().fg(theme::TEXT_MUTED),
         ))),
         chunks[4],
     );

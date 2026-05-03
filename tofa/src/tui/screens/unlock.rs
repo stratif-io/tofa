@@ -1,4 +1,5 @@
-use crate::tui::{state::AppState, theme};
+use crate::tui::state::AppState;
+use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -31,8 +32,8 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     };
     f.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled(shown_path, Style::default().fg(theme::MUTED)),
-            Span::styled("  [ Tab ] copy", Style::default().fg(theme::MUTED)),
+            Span::styled(shown_path, Style::default().fg(theme::SURFACE)),
+            Span::styled("  [ Tab ] copy", Style::default().fg(theme::SURFACE)),
         ]))
         .alignment(Alignment::Center),
         Rect { x: area.x, y: area.y + area.height.saturating_sub(1), width: area.width, height: 1 },
@@ -90,7 +91,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             name,
-            Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD),
+            Style::default().fg(theme::BRAND).add_modifier(Modifier::BOLD),
         )))
         .alignment(Alignment::Center),
         rows[idx],
@@ -101,7 +102,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Leave your phone in your pocket.",
-            Style::default().fg(theme::DIM),
+            Style::default().fg(theme::TEXT_MUTED),
         )))
         .alignment(Alignment::Center),
         rows[idx],
@@ -112,7 +113,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "─".repeat(name.len() + 4),
-            Style::default().fg(theme::ACCENT),
+            Style::default().fg(theme::BRAND),
         )))
         .alignment(Alignment::Center),
         rows[idx],
@@ -127,7 +128,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
         f.render_widget(
             Paragraph::new(Line::from(Span::styled(
                 "⚠  Creating a new vault.",
-                Style::default().fg(theme::URGENT).add_modifier(Modifier::BOLD),
+                Style::default().fg(theme::DANGER).add_modifier(Modifier::BOLD),
             )))
             .alignment(Alignment::Center),
             rows[idx],
@@ -136,7 +137,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
         f.render_widget(
             Paragraph::new(Line::from(Span::styled(
                 "Remember your passphrase — it cannot be recovered.",
-                Style::default().fg(theme::URGENT),
+                Style::default().fg(theme::DANGER),
             )))
             .alignment(Alignment::Center),
             rows[idx],
@@ -148,7 +149,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     // Passphrase label + input
     let pass_label = if is_new { "Choose a passphrase" } else { "Passphrase" };
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(pass_label, Style::default().fg(theme::DIM)))),
+        Paragraph::new(Line::from(Span::styled(pass_label, Style::default().fg(theme::TEXT_MUTED)))),
         rows[idx],
     );
     idx += 1;
@@ -157,15 +158,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     let pass_active = !state.unlock_confirming;
     f.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled(input_dots, Style::default().fg(theme::DIM)),
-            Span::styled(if pass_active { "▌" } else { "" }, Style::default().fg(theme::ACCENT)),
+            Span::styled(input_dots, Style::default().fg(theme::TEXT_MUTED)),
+            Span::styled(if pass_active { "▌" } else { "" }, Style::default().fg(theme::BRAND)),
         ]))
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(
-                    if state.unlock_error && pass_active { theme::URGENT } else { theme::BORDER },
+                    if state.unlock_error && pass_active { theme::DANGER } else { theme::BORDER },
                 ))
                 .style(Style::default().bg(theme::BG)),
         ),
@@ -176,7 +177,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     // Confirm passphrase (new vault, second step)
     if state.unlock_confirming {
         f.render_widget(
-            Paragraph::new(Line::from(Span::styled("Confirm passphrase", Style::default().fg(theme::DIM)))),
+            Paragraph::new(Line::from(Span::styled("Confirm passphrase", Style::default().fg(theme::TEXT_MUTED)))),
             rows[idx],
         );
         idx += 1;
@@ -184,15 +185,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
         let confirm_dots = "•".repeat(state.passphrase_confirm.len());
         f.render_widget(
             Paragraph::new(Line::from(vec![
-                Span::styled(confirm_dots, Style::default().fg(theme::DIM)),
-                Span::styled("▌", Style::default().fg(theme::ACCENT)),
+                Span::styled(confirm_dots, Style::default().fg(theme::TEXT_MUTED)),
+                Span::styled("▌", Style::default().fg(theme::BRAND)),
             ]))
             .block(
                 Block::default()
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
                     .border_style(Style::default().fg(
-                        if state.unlock_error { theme::URGENT } else { theme::BORDER },
+                        if state.unlock_error { theme::DANGER } else { theme::BORDER },
                     ))
                     .style(Style::default().bg(theme::BG)),
             ),
@@ -206,7 +207,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
         f.render_widget(
             Paragraph::new(Line::from(Span::styled(
                 msg.as_str(),
-                Style::default().fg(theme::URGENT),
+                Style::default().fg(theme::DANGER),
             )))
             .alignment(Alignment::Center),
             rows[idx],
@@ -215,7 +216,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
         f.render_widget(
             Paragraph::new(Line::from(Span::styled(
                 "Wrong passphrase.",
-                Style::default().fg(theme::URGENT),
+                Style::default().fg(theme::DANGER),
             )))
             .alignment(Alignment::Center),
             rows[idx],
@@ -235,7 +236,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
         "⏎ unlock · ^C quit"
     };
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(footer, Style::default().fg(theme::MUTED))))
+        Paragraph::new(Line::from(Span::styled(footer, Style::default().fg(theme::SURFACE))))
             .alignment(Alignment::Center),
         rows[idx],
     );

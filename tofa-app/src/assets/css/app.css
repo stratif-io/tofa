@@ -2,16 +2,18 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  width: 360px;
-  height: 520px;
+  width: 320px;
+  height: 480px;
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Hide non-active views */
 .view { display: none; }
-.view.active { display: flex; flex-direction: column; height: 100%; }
+.view.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
 /* Scrollable account list area */
 .account-list {
@@ -109,20 +111,36 @@ html, body {
   transition: width 1s linear, background 0.5s;
 }
 
-/* Add view drop zone */
-.drop-zone {
-  border: 2px dashed var(--border-strong);
-  border-radius: var(--r-lg);
-  padding: var(--s-6) var(--s-5);
-  text-align: center;
+
+
+/* Detail metadata table */
+#detail-meta td {
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+#detail-meta td:first-child {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
-  transition: border-color 0.2s, background 0.2s;
+  width: 80px;
+  padding-right: var(--s-3);
+}
+#detail-meta td:last-child {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-all;
+}
+#detail-meta tr:last-child td { border-bottom: none; }
+.secret-masked {
   cursor: pointer;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
 }
-.drop-zone.drag-over {
-  border-color: var(--brand);
-  background: var(--brand-bg);
-}
+.secret-masked:hover { color: var(--brand); }
 
 /* Toast */
 .toast {
@@ -143,3 +161,17 @@ html, body {
 }
 .toast.visible { opacity: 1; }
 .toast.error { background: var(--danger); color: white; }
+
+/* Logo eye-open animation */
+@keyframes eye-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+@keyframes eye-close {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.logo-svg.eye-opening { animation: eye-pop 0.35s ease forwards; }
+.logo-svg.eye-closing { animation: eye-close 0.25s ease forwards; }

@@ -13,6 +13,7 @@ use tauri_plugin_positioner::WindowExt;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_positioner::init())
         .manage(Mutex::new(AppState::new()))
         .invoke_handler(tauri::generate_handler![
@@ -23,11 +24,15 @@ pub fn run() {
             commands::copy_code,
             commands::get_settings,
             commands::save_settings,
+            commands::get_secret,
             commands::lock,
             commands::scan_screen,
+            commands::scan_camera,
             commands::scan_image_bytes,
             commands::add_from_uri,
             commands::delete_entry,
+            commands::pick_vault_folder,
+            commands::import_file,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

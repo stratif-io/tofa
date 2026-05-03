@@ -14,11 +14,21 @@
 <div style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
   <svg width="0" height="0">
     <defs>
+      <!-- Locked: left QR eye open, right eye winked -->
       <symbol id="tofa-wink" viewBox="0 0 128 128">
         <path d="M 64 14 C 78 14 92 18 102 22 C 104 23 106 25 106 28 V 60 C 106 86 90 104 66 114 C 65 114 63 114 62 114 C 38 104 22 86 22 60 V 28 C 22 25 24 23 26 22 C 36 18 50 14 64 14 Z" fill="currentColor"/>
         <rect x="40" y="46" width="18" height="18" rx="3" fill="var(--bg)"/>
         <rect x="46" y="52" width="6" height="6" rx="1" fill="currentColor"/>
         <path d="M 70 56 Q 79 50 88 56" stroke="var(--bg)" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M 48 82 Q 64 94 80 82" stroke="var(--bg)" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </symbol>
+      <!-- Unlocked: both eyes open -->
+      <symbol id="tofa-open" viewBox="0 0 128 128">
+        <path d="M 64 14 C 78 14 92 18 102 22 C 104 23 106 25 106 28 V 60 C 106 86 90 104 66 114 C 65 114 63 114 62 114 C 38 104 22 86 22 60 V 28 C 22 25 24 23 26 22 C 36 18 50 14 64 14 Z" fill="currentColor"/>
+        <rect x="40" y="46" width="18" height="18" rx="3" fill="var(--bg)"/>
+        <rect x="46" y="52" width="6"  height="6"  rx="1" fill="currentColor"/>
+        <rect x="70" y="46" width="18" height="18" rx="3" fill="var(--bg)"/>
+        <rect x="76" y="52" width="6"  height="6"  rx="1" fill="currentColor"/>
         <path d="M 48 82 Q 64 94 80 82" stroke="var(--bg)" stroke-width="4" fill="none" stroke-linecap="round"/>
       </symbol>
     </defs>
@@ -28,17 +38,28 @@
 <!-- Loader bar -->
 <div id="loader-bar"><div id="loader-bar-inner"></div></div>
 
+<!-- Blocking overlay (delete, etc.) -->
+<div id="blocking-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center;">
+  <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">Deleting…</div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
 <!-- ====== VIEW: LOCKED ====== -->
 <div id="view-locked" class="view active">
   <div class="app-header tray-header">
-    <svg width="22" height="22" style="color: var(--brand)"><use href="#tofa-wink"/></svg>
-    <span class="tray-header-title">TOFA</span>
+    <svg id="logo-header-locked" class="logo-svg" width="32" height="32" style="color: var(--brand)"><use href="#tofa-wink"/></svg>
+    <span class="tray-header-title" style="flex:1;text-align:center;">TOFA</span>
+    <button id="btn-settings-locked" class="btn btn-ghost" style="padding:4px 8px;" title="Settings">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+    </button>
   </div>
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--s-6);">
-    <svg width="80" height="80" style="color:var(--brand);margin-bottom:var(--s-4)"><use href="#tofa-wink"/></svg>
+    <svg id="logo-hero" class="logo-svg" width="80" height="80" style="color:var(--brand);margin-bottom:var(--s-4)"><use href="#tofa-wink"/></svg>
     <p style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.2em;color:var(--text-muted);margin-bottom:var(--s-5);">VAULT LOCKED</p>
     <form id="form-unlock" style="width:280px;">
       <label class="input-label" for="input-passphrase">Passphrase</label>
@@ -48,7 +69,7 @@
         <input id="input-passphrase-confirm" class="input" type="password" autocomplete="new-password">
         <p style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:var(--s-1);">Remember it — it cannot be recovered.</p>
       </div>
-      <p id="unlock-error" style="font-family:var(--font-mono);font-size:11px;color:var(--danger);margin-bottom:var(--s-2);display:none;" role="alert"></p>
+      <p id="unlock-error" style="font-family:var(--font-mono);font-size:11px;color:var(--danger);margin-bottom:var(--s-2);visibility:hidden;min-height:1.4em;" role="alert"></p>
       <button type="submit" class="btn btn-primary" style="width:100%;" id="btn-unlock-submit">Unlock</button>
     </form>
   </div>
@@ -57,10 +78,16 @@
 <!-- ====== VIEW: LIST ====== -->
 <div id="view-list" class="view">
   <div class="app-header tray-header">
-    <svg width="22" height="22" style="color: var(--brand)"><use href="#tofa-wink"/></svg>
+    <svg id="logo-header-list" class="logo-svg" width="32" height="32" style="color: var(--brand)"><use href="#tofa-wink"/></svg>
     <span class="tray-header-title">TOFA</span>
     <span id="list-badge" class="badge badge-brand" style="margin-left:auto;"></span>
     <button id="btn-add" class="btn btn-ghost" style="padding:4px 8px;font-size:18px;line-height:1;" title="Add account (⌘N)">+</button>
+    <button id="btn-settings" class="btn btn-ghost" style="padding:4px 8px;" title="Settings">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+    </button>
     <button id="btn-lock" class="btn btn-ghost" style="padding:4px 8px;" title="Lock vault">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>
@@ -82,21 +109,37 @@
     <button id="btn-detail-back" class="btn btn-ghost" style="padding:4px 8px;">←</button>
     <span id="detail-title" class="tray-header-title"></span>
   </div>
-  <div style="flex:1;padding:var(--s-4);display:flex;flex-direction:column;align-items:center;">
+  <div style="flex:1;overflow-y:auto;padding:var(--s-4);display:flex;flex-direction:column;align-items:center;">
     <div id="detail-icon" class="account-icon" style="width:52px;height:52px;font-size:22px;margin-bottom:var(--s-3);"></div>
-    <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:var(--s-1);" id="detail-account"></div>
     <div class="detail-code" id="detail-code"></div>
     <div style="text-align:right;width:100%;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);padding:var(--s-1) 0;" id="detail-seconds"></div>
-    <div class="otp-progress" style="width:100%;margin-bottom:var(--s-5);">
+    <div class="otp-progress" style="width:100%;margin-bottom:var(--s-4);">
       <div class="otp-progress-bar" id="detail-progress-bar"></div>
     </div>
-    <div class="row" style="gap:var(--s-2);">
+    <div class="row" style="gap:var(--s-2);margin-bottom:var(--s-5);">
       <button id="btn-detail-copy" class="btn btn-primary">Copy</button>
       <button id="btn-detail-qr"   class="btn btn-secondary">QR</button>
       <button id="btn-detail-del"  class="btn btn-danger">Delete</button>
     </div>
+
+    <!-- Metadata table -->
+    <table id="detail-meta" style="width:100%;border-collapse:collapse;font-size:12px;">
+      <tbody id="detail-meta-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Reveal secret overlay -->
+  <div id="reveal-overlay" style="display:none;position:absolute;inset:0;background:var(--bg);z-index:10;display:none;flex-direction:column;align-items:center;justify-content:center;padding:var(--s-5);">
+    <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:var(--s-4);text-align:center;">Enter your passphrase to reveal the secret</p>
+    <input id="reveal-passphrase" class="input" type="password" placeholder="Passphrase" style="margin-bottom:var(--s-3);width:100%;">
+    <div style="display:flex;gap:var(--s-2);width:100%;">
+      <button id="btn-reveal-cancel" class="btn btn-secondary" style="flex:1;">Cancel</button>
+      <button id="btn-reveal-confirm" class="btn btn-primary" style="flex:1;">Reveal</button>
+    </div>
+    <p id="reveal-error" style="font-family:var(--font-mono);font-size:11px;color:var(--danger);margin-top:var(--s-2);display:none;"></p>
   </div>
 </div>
+
 
 <!-- ====== VIEW: ADD ====== -->
 <div id="view-add" class="view">
@@ -104,13 +147,20 @@
     <button id="btn-add-back" class="btn btn-ghost" style="padding:4px 8px;">←</button>
     <span class="tray-header-title">Add account</span>
   </div>
-  <div style="flex:1;padding:var(--s-4);overflow-y:auto;">
-    <div id="drop-zone" class="drop-zone" style="margin-bottom:var(--s-4);">
-      <svg width="32" height="32" style="color:var(--brand);margin-bottom:var(--s-2)" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-      </svg>
-      <p style="font-size:13px;margin-bottom:var(--s-2);">Drop a QR code here</p>
-      <button id="btn-scan-screen" class="btn btn-ghost" style="font-size:12px;">📷 Scan screen</button>
+  <div id="view-add-content" style="flex:1;padding:var(--s-4);overflow-y:auto;">
+    <div style="display:flex;flex-direction:column;gap:var(--s-2);margin-bottom:var(--s-4);">
+      <button id="btn-open-file" class="btn btn-secondary" style="width:100%;display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--s-4);font-size:13px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Open QR image…
+      </button>
+      <button id="btn-scan-screen" class="btn btn-secondary" style="width:100%;display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--s-4);font-size:13px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Scan screen
+      </button>
+      <button id="btn-scan-camera" class="btn btn-secondary" style="width:100%;display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--s-4);font-size:13px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        Camera
+      </button>
     </div>
     <p style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:var(--s-2);">Or paste URI</p>
     <input id="input-uri" class="input" placeholder="otpauth://totp/…" style="margin-bottom:var(--s-3);font-size:12px;">

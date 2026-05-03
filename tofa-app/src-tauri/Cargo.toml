@@ -3,6 +3,10 @@ name = "tofa-app"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "Tofa"
+path = "src/main.rs"
+
 [lib]
 name = "tofa_app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -13,6 +17,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-clipboard-manager = "2"
+tauri-plugin-dialog = "2"
 tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
 tofa-core = { path = "../../tofa-core" }
 serde = { version = "1", features = ["derive"] }
@@ -21,4 +26,6 @@ zeroize = { version = "1", features = ["derive"] }
 dirs = "5"
 base64 = "0.22"
 chrono = "0.4"
-tokio = { version = "1", features = ["rt", "macros"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+tokio = { version = "1", features = ["rt", "macros", "time"] }
+

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>tofa — scan QR</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: 'SF Mono', 'JetBrains Mono', monospace;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100vh; gap: 1.5rem;
+  }
+  h1 { color: #b89eff; font-size: 1.5rem; letter-spacing: 0.05em; }
+  #wrap {
+    position: relative;
+    width: min(480px, 90vw);
+    aspect-ratio: 4/3;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #010409;
+    box-shadow: 0 0 0 1px #21262d;
+  }
+  video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
+  #overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #finder {
+    width: 52%; aspect-ratio: 1;
+    position: relative;
+  }
+  #finder::before, #finder::after,
+  #finder > span::before, #finder > span::after {
+    content: '';
+    position: absolute;
+    width: 22%; height: 22%;
+    border-color: #b89eff;
+    border-style: solid;
+    border-width: 0;
+  }
+  #finder::before  { top:0; left:0;  border-top-width:3px; border-left-width:3px;  border-radius: 4px 0 0 0; }
+  #finder::after   { top:0; right:0; border-top-width:3px; border-right-width:3px; border-radius: 0 4px 0 0; }
+  #finder > span::before { bottom:0; left:0;  border-bottom-width:3px; border-left-width:3px;  border-radius: 0 0 0 4px; }
+  #finder > span::after  { bottom:0; right:0; border-bottom-width:3px; border-right-width:3px; border-radius: 0 0 4px 0; }
+  #scanline {
+    position: absolute; left: 0; right: 0;
+    height: 2px; background: linear-gradient(90deg, transparent, #b89eff, transparent);
+    animation: scan 2s linear infinite;
+    top: 0;
+  }
+  @keyframes scan { 0%{top:0} 100%{top:100%} }
+  #status {
+    font-size: 0.85rem;
+    color: #6e7681;
+    text-align: center;
+    min-height: 1.5em;
+    transition: color 0.3s;
+  }
+  #status.ok   { color: #b89eff; }
+  #status.warn { color: #fbbf24; }
+  #status.err  { color: #f87171; }
+  #hint { font-size: 0.75rem; color: #30363d; text-align: center; max-width: 360px; }
+  #done {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: fixed; inset: 0;
+    background: rgba(13,17,23,0.85);
+    animation: fadein 0.3s ease;
+  }
+  #check { font-size: 40vmin; color: #b89eff; line-height: 1; animation: pop 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  #done p { color: #b89eff; font-size: 1.4rem; margin-top: 1rem; letter-spacing: 0.05em; }
+  @keyframes fadein { from{opacity:0} to{opacity:1} }
+  @keyframes pop { from{transform:scale(0.3);opacity:0} to{transform:scale(1);opacity:1} }
+</style>
+</head>
+<body>
+<h1>tofa</h1>
+<div id="wrap">
+  <video id="video" autoplay playsinline muted></video>
+  <div id="overlay">
+    <div id="finder">
+      <span></span>
+      <div id="scanline"></div>
+    </div>
+  </div>
+</div>
+<p id="status">Starting camera…</p>
+<p id="hint">Point a QR code at the square above</p>
+
+<script>
+const video  = document.getElementById('video');
+const status = document.getElementById('status');
+const hint   = document.getElementById('hint');
+
+let steadyCount = 0;
+let sent = false;
+
+async function start() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    await video.play();
+    setStatus('', 'Scanning for QR code…', 'Point it at the square');
+    tick();
+  } catch(e) {
+    setStatus('err', 'Camera access denied — allow it in your browser', '');
+  }
+}
+
+function tick() {
+  if (sent) return;
+  if ('BarcodeDetector' in window) {
+    const bd = new BarcodeDetector({ formats: ['qr_code'] });
+    bd.detect(video).then(codes => {
+      if (codes.length > 0) {
+        onFound(codes[0].rawValue);
+      } else {
+        setStatus('', 'Scanning…', 'Keep steady · ensure good lighting');
+        steadyCount = 0;
+      }
+      requestAnimationFrame(tick);
+    }).catch(() => requestAnimationFrame(tick));
+  } else {
+    if (!window._jsqrLoaded) {
+      window._jsqrLoaded = true;
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+      s.onload = tick;
+      document.head.appendChild(s);
+      return;
+    }
+    if (typeof jsQR === 'undefined') { requestAnimationFrame(tick); return; }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(img.data, img.width, img.height);
+    if (code) {
+      onFound(code.data);
+    } else {
+      setStatus('', 'Scanning…', 'Keep steady · ensure good lighting');
+      steadyCount = 0;
+      requestAnimationFrame(tick);
+    }
+  }
+}
+
+function onFound(value) {
+  if (sent) return;
+  steadyCount++;
+  if (steadyCount < 3) {
+    setStatus('warn', 'QR detected — hold steady…', 'Keep it still for a moment');
+    requestAnimationFrame(tick);
+    return;
+  }
+  sent = true;
+  setStatus('ok', 'Got it! Adding to vault…', '');
+  fetch('/result', { method: 'POST', body: value })
+    .then(() => {
+      document.body.innerHTML = `<div id="done"><div id="check">✓</div><p>Added to vault</p></div>`;
+      setTimeout(() => window.close(), 2000);
+    })
+    .catch(() => setStatus('err', 'Could not send to tofa', ''));
+}
+
+function setStatus(cls, msg, h) {
+  status.className = cls;
+  status.textContent = msg;
+  hint.textContent = h;
+}
+
+start();
+</script>
+</body>
+</html>

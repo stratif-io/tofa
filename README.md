@@ -21,6 +21,11 @@ tofa lives in your terminal — or in one click from the menu bar. No phone need
 
 ## CLI & TUI
 
+<!-- demo-cli: replace with an actual GIF or video -->
+<div align="center">
+  <img src="docs/demo-cli.gif" alt="tofa TUI demo" width="640" />
+</div>
+
 ```bash
 cargo install --path tofa
 tofa          # open the interactive TUI
@@ -48,6 +53,11 @@ tofa completions zsh               # shell completions
 The TUI shows all accounts with live countdown bars, violet accent, and mouse support.
 
 ## macOS menu bar app
+
+<!-- demo-app: replace with an actual GIF or video -->
+<div align="center">
+  <img src="docs/demo-app.gif" alt="tofa menu bar app demo" width="320" />
+</div>
 
 The first GUI built on `tofa-core`. One click from the tray icon opens a compact popover with live codes — no phone, no alt-tab.
 

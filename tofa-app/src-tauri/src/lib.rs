@@ -30,6 +30,9 @@ pub fn run() {
             commands::delete_entry,
         ])
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            let _ = app.handle().set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             let _window = WebviewWindowBuilder::new(
                 app,
                 "popover",

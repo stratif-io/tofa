@@ -8,5 +8,7 @@
   <string>Tofa</string>
   <key>LSUIElement</key>
   <true/>
+  <key>NSCameraUsageDescription</key>
+  <string>TOFA uses the camera to scan QR codes for adding OTP accounts.</string>
 </dict>
 </plist>

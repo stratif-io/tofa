@@ -10,7 +10,11 @@ fn strip_ansi(s: &str) -> String {
     while let Some(c) = chars.next() {
         if c == '\x1b' {
             // skip until 'm'
-            for ch in chars.by_ref() { if ch == 'm' { break; } }
+            for ch in chars.by_ref() {
+                if ch == 'm' {
+                    break;
+                }
+            }
         } else {
             out.push(c);
         }
@@ -20,27 +24,46 @@ fn strip_ansi(s: &str) -> String {
 
 fn setup() -> TempDir {
     let tmp = TempDir::new().unwrap();
-    Command::cargo_bin("tofa").unwrap()
+    Command::cargo_bin("tofa")
+        .unwrap()
         .env("TOFA_PASSPHRASE", "testpass")
         .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap())
-        .arg("init").assert().success();
-    Command::cargo_bin("tofa").unwrap()
+        .arg("init")
+        .assert()
+        .success();
+    Command::cargo_bin("tofa")
+        .unwrap()
         .env("TOFA_PASSPHRASE", "testpass")
         .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap())
-        .args(["add", "--name", "GitHub:carlo", "--secret", "JBSWY3DPEHPK3PXP"])
-        .assert().success();
-    Command::cargo_bin("tofa").unwrap()
+        .args([
+            "add",
+            "--name",
+            "GitHub:carlo",
+            "--secret",
+            "JBSWY3DPEHPK3PXP",
+        ])
+        .assert()
+        .success();
+    Command::cargo_bin("tofa")
+        .unwrap()
         .env("TOFA_PASSPHRASE", "testpass")
         .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap())
-        .args(["add", "--name", "GitHub:perso", "--secret", "JBSWY3DPEHPK3PXQ"])
-        .assert().success();
+        .args([
+            "add",
+            "--name",
+            "GitHub:perso",
+            "--secret",
+            "JBSWY3DPEHPK3PXQ",
+        ])
+        .assert()
+        .success();
     tmp
 }
 
 fn tofa(tmp: &TempDir) -> Command {
     let mut cmd = Command::cargo_bin("tofa").unwrap();
     cmd.env("TOFA_PASSPHRASE", "testpass")
-       .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap());
+        .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap());
     cmd
 }
 
@@ -50,13 +73,19 @@ fn code_exact_substring() {
     let out = tofa(&tmp).args(["code", "GitHub:carlo"]).assert().success();
     let stdout = String::from_utf8(out.get_output().stdout.clone()).unwrap();
     let clean = strip_ansi(&stdout);
-    assert!(is_match(r"^\d{3} \d{3}\n$").unwrap().eval(clean.as_str()), "stdout was: {clean:?}");
+    assert!(
+        is_match(r"^\d{3} \d{3}\n$").unwrap().eval(clean.as_str()),
+        "stdout was: {clean:?}"
+    );
 }
 
 #[test]
 fn code_raw_flag() {
     let tmp = setup();
-    let out = tofa(&tmp).args(["code", "GitHub:carlo", "--raw"]).assert().success();
+    let out = tofa(&tmp)
+        .args(["code", "GitHub:carlo", "--raw"])
+        .assert()
+        .success();
     let stdout = String::from_utf8(out.get_output().stdout.clone()).unwrap();
     let clean = strip_ansi(&stdout);
     let trimmed = clean.trim();
@@ -67,15 +96,21 @@ fn code_raw_flag() {
 #[test]
 fn code_not_found() {
     let tmp = setup();
-    tofa(&tmp).args(["code", "nope"])
-        .assert().failure().stderr(contains("no account matching"));
+    tofa(&tmp)
+        .args(["code", "nope"])
+        .assert()
+        .failure()
+        .stderr(contains("no account matching"));
 }
 
 #[test]
 fn code_ambiguous() {
     let tmp = setup();
-    tofa(&tmp).args(["code", "github"])
-        .assert().failure().stderr(contains("matches multiple"));
+    tofa(&tmp)
+        .args(["code", "github"])
+        .assert()
+        .failure()
+        .stderr(contains("matches multiple"));
 }
 
 #[test]

@@ -1,8 +1,8 @@
-use std::sync::Mutex;
+use crate::state::{default_vault_path, settings_path, AppState};
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 use tauri::{Emitter, Manager, State};
 use zeroize::Zeroizing;
-use crate::state::{AppState, default_vault_path, settings_path};
 
 #[derive(Serialize)]
 pub struct OtpEntry {
@@ -25,7 +25,9 @@ pub struct Settings {
     pub theme: String, // "system" | "dark" | "light"
 }
 
-fn default_theme() -> String { "system".to_string() }
+fn default_theme() -> String {
+    "system".to_string()
+}
 
 #[tauri::command]
 pub fn vault_exists(state: State<Mutex<AppState>>) -> bool {
@@ -33,7 +35,11 @@ pub fn vault_exists(state: State<Mutex<AppState>>) -> bool {
 }
 
 #[tauri::command]
-pub async fn create_vault(passphrase: String, state: State<'_, Mutex<AppState>>, app: tauri::AppHandle) -> Result<Vec<OtpEntry>, String> {
+pub async fn create_vault(
+    passphrase: String,
+    state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+) -> Result<Vec<OtpEntry>, String> {
     let vault_path = {
         let s = state.lock().map_err(|e| e.to_string())?;
         s.vault_path.clone()
@@ -49,7 +55,9 @@ pub async fn create_vault(passphrase: String, state: State<'_, Mutex<AppState>>,
                 .save(&vault_path, &passphrase)
                 .map_err(|e| e.to_string())
         }
-    }).await.map_err(|e| e.to_string())??;
+    })
+    .await
+    .map_err(|e| e.to_string())??;
 
     let mut s = state.lock().map_err(|e| e.to_string())?;
     let vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
@@ -60,7 +68,11 @@ pub async fn create_vault(passphrase: String, state: State<'_, Mutex<AppState>>,
 }
 
 #[tauri::command]
-pub fn unlock(passphrase: String, state: State<Mutex<AppState>>, app: tauri::AppHandle) -> Result<Vec<OtpEntry>, String> {
+pub fn unlock(
+    passphrase: String,
+    state: State<Mutex<AppState>>,
+    app: tauri::AppHandle,
+) -> Result<Vec<OtpEntry>, String> {
     let mut s = state.lock().map_err(|e| e.to_string())?;
     if !s.vault_path.exists() {
         return Err(format!(
@@ -79,37 +91,53 @@ pub fn unlock(passphrase: String, state: State<Mutex<AppState>>, app: tauri::App
 pub async fn get_entries(state: State<'_, Mutex<AppState>>) -> Result<Vec<OtpEntry>, String> {
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s.cache.with_passphrase(|p| Zeroizing::new(p.to_string()))
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
             .ok_or("locked")?;
         (s.vault_path.clone(), p)
     };
     tokio::task::spawn_blocking(move || {
-        let vault = tofa_core::store::Vault::load(&vault_path, &passphrase)
-            .map_err(|e| e.to_string())?;
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
         entries_from_vault(&vault)
-    }).await.map_err(|e| e.to_string())?
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub async fn copy_code(name: String, state: State<'_, Mutex<AppState>>, app: tauri::AppHandle) -> Result<(), String> {
+pub async fn copy_code(
+    name: String,
+    state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s.cache.with_passphrase(|p| Zeroizing::new(p.to_string()))
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
             .ok_or("locked")?;
         (s.vault_path.clone(), p)
     };
     let code = tokio::task::spawn_blocking(move || {
-        let vault = tofa_core::store::Vault::load(&vault_path, &passphrase)
-            .map_err(|e| e.to_string())?;
-        let entry = vault.entries().iter()
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let entry = vault
+            .entries()
+            .iter()
             .find(|e| e.name == name)
             .ok_or_else(|| format!("entry '{}' not found", name))?
             .clone();
         let raw = tofa_core::totp::generate_code_now(&entry).map_err(|e| e.to_string())?;
         Ok::<String, String>(tofa_core::totp::format_code(&raw))
-    }).await.map_err(|e| e.to_string())??;
+    })
+    .await
+    .map_err(|e| e.to_string())??;
     use tauri_plugin_clipboard_manager::ClipboardExt;
-    app.clipboard().write_text(code).map_err(|e| e.to_string())?;
+    app.clipboard()
+        .write_text(code)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -132,9 +160,15 @@ pub async fn pick_vault_folder(window: tauri::Window) -> Result<Option<String>, 
     let handle = window.app_handle().clone();
     tokio::task::spawn_blocking(move || {
         use tauri_plugin_dialog::DialogExt;
-        let folder = handle.dialog().file().set_title("Select vault folder").blocking_pick_folder();
+        let folder = handle
+            .dialog()
+            .file()
+            .set_title("Select vault folder")
+            .blocking_pick_folder();
         Ok(folder.map(|p| p.to_string()))
-    }).await.map_err(|e| e.to_string())?
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -152,11 +186,17 @@ pub fn save_settings(settings: Settings, state: State<Mutex<AppState>>) -> Resul
 }
 
 #[tauri::command]
-pub fn get_secret(name: String, passphrase: String, state: State<Mutex<AppState>>) -> Result<String, String> {
+pub fn get_secret(
+    name: String,
+    passphrase: String,
+    state: State<Mutex<AppState>>,
+) -> Result<String, String> {
     let s = state.lock().map_err(|e| e.to_string())?;
     let vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
         .map_err(|_| "Wrong passphrase.".to_string())?;
-    let entry = vault.entries().iter()
+    let entry = vault
+        .entries()
+        .iter()
         .find(|e| e.name == name)
         .ok_or_else(|| format!("Entry '{}' not found.", name))?;
     Ok(entry.secret.clone())
@@ -174,22 +214,34 @@ pub fn lock(state: State<Mutex<AppState>>, app: tauri::AppHandle) -> Result<(), 
 pub async fn delete_entry(name: String, state: State<'_, Mutex<AppState>>) -> Result<(), String> {
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s.cache.with_passphrase(|p| Zeroizing::new(p.to_string()))
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
             .ok_or("locked")?;
         (s.vault_path.clone(), p)
     };
     tokio::task::spawn_blocking(move || {
-        let mut vault = tofa_core::store::Vault::load(&vault_path, &passphrase)
-            .map_err(|e| e.to_string())?;
-        let idx = vault.entries().iter().position(|e| e.name == name)
+        let mut vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let idx = vault
+            .entries()
+            .iter()
+            .position(|e| e.name == name)
             .ok_or_else(|| format!("entry '{}' not found", name))?;
         vault.remove_entry(idx);
-        vault.save(&vault_path, &passphrase).map_err(|e| e.to_string())
-    }).await.map_err(|e| e.to_string())?
+        vault
+            .save(&vault_path, &passphrase)
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub async fn scan_screen(app: tauri::AppHandle, state: State<'_, Mutex<AppState>>) -> Result<Vec<String>, String> {
+pub async fn scan_screen(
+    app: tauri::AppHandle,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<String>, String> {
     // 1. Hide window so it doesn't appear in the screenshot
     if let Some(win) = app.get_webview_window("popover") {
         let _ = win.hide();
@@ -216,20 +268,25 @@ pub async fn scan_screen(app: tauri::AppHandle, state: State<'_, Mutex<AppState>
         .map_err(|_| "No QR code found on screen.".to_string());
     let _ = std::fs::remove_file(&tmp);
     let uris = uris?;
-    let _ = app.emit("scan-step", format!("Found {} code(s) — decoding…", uris.len()));
+    let _ = app.emit(
+        "scan-step",
+        format!("Found {} code(s) — decoding…", uris.len()),
+    );
 
     // 5. Save to vault
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s.cache.with_passphrase(|p| Zeroizing::new(p.to_string()))
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
             .ok_or("locked")?;
         (s.vault_path.clone(), p)
     };
 
     let app_handle = app.clone();
     let added = tokio::task::spawn_blocking(move || {
-        let mut vault = tofa_core::store::Vault::load(&vault_path, &passphrase)
-            .map_err(|e| e.to_string())?;
+        let mut vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let mut added = Vec::new();
 
@@ -247,7 +304,8 @@ pub async fn scan_screen(app: tauri::AppHandle, state: State<'_, Mutex<AppState>
 
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry { id: String::new(),
+            vault.add_entry(tofa_core::store::VaultEntry {
+                id: String::new(),
                 name: name.clone(),
                 secret: otp.secret,
                 created_at: today.clone(),
@@ -259,9 +317,13 @@ pub async fn scan_screen(app: tauri::AppHandle, state: State<'_, Mutex<AppState>
         }
 
         let _ = app_handle.emit("scan-step", "Saving to vault…");
-        vault.save(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        vault
+            .save(&vault_path, &passphrase)
+            .map_err(|e| e.to_string())?;
         Ok::<Vec<String>, String>(added)
-    }).await.map_err(|e| e.to_string())??;
+    })
+    .await
+    .map_err(|e| e.to_string())??;
 
     if added.is_empty() {
         Err("No valid OTP QR codes found.".to_string())
@@ -271,7 +333,10 @@ pub async fn scan_screen(app: tauri::AppHandle, state: State<'_, Mutex<AppState>
 }
 
 #[tauri::command]
-pub async fn scan_image_bytes(b64: String, state: State<'_, Mutex<AppState>>) -> Result<Vec<String>, String> {
+pub async fn scan_image_bytes(
+    b64: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<String>, String> {
     use base64::Engine;
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(&b64)
@@ -279,21 +344,23 @@ pub async fn scan_image_bytes(b64: String, state: State<'_, Mutex<AppState>>) ->
     let tmp = std::env::temp_dir().join(format!("tofa_drop_{}.png", std::process::id()));
     std::fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
 
-    let uris = tofa_core::qr::scan_all_qr_uris(&tmp)
-        .map_err(|_| "No QR code found in image.".to_string());
+    let uris =
+        tofa_core::qr::scan_all_qr_uris(&tmp).map_err(|_| "No QR code found in image.".to_string());
     let _ = std::fs::remove_file(&tmp);
     let uris = uris?;
 
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s.cache.with_passphrase(|p| Zeroizing::new(p.to_string()))
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
             .ok_or("locked")?;
         (s.vault_path.clone(), p)
     };
 
     let added = tokio::task::spawn_blocking(move || {
-        let mut vault = tofa_core::store::Vault::load(&vault_path, &passphrase)
-            .map_err(|e| e.to_string())?;
+        let mut vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let mut added = Vec::new();
 
@@ -310,7 +377,8 @@ pub async fn scan_image_bytes(b64: String, state: State<'_, Mutex<AppState>>) ->
 
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry { id: String::new(),
+            vault.add_entry(tofa_core::store::VaultEntry {
+                id: String::new(),
                 name: name.clone(),
                 secret: otp.secret,
                 created_at: today.clone(),
@@ -321,9 +389,13 @@ pub async fn scan_image_bytes(b64: String, state: State<'_, Mutex<AppState>>) ->
             added.push(name);
         }
 
-        vault.save(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        vault
+            .save(&vault_path, &passphrase)
+            .map_err(|e| e.to_string())?;
         Ok::<Vec<String>, String>(added)
-    }).await.map_err(|e| e.to_string())??;
+    })
+    .await
+    .map_err(|e| e.to_string())??;
 
     if added.is_empty() {
         Err("No valid OTP QR codes found in image.".to_string())
@@ -333,16 +405,22 @@ pub async fn scan_image_bytes(b64: String, state: State<'_, Mutex<AppState>>) ->
 }
 
 #[tauri::command]
-pub async fn add_from_uri(uri: String, name: String, state: State<'_, Mutex<AppState>>) -> Result<Vec<String>, String> {
+pub async fn add_from_uri(
+    uri: String,
+    name: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<String>, String> {
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s.cache.with_passphrase(|p| Zeroizing::new(p.to_string()))
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
             .ok_or("locked")?;
         (s.vault_path.clone(), p)
     };
     tokio::task::spawn_blocking(move || {
-        let mut vault = tofa_core::store::Vault::load(&vault_path, &passphrase)
-            .map_err(|e| e.to_string())?;
+        let mut vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let mut added = Vec::new();
 
@@ -359,7 +437,8 @@ pub async fn add_from_uri(uri: String, name: String, state: State<'_, Mutex<AppS
             } else {
                 otp.meta.derive_name()
             };
-            vault.add_entry(tofa_core::store::VaultEntry { id: String::new(),
+            vault.add_entry(tofa_core::store::VaultEntry {
+                id: String::new(),
                 name: entry_name.clone(),
                 secret: otp.secret,
                 created_at: today.clone(),
@@ -370,9 +449,13 @@ pub async fn add_from_uri(uri: String, name: String, state: State<'_, Mutex<AppS
             added.push(entry_name);
         }
 
-        vault.save(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        vault
+            .save(&vault_path, &passphrase)
+            .map_err(|e| e.to_string())?;
         Ok(added)
-    }).await.map_err(|e| e.to_string())?
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -382,7 +465,9 @@ pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String
 
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s.cache.with_passphrase(|p| Zeroizing::new(p.to_string()))
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
             .ok_or("locked")?;
         (s.vault_path.clone(), p)
     };
@@ -435,8 +520,8 @@ pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String
     }
 
     tokio::task::spawn_blocking(move || {
-        let mut vault = tofa_core::store::Vault::load(&vault_path, &passphrase)
-            .map_err(|e| e.to_string())?;
+        let mut vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let mut added = Vec::new();
 
@@ -448,7 +533,8 @@ pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String
 
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry { id: String::new(),
+            vault.add_entry(tofa_core::store::VaultEntry {
+                id: String::new(),
                 name: name.clone(),
                 secret: otp.secret,
                 created_at: today.clone(),
@@ -459,9 +545,13 @@ pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String
             added.push(name);
         }
 
-        vault.save(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        vault
+            .save(&vault_path, &passphrase)
+            .map_err(|e| e.to_string())?;
         Ok(added)
-    }).await.map_err(|e| e.to_string())?
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 fn cam_html() -> String {
@@ -470,7 +560,10 @@ fn cam_html() -> String {
 
 /// Extract OtpSecret entries from raw bytes + filename hint.
 /// Supports: images (QR), JSON (Aegis / andOTP / plain URI list), TXT (URI lines), ZIP (recursive).
-fn extract_otps_from_bytes(filename: &str, bytes: &[u8]) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
+fn extract_otps_from_bytes(
+    filename: &str,
+    bytes: &[u8],
+) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
     let ext = std::path::Path::new(filename)
         .extension()
         .and_then(|e| e.to_str())
@@ -479,7 +572,8 @@ fn extract_otps_from_bytes(filename: &str, bytes: &[u8]) -> Result<Vec<tofa_core
 
     match ext.as_str() {
         "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" | "tiff" => {
-            let tmp = std::env::temp_dir().join(format!("tofa_import_{}.{}", std::process::id(), ext));
+            let tmp =
+                std::env::temp_dir().join(format!("tofa_import_{}.{}", std::process::id(), ext));
             std::fs::write(&tmp, bytes).map_err(|e| e.to_string())?;
             let uris = tofa_core::qr::scan_all_qr_uris(&tmp);
             let _ = std::fs::remove_file(&tmp);
@@ -489,7 +583,8 @@ fn extract_otps_from_bytes(filename: &str, bytes: &[u8]) -> Result<Vec<tofa_core
         "json" => parse_json_import(bytes),
         "txt" => {
             let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
-            let uris: Vec<String> = text.lines()
+            let uris: Vec<String> = text
+                .lines()
                 .map(str::trim)
                 .filter(|l| !l.is_empty())
                 .map(String::from)
@@ -513,9 +608,15 @@ fn extract_otps_from_bytes(filename: &str, bytes: &[u8]) -> Result<Vec<tofa_core
                     }
                 }
             }
-            if all.is_empty() { Err("No OTP accounts found in ZIP.".to_string()) } else { Ok(all) }
+            if all.is_empty() {
+                Err("No OTP accounts found in ZIP.".to_string())
+            } else {
+                Ok(all)
+            }
         }
-        _ => Err(format!("Unsupported file type: .{ext}. Try PNG, JPG, JSON, TXT, or ZIP."))
+        _ => Err(format!(
+            "Unsupported file type: .{ext}. Try PNG, JPG, JSON, TXT, or ZIP."
+        )),
     }
 }
 
@@ -530,7 +631,11 @@ fn collect_otps_from_uris(uris: &[String]) -> Result<Vec<tofa_core::qr::OtpSecre
             otps.push(otp);
         }
     }
-    if otps.is_empty() { Err("No valid OTP URIs found.".to_string()) } else { Ok(otps) }
+    if otps.is_empty() {
+        Err("No valid OTP URIs found.".to_string())
+    } else {
+        Ok(otps)
+    }
 }
 
 fn parse_json_import(bytes: &[u8]) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
@@ -538,13 +643,20 @@ fn parse_json_import(bytes: &[u8]) -> Result<Vec<tofa_core::qr::OtpSecret>, Stri
 
     // Aegis format: { "db": { "entries": [ { "type": "totp", "name": "...", "issuer": "...", "info": { "secret": "...", "algo": "SHA1", "digits": 6, "period": 30 } } ] } }
     if v.get("version").is_some() || v.get("db").is_some() {
-        if v.pointer("/db/is_locked").and_then(|v| v.as_bool()).unwrap_or(false) {
-            return Err("Aegis export is encrypted — re-export without encryption first.".to_string());
+        if v.pointer("/db/is_locked")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
+            return Err(
+                "Aegis export is encrypted — re-export without encryption first.".to_string(),
+            );
         }
         if let Some(entries) = v.pointer("/db/entries").and_then(|e| e.as_array()) {
             return parse_aegis_entries(entries);
         }
-        return Err("Aegis export is encrypted or unsupported — re-export without encryption.".to_string());
+        return Err(
+            "Aegis export is encrypted or unsupported — re-export without encryption.".to_string(),
+        );
     }
 
     // andOTP format: [ { "type": "TOTP", "label": "...", "issuer": "...", "secret": "...", "algorithm": "SHA1", "digits": 6, "period": 30 } ]
@@ -554,71 +666,133 @@ fn parse_json_import(bytes: &[u8]) -> Result<Vec<tofa_core::qr::OtpSecret>, Stri
 
     // Plain: { "accounts": [ { "otpauth": "otpauth://..." } ] } or similar
     if let Some(accounts) = v["accounts"].as_array() {
-        let uris: Vec<String> = accounts.iter()
+        let uris: Vec<String> = accounts
+            .iter()
             .filter_map(|a| a["otpauth"].as_str().map(String::from))
             .collect();
-        if !uris.is_empty() { return collect_otps_from_uris(&uris); }
+        if !uris.is_empty() {
+            return collect_otps_from_uris(&uris);
+        }
     }
 
     Err("Unrecognised JSON format. Supported: Aegis, andOTP.".to_string())
 }
 
-fn parse_aegis_entries(entries: &[serde_json::Value]) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
+fn parse_aegis_entries(
+    entries: &[serde_json::Value],
+) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
     let mut otps = Vec::new();
     for e in entries {
-        if e["type"].as_str().map(|t| t.to_lowercase()) != Some("totp".to_string()) { continue; }
-        let secret = e.pointer("/info/secret").and_then(|s| s.as_str()).unwrap_or("").to_string();
-        if secret.is_empty() { continue; }
+        if e["type"].as_str().map(|t| t.to_lowercase()) != Some("totp".to_string()) {
+            continue;
+        }
+        let secret = e
+            .pointer("/info/secret")
+            .and_then(|s| s.as_str())
+            .unwrap_or("")
+            .to_string();
+        if secret.is_empty() {
+            continue;
+        }
         let account = e["name"].as_str().unwrap_or("").to_string();
         let issuer = e["issuer"].as_str().unwrap_or("").to_string();
         otps.push(tofa_core::qr::OtpSecret {
             secret,
             meta: tofa_core::qr::OtpMeta {
-                account: if account.is_empty() { None } else { Some(account) },
-                issuer: if issuer.is_empty() { None } else { Some(issuer) },
-                algorithm: e.pointer("/info/algo").and_then(|a| a.as_str()).map(String::from),
-                digits: e.pointer("/info/digits").and_then(|d| d.as_u64()).map(|d| d as u8),
-                period: e.pointer("/info/period").and_then(|p| p.as_u64()).map(|p| p as u32),
+                account: if account.is_empty() {
+                    None
+                } else {
+                    Some(account)
+                },
+                issuer: if issuer.is_empty() {
+                    None
+                } else {
+                    Some(issuer)
+                },
+                algorithm: e
+                    .pointer("/info/algo")
+                    .and_then(|a| a.as_str())
+                    .map(String::from),
+                digits: e
+                    .pointer("/info/digits")
+                    .and_then(|d| d.as_u64())
+                    .map(|d| d as u8),
+                period: e
+                    .pointer("/info/period")
+                    .and_then(|p| p.as_u64())
+                    .map(|p| p as u32),
             },
         });
     }
-    if otps.is_empty() { Err("No TOTP entries found in Aegis export.".to_string()) } else { Ok(otps) }
+    if otps.is_empty() {
+        Err("No TOTP entries found in Aegis export.".to_string())
+    } else {
+        Ok(otps)
+    }
 }
 
-fn parse_andotp_entries(entries: &[serde_json::Value]) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
+fn parse_andotp_entries(
+    entries: &[serde_json::Value],
+) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
     let mut otps = Vec::new();
     for e in entries {
-        if e["type"].as_str().map(|t| t.to_uppercase()) != Some("TOTP".to_string()) { continue; }
+        if e["type"].as_str().map(|t| t.to_uppercase()) != Some("TOTP".to_string()) {
+            continue;
+        }
         let secret = e["secret"].as_str().unwrap_or("").to_string();
-        if secret.is_empty() { continue; }
+        if secret.is_empty() {
+            continue;
+        }
         let account = e["label"].as_str().unwrap_or("").to_string();
         let issuer = e["issuer"].as_str().unwrap_or("").to_string();
         otps.push(tofa_core::qr::OtpSecret {
             secret,
             meta: tofa_core::qr::OtpMeta {
-                account: if account.is_empty() { None } else { Some(account) },
-                issuer: if issuer.is_empty() { None } else { Some(issuer) },
+                account: if account.is_empty() {
+                    None
+                } else {
+                    Some(account)
+                },
+                issuer: if issuer.is_empty() {
+                    None
+                } else {
+                    Some(issuer)
+                },
                 algorithm: e["algorithm"].as_str().map(String::from),
                 digits: e["digits"].as_u64().map(|d| d as u8),
                 period: e["period"].as_u64().map(|p| p as u32),
             },
         });
     }
-    if otps.is_empty() { Err("No TOTP entries found in andOTP export.".to_string()) } else { Ok(otps) }
+    if otps.is_empty() {
+        Err("No TOTP entries found in andOTP export.".to_string())
+    } else {
+        Ok(otps)
+    }
 }
 
 #[tauri::command]
-pub async fn import_file(filename: String, b64: String, state: State<'_, Mutex<AppState>>) -> Result<Vec<String>, String> {
+pub async fn import_file(
+    filename: String,
+    b64: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<String>, String> {
     use base64::Engine;
-    let bytes = base64::engine::general_purpose::STANDARD.decode(&b64).map_err(|e| e.to_string())?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(&b64)
+        .map_err(|e| e.to_string())?;
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s.cache.with_passphrase(|p| Zeroizing::new(p.to_string())).ok_or("locked")?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
         (s.vault_path.clone(), p)
     };
     tokio::task::spawn_blocking(move || {
         let otps = extract_otps_from_bytes(&filename, &bytes)?;
-        let mut vault = tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let mut vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let mut added = Vec::new();
         for otp in otps {
@@ -634,30 +808,37 @@ pub async fn import_file(filename: String, b64: String, state: State<'_, Mutex<A
             });
             added.push(name);
         }
-        vault.save(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        vault
+            .save(&vault_path, &passphrase)
+            .map_err(|e| e.to_string())?;
         Ok(added)
-    }).await.map_err(|e| e.to_string())?
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 fn entries_from_vault(vault: &tofa_core::store::Vault) -> Result<Vec<OtpEntry>, String> {
-    vault.entries().iter().map(|entry| {
-        let code_raw = tofa_core::totp::generate_code_now(entry)
-            .map_err(|e| e.to_string())?;
-        let code = tofa_core::totp::format_code(&code_raw);
-        let seconds_left = tofa_core::totp::seconds_remaining_now(entry);
-        // Use split_name: no colon → account=name, issuer="" (not the reverse)
-        let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&entry.name);
-        Ok(OtpEntry {
-            id: entry.id.clone(),
-            name: entry.name.clone(),
-            issuer,
-            account,
-            code,
-            seconds_left,
-            period: entry.period,
-            digits: entry.digits as u32,
-            algorithm: entry.algorithm.clone(),
-            created_at: entry.created_at.clone(),
+    vault
+        .entries()
+        .iter()
+        .map(|entry| {
+            let code_raw = tofa_core::totp::generate_code_now(entry).map_err(|e| e.to_string())?;
+            let code = tofa_core::totp::format_code(&code_raw);
+            let seconds_left = tofa_core::totp::seconds_remaining_now(entry);
+            // Use split_name: no colon → account=name, issuer="" (not the reverse)
+            let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&entry.name);
+            Ok(OtpEntry {
+                id: entry.id.clone(),
+                name: entry.name.clone(),
+                issuer,
+                account,
+                code,
+                seconds_left,
+                period: entry.period,
+                digits: entry.digits as u32,
+                algorithm: entry.algorithm.clone(),
+                created_at: entry.created_at.clone(),
+            })
         })
-    }).collect()
+        .collect()
 }

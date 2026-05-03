@@ -6,12 +6,18 @@ use qrcode::QrCode;
 use std::path::PathBuf;
 
 fn fixture(name: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(name)
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures")
+        .join(name)
 }
 
 fn save_qr(uri: &str, path: PathBuf) {
     let code = QrCode::new(uri.as_bytes()).expect("QrCode::new");
-    let img = code.render::<Luma<u8>>().quiet_zone(true).module_dimensions(8, 8).build();
+    let img = code
+        .render::<Luma<u8>>()
+        .quiet_zone(true)
+        .module_dimensions(8, 8)
+        .build();
     img.save(&path).expect("save PNG");
     println!("Saved {}  ({})", path.display(), uri);
 }

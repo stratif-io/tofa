@@ -1,3 +1,4 @@
+use crate::theme::ThemeMode;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
@@ -5,24 +6,43 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Gauge, Paragraph, Widget},
 };
-use crate::theme::ThemeMode;
 
 pub struct OtpDisplay {
-    pub issuer:  String,
+    pub issuer: String,
     pub account: String,
-    pub code:    String,  // formatted, e.g. "847 392"
-    pub seconds: u64,     // seconds remaining in TOTP window
-    pub period:  u64,     // TOTP period (usually 30)
+    pub code: String, // formatted, e.g. "847 392"
+    pub seconds: u64, // seconds remaining in TOTP window
+    pub period: u64,  // TOTP period (usually 30)
     pub focused: bool,
-    pub theme:   ThemeMode,
+    pub theme: ThemeMode,
 }
 
 impl OtpDisplay {
-    pub fn new(issuer: impl Into<String>, account: impl Into<String>, code: impl Into<String>, seconds: u64, period: u64) -> Self {
-        Self { issuer: issuer.into(), account: account.into(), code: code.into(), seconds, period, focused: false, theme: ThemeMode::Dark }
+    pub fn new(
+        issuer: impl Into<String>,
+        account: impl Into<String>,
+        code: impl Into<String>,
+        seconds: u64,
+        period: u64,
+    ) -> Self {
+        Self {
+            issuer: issuer.into(),
+            account: account.into(),
+            code: code.into(),
+            seconds,
+            period,
+            focused: false,
+            theme: ThemeMode::Dark,
+        }
     }
-    pub fn focused(mut self, f: bool) -> Self { self.focused = f; self }
-    pub fn theme(mut self, t: ThemeMode) -> Self { self.theme = t; self }
+    pub fn focused(mut self, f: bool) -> Self {
+        self.focused = f;
+        self
+    }
+    pub fn theme(mut self, t: ThemeMode) -> Self {
+        self.theme = t;
+        self
+    }
 }
 
 impl Widget for OtpDisplay {
@@ -49,8 +69,11 @@ impl Widget for OtpDisplay {
         // OTP code
         Paragraph::new(Line::from(Span::styled(
             self.code.clone(),
-            Style::default().fg(if self.focused { brand } else { timer_color }).add_modifier(Modifier::BOLD),
-        ))).render(chunks[1], buf);
+            Style::default()
+                .fg(if self.focused { brand } else { timer_color })
+                .add_modifier(Modifier::BOLD),
+        )))
+        .render(chunks[1], buf);
 
         // "Xs remaining" right-aligned
         let label = format!("{}s remaining", self.seconds);
@@ -59,7 +82,8 @@ impl Widget for OtpDisplay {
         Paragraph::new(Line::from(Span::styled(
             label,
             Style::default().fg(timer_color),
-        ))).render(label_area, buf);
+        )))
+        .render(label_area, buf);
 
         // Progress bar
         let ratio = (self.seconds as f64 / self.period.max(1) as f64).clamp(0.0, 1.0);
@@ -78,11 +102,19 @@ mod tests {
     fn render_otp(seconds: u64) -> String {
         let backend = TestBackend::new(40, 4);
         let mut terminal = Terminal::new(backend).unwrap();
-        terminal.draw(|f| {
-            let w = OtpDisplay::new("GitHub", "user@ex.com", "847 392", seconds, 30);
-            f.render_widget(w, f.area());
-        }).unwrap();
-        terminal.backend().buffer().content().iter().map(|c| c.symbol().to_string()).collect()
+        terminal
+            .draw(|f| {
+                let w = OtpDisplay::new("GitHub", "user@ex.com", "847 392", seconds, 30);
+                f.render_widget(w, f.area());
+            })
+            .unwrap();
+        terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol().to_string())
+            .collect()
     }
 
     #[test]

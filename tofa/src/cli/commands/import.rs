@@ -1,7 +1,7 @@
 use crate::cli::{open_vault, read_passphrase, CliResult};
 use clap::Args;
-use tofa_core::VaultEntry;
 use std::path::PathBuf;
+use tofa_core::VaultEntry;
 
 #[derive(Args)]
 pub struct ImportArgs {
@@ -12,7 +12,12 @@ pub fn run(args: ImportArgs, vault_path: PathBuf) -> CliResult {
     let pass = read_passphrase("Passphrase: ")?;
     let mut vault = open_vault(&vault_path, &pass)?;
 
-    let ext = args.file.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let ext = args
+        .file
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
     let (imported, skipped) = if ext == "json" {
         import_json(&args.file, &mut vault)?
     } else {
@@ -76,6 +81,7 @@ fn import_qr(
                 skipped += 1;
             } else {
                 vault.add_entry(VaultEntry {
+                    id: String::new(),
                     name,
                     secret: otp.secret,
                     created_at: today.clone(),

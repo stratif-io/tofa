@@ -39,9 +39,9 @@ impl OtpMeta {
     pub fn derive_name(&self) -> String {
         match (&self.issuer, &self.account) {
             (Some(i), Some(a)) => format!("{i}:{a}"),
-            (Some(i), None)    => i.clone(),
-            (None,    Some(a)) => a.clone(),
-            (None,    None)    => "Imported".to_string(),
+            (Some(i), None) => i.clone(),
+            (None, Some(a)) => a.clone(),
+            (None, None) => "Imported".to_string(),
         }
     }
 
@@ -80,7 +80,8 @@ pub fn parse_migration(uri: &str) -> Result<Vec<OtpSecret>, QrError> {
     // Percent-decode then base64-decode
     let decoded_str = percent_decode(data_param);
     let b = decoded_str.as_bytes();
-    let proto_bytes = B64.decode(b)
+    let proto_bytes = B64
+        .decode(b)
         .or_else(|_| URL_SAFE.decode(b))
         .or_else(|_| URL_SAFE_NO_PAD.decode(b))
         .map_err(|_| QrError::MigrationDecode)?;
@@ -97,15 +98,32 @@ pub fn parse_migration(uri: &str) -> Result<Vec<OtpSecret>, QrError> {
         match (field_number, wire_type) {
             (1, 2) => {
                 // OtpParameters message
-                let msg = proto_decode_bytes(&proto_bytes, &mut pos).ok_or(QrError::MigrationDecode)?;
+                let msg =
+                    proto_decode_bytes(&proto_bytes, &mut pos).ok_or(QrError::MigrationDecode)?;
                 if let Some(otp) = parse_otp_parameters(msg) {
                     results.push(otp);
                 }
             }
-            (_, 0) => { proto_decode_varint(&proto_bytes, &mut pos); }
-            (_, 2) => { proto_decode_bytes(&proto_bytes, &mut pos); }
-            (_, 1) => { if pos + 8 <= proto_bytes.len() { pos += 8; } else { break; } }
-            (_, 5) => { if pos + 4 <= proto_bytes.len() { pos += 4; } else { break; } }
+            (_, 0) => {
+                proto_decode_varint(&proto_bytes, &mut pos);
+            }
+            (_, 2) => {
+                proto_decode_bytes(&proto_bytes, &mut pos);
+            }
+            (_, 1) => {
+                if pos + 8 <= proto_bytes.len() {
+                    pos += 8;
+                } else {
+                    break;
+                }
+            }
+            (_, 5) => {
+                if pos + 4 <= proto_bytes.len() {
+                    pos += 4;
+                } else {
+                    break;
+                }
+            }
             _ => break,
         }
     }
@@ -132,24 +150,41 @@ fn parse_otp_parameters(data: &[u8]) -> Option<OtpSecret> {
         let wire_type = tag & 0x7;
 
         match (field_number, wire_type) {
-            (1, 2) => { secret_bytes = Some(proto_decode_bytes(data, &mut pos)?.to_vec()); }
-            (2, 2) => { name = Some(String::from_utf8_lossy(proto_decode_bytes(data, &mut pos)?).into_owned()); }
-            (3, 2) => { issuer = Some(String::from_utf8_lossy(proto_decode_bytes(data, &mut pos)?).into_owned()); }
+            (1, 2) => {
+                secret_bytes = Some(proto_decode_bytes(data, &mut pos)?.to_vec());
+            }
+            (2, 2) => {
+                name =
+                    Some(String::from_utf8_lossy(proto_decode_bytes(data, &mut pos)?).into_owned());
+            }
+            (3, 2) => {
+                issuer =
+                    Some(String::from_utf8_lossy(proto_decode_bytes(data, &mut pos)?).into_owned());
+            }
             (4, 0) => {
                 let algo_id = proto_decode_varint(data, &mut pos)?;
-                algorithm = Some(match algo_id {
-                    2 => "SHA256",
-                    3 => "SHA512",
-                    _ => "SHA1",
-                }.to_string());
+                algorithm = Some(
+                    match algo_id {
+                        2 => "SHA256",
+                        3 => "SHA512",
+                        _ => "SHA1",
+                    }
+                    .to_string(),
+                );
             }
             (5, 0) => {
                 let d = proto_decode_varint(data, &mut pos)?;
                 digits = Some(if d == 2 { 8 } else { 6 });
             }
-            (6, 0) => { otp_type = proto_decode_varint(data, &mut pos)?; }
-            (_, 0) => { proto_decode_varint(data, &mut pos)?; }
-            (_, 2) => { proto_decode_bytes(data, &mut pos)?; }
+            (6, 0) => {
+                otp_type = proto_decode_varint(data, &mut pos)?;
+            }
+            (_, 0) => {
+                proto_decode_varint(data, &mut pos)?;
+            }
+            (_, 2) => {
+                proto_decode_bytes(data, &mut pos)?;
+            }
             _ => break,
         }
     }
@@ -165,7 +200,11 @@ fn parse_otp_parameters(data: &[u8]) -> Option<OtpSecret> {
     // Derive account from name field ("issuer:account" or just "account")
     let (resolved_issuer, account) = match (&issuer, &name) {
         (Some(i), Some(n)) => {
-            let acc = n.strip_prefix(&format!("{i}:")).unwrap_or(n).trim().to_string();
+            let acc = n
+                .strip_prefix(&format!("{i}:"))
+                .unwrap_or(n)
+                .trim()
+                .to_string();
             (Some(i.clone()), Some(acc))
         }
         (None, Some(n)) => {
@@ -201,9 +240,13 @@ fn proto_decode_varint(data: &[u8], pos: &mut usize) -> Option<u64> {
         let byte = *data.get(*pos)?;
         *pos += 1;
         result |= ((byte & 0x7F) as u64) << shift;
-        if byte & 0x80 == 0 { break; }
+        if byte & 0x80 == 0 {
+            break;
+        }
         shift += 7;
-        if shift >= 64 { return None; }
+        if shift >= 64 {
+            return None;
+        }
     }
     Some(result)
 }
@@ -353,11 +396,46 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
     // digits:    1=SIX   2=EIGHT
     // otp_type:  1=HOTP  2=TOTP
     let accounts: &[(&str, &str, &str, u64, u64, u64)] = &[
-        ("demo@example.com", "Demo TOTP SHA1",   "JBSWY3DPEHPK3PXP", 1, 1, 2),
-        ("demo@example.com", "Demo TOTP SHA256", "JBSWY3DPEHPK3PXP", 2, 1, 2),
-        ("demo@example.com", "Demo TOTP SHA512", "JBSWY3DPEHPK3PXP", 3, 1, 2),
-        ("demo@example.com", "Demo TOTP 8-digit","JBSWY3DPEHPK3PXP", 1, 2, 2),
-        ("demo2@example.com","Demo HOTP",         "MFRA22LOMFRA22LO", 1, 1, 1),
+        (
+            "demo@example.com",
+            "Demo TOTP SHA1",
+            "JBSWY3DPEHPK3PXP",
+            1,
+            1,
+            2,
+        ),
+        (
+            "demo@example.com",
+            "Demo TOTP SHA256",
+            "JBSWY3DPEHPK3PXP",
+            2,
+            1,
+            2,
+        ),
+        (
+            "demo@example.com",
+            "Demo TOTP SHA512",
+            "JBSWY3DPEHPK3PXP",
+            3,
+            1,
+            2,
+        ),
+        (
+            "demo@example.com",
+            "Demo TOTP 8-digit",
+            "JBSWY3DPEHPK3PXP",
+            1,
+            2,
+            2,
+        ),
+        (
+            "demo2@example.com",
+            "Demo HOTP",
+            "MFRA22LOMFRA22LO",
+            1,
+            1,
+            1,
+        ),
     ];
 
     let mut payload: Vec<u8> = Vec::new();
@@ -380,7 +458,10 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
     payload.extend(proto_field_varint(4, 0));
 
     let b64 = B64.encode(&payload);
-    let encoded = b64.replace('+', "%2B").replace('/', "%2F").replace('=', "%3D");
+    let encoded = b64
+        .replace('+', "%2B")
+        .replace('/', "%2F")
+        .replace('=', "%3D");
     Ok(format!("otpauth-migration://offline?data={encoded}"))
 }
 
@@ -432,7 +513,8 @@ pub fn uri_to_qr_lines(data: &str) -> Vec<String> {
 
     let is_dark = |row: isize, col: isize| -> bool {
         let (r, c) = (row as usize, col as usize);
-        if row < 0 || col < 0 || r < quiet || c < quiet || r >= quiet + width || c >= quiet + width {
+        if row < 0 || col < 0 || r < quiet || c < quiet || r >= quiet + width || c >= quiet + width
+        {
             return false;
         }
         colors[(r - quiet) * width + (c - quiet)] == QrColor::Dark
@@ -471,8 +553,7 @@ pub fn scan_qr_uri(path: &std::path::Path) -> Result<String, QrError> {
 }
 
 pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> {
-    let raw = image::open(path)
-        .map_err(|e| QrError::ImageLoad(e.to_string()))?;
+    let raw = image::open(path).map_err(|e| QrError::ImageLoad(e.to_string()))?;
 
     // rqrr misses QR codes when the image is too large (Retina) or when codes
     // appear at different sizes. Scan at multiple scales and deduplicate results.
@@ -484,7 +565,8 @@ pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> 
         let gray = if raw.width() > max_w {
             let scale = max_w as f32 / raw.width() as f32;
             let h = (raw.height() as f32 * scale) as u32;
-            raw.resize(max_w, h, image::imageops::FilterType::Lanczos3).to_luma8()
+            raw.resize(max_w, h, image::imageops::FilterType::Lanczos3)
+                .to_luma8()
         } else {
             raw.to_luma8()
         };
@@ -499,7 +581,11 @@ pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> 
         }
     }
 
-    if uris.is_empty() { Err(QrError::NoQrFound) } else { Ok(uris) }
+    if uris.is_empty() {
+        Err(QrError::NoQrFound)
+    } else {
+        Ok(uris)
+    }
 }
 
 fn parse_qr_image(path: &std::path::Path) -> Result<OtpSecret, QrError> {
@@ -519,8 +605,7 @@ fn parse_qr_image(path: &std::path::Path) -> Result<OtpSecret, QrError> {
         parse_uri(&content)
     } else if content.starts_with("otpauth-migration://") {
         // Return first account; caller can use parse_migration for all
-        parse_migration(&content)
-            .and_then(|mut v| v.pop().ok_or(QrError::MigrationDecode))
+        parse_migration(&content).and_then(|mut v| v.pop().ok_or(QrError::MigrationDecode))
     } else {
         Err(QrError::InvalidQrContent)
     }
@@ -565,6 +650,7 @@ pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> 
         .quiet_zone(true)
         .module_dimensions(8, 8)
         .build();
-    img.save(path).map_err(|e| QrError::ImageLoad(e.to_string()))?;
+    img.save(path)
+        .map_err(|e| QrError::ImageLoad(e.to_string()))?;
     Ok(())
 }

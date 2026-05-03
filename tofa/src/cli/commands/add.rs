@@ -1,12 +1,12 @@
 use crate::cli::{open_vault, read_passphrase, CliResult};
 use clap::Args;
-use tofa_theme::{ansi, voice};
+use std::path::PathBuf;
 use tofa_core::{
     qr::OtpSecret,
     totp::{generate_code_now, seconds_remaining_now},
     Vault, VaultEntry,
 };
-use std::path::PathBuf;
+use tofa_theme::{ansi, voice};
 
 #[derive(Args)]
 pub struct AddArgs {
@@ -46,7 +46,10 @@ pub fn run(args: AddArgs, vault_path: PathBuf) -> CliResult {
 
     if let Some(secret) = &args.secret {
         let name = args.name.ok_or("--name is required when using --secret")?;
-        let otp = OtpSecret { secret: secret.clone(), meta: Default::default() };
+        let otp = OtpSecret {
+            secret: secret.clone(),
+            meta: Default::default(),
+        };
         return add_single(&name, otp, &mut vault, &vault_path, &pass);
     }
 
@@ -62,9 +65,16 @@ fn make_name(otp: &OtpSecret) -> String {
     }
 }
 
-pub fn add_single(name: &str, otp: OtpSecret, vault: &mut Vault, path: &PathBuf, pass: &str) -> CliResult {
+pub fn add_single(
+    name: &str,
+    otp: OtpSecret,
+    vault: &mut Vault,
+    path: &PathBuf,
+    pass: &str,
+) -> CliResult {
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     let entry = VaultEntry {
+        id: String::new(),
         name: name.to_string(),
         secret: otp.secret,
         created_at: today,
@@ -77,17 +87,33 @@ pub fn add_single(name: &str, otp: OtpSecret, vault: &mut Vault, path: &PathBuf,
     vault.add_entry(entry);
     vault.save(path, pass)?;
     println!("{}{}{}", ansi::success(), voice::ADDED_OK, ansi::RESET);
-    println!("{}{} {}{}  {}({}s){}", ansi::brand(), &code[..3], &code[3..], ansi::RESET, ansi::muted(), secs, ansi::RESET);
+    println!(
+        "{}{} {}{}  {}({}s){}",
+        ansi::brand(),
+        &code[..3],
+        &code[3..],
+        ansi::RESET,
+        ansi::muted(),
+        secs,
+        ansi::RESET
+    );
     Ok(())
 }
 
-fn import_migration(uri: &str, vault: &mut Vault, path: &PathBuf, pass: &str, name_override: &Option<String>) -> CliResult {
+fn import_migration(
+    uri: &str,
+    vault: &mut Vault,
+    path: &PathBuf,
+    pass: &str,
+    name_override: &Option<String>,
+) -> CliResult {
     let accounts = tofa_core::qr::parse_migration(uri)?;
     let count = accounts.len();
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     for otp in accounts {
         let name = name_override.clone().unwrap_or_else(|| make_name(&otp));
         vault.add_entry(VaultEntry {
+            id: String::new(),
             name,
             secret: otp.secret,
             created_at: today.clone(),

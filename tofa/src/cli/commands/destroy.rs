@@ -6,10 +6,7 @@ pub fn run(vault_path: PathBuf) -> CliResult {
     let pass = read_passphrase("Passphrase: ")?;
     open_vault(&vault_path, &pass)?; // auth check only
 
-    eprint!(
-        "Destroy vault at {}? [y/N] ",
-        vault_path.display()
-    );
+    eprint!("Destroy vault at {}? [y/N] ", vault_path.display());
     io::stderr().flush()?;
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;

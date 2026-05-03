@@ -1,5 +1,4 @@
 use crate::tui::state::AppState;
-use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -8,13 +7,19 @@ use ratatui::{
     Frame,
 };
 use tofa_core::store::Vault;
+use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let box_h = area.height.saturating_sub(4).max(8);
     let box_w = area.width.min(60);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
-    let modal = Rect { x: area.x + pad_x, y: area.y + pad_y, width: box_w, height: box_h };
+    let modal = Rect {
+        x: area.x + pad_x,
+        y: area.y + pad_y,
+        width: box_w,
+        height: box_h,
+    };
 
     f.render_widget(Clear, modal);
     f.render_widget(
@@ -46,7 +51,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Export OTPs",
-            Style::default().fg(theme::TEXT).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::TEXT)
+                .add_modifier(Modifier::BOLD),
         ))),
         chunks[0],
     );
@@ -56,17 +63,24 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         .iter()
         .enumerate()
         .map(|(i, entry)| {
-            let checked  = state.export_checked.get(i).copied().unwrap_or(true);
+            let checked = state.export_checked.get(i).copied().unwrap_or(true);
             let selected = i == state.export_selected;
             let checkbox = if checked { "[✓]" } else { "[ ]" };
             let row_style = if selected {
-                Style::default().fg(theme::BRAND).bg(theme::SURFACE).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(theme::BRAND)
+                    .bg(theme::SURFACE)
+                    .add_modifier(Modifier::BOLD)
             } else if checked {
                 Style::default().fg(theme::TEXT)
             } else {
                 Style::default().fg(theme::TEXT_MUTED)
             };
-            let cb_style = if checked { row_style.fg(theme::BRAND) } else { row_style };
+            let cb_style = if checked {
+                row_style.fg(theme::BRAND)
+            } else {
+                row_style
+            };
             ListItem::new(Line::from(vec![
                 Span::styled(format!("{checkbox} "), cb_style),
                 Span::styled(entry.name.clone(), row_style),

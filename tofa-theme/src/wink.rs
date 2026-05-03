@@ -30,7 +30,11 @@ mod tests {
     #[test]
     fn wink_large_lines_have_correct_width() {
         for line in WINK_LARGE.lines() {
-            assert_eq!(line.chars().count(), WINK_LARGE_WIDTH as usize, "line: {line}");
+            assert_eq!(
+                line.chars().count(),
+                WINK_LARGE_WIDTH as usize,
+                "line: {line}"
+            );
         }
     }
 

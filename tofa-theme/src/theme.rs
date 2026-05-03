@@ -1,8 +1,11 @@
-use ratatui::style::Color;
 use crate::palette;
+use ratatui::style::Color;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ThemeMode { Dark, Light }
+pub enum ThemeMode {
+    Dark,
+    Light,
+}
 
 impl ThemeMode {
     /// Detect terminal theme from env vars, falling back to Dark.
@@ -11,22 +14,56 @@ impl ThemeMode {
         for var in &["TOFA_THEME", "TERM_BACKGROUND", "COLORSCHEME"] {
             if let Ok(val) = std::env::var(var) {
                 let val = val.to_lowercase();
-                if val.contains("light") { return Self::Light; }
-                if val.contains("dark")  { return Self::Dark;  }
+                if val.contains("light") {
+                    return Self::Light;
+                }
+                if val.contains("dark") {
+                    return Self::Dark;
+                }
             }
         }
         Self::Dark
     }
 
-    pub fn brand(&self)      -> Color { match self { Self::Dark => palette::BRAND,      Self::Light => palette::BRAND_LIGHT } }
-    pub fn bg(&self)         -> Color { match self { Self::Dark => palette::BG,         Self::Light => palette::BG_LIGHT } }
-    pub fn surface(&self)    -> Color { match self { Self::Dark => palette::SURFACE,    Self::Light => palette::SURFACE_LIGHT } }
-    pub fn border(&self)     -> Color { match self { Self::Dark => palette::BORDER,     Self::Light => palette::BORDER_LIGHT } }
-    pub fn text(&self)       -> Color { match self { Self::Dark => palette::TEXT,       Self::Light => palette::TEXT_LIGHT } }
-    pub fn text_muted(&self) -> Color { match self { Self::Dark => palette::TEXT_MUTED, Self::Light => palette::TEXT_MUTED_LIGHT } }
+    pub fn brand(&self) -> Color {
+        match self {
+            Self::Dark => palette::BRAND,
+            Self::Light => palette::BRAND_LIGHT,
+        }
+    }
+    pub fn bg(&self) -> Color {
+        match self {
+            Self::Dark => palette::BG,
+            Self::Light => palette::BG_LIGHT,
+        }
+    }
+    pub fn surface(&self) -> Color {
+        match self {
+            Self::Dark => palette::SURFACE,
+            Self::Light => palette::SURFACE_LIGHT,
+        }
+    }
+    pub fn border(&self) -> Color {
+        match self {
+            Self::Dark => palette::BORDER,
+            Self::Light => palette::BORDER_LIGHT,
+        }
+    }
+    pub fn text(&self) -> Color {
+        match self {
+            Self::Dark => palette::TEXT,
+            Self::Light => palette::TEXT_LIGHT,
+        }
+    }
+    pub fn text_muted(&self) -> Color {
+        match self {
+            Self::Dark => palette::TEXT_MUTED,
+            Self::Light => palette::TEXT_MUTED_LIGHT,
+        }
+    }
     pub fn timer_color(&self, seconds: u64) -> Color {
         match self {
-            Self::Dark  => palette::timer_color(seconds),
+            Self::Dark => palette::timer_color(seconds),
             Self::Light => palette::timer_color_light(seconds),
         }
     }

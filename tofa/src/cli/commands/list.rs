@@ -1,8 +1,8 @@
 use crate::cli::{open_vault, read_passphrase, CliResult};
 use clap::Args;
+use std::path::PathBuf;
 use tofa_core::totp::{generate_code_now, seconds_remaining_now};
 use tofa_theme::ansi;
-use std::path::PathBuf;
 
 #[derive(Args)]
 pub struct ListArgs {
@@ -17,41 +17,46 @@ pub fn run(args: ListArgs, vault_path: PathBuf) -> CliResult {
 
     if args.codes {
         // Header
-        println!("{}┌{:─<14}┬{:─<17}┬{:─<10}┬{:─<9}┐{}",
-            ansi::box_color(), "", "", "", "", ansi::RESET);
-        println!("{}│ {}{:<13}{}│ {}{:<16}{}│ {}{:<9}{}│ {}{:<8}{}│{}",
-            ansi::box_color(),
-            ansi::muted(), "issuer", ansi::box_color(),
-            ansi::muted(), "account", ansi::box_color(),
-            ansi::muted(), "code", ansi::box_color(),
-            ansi::muted(), "expires", ansi::box_color(),
-            ansi::RESET);
-        println!("{}├{:─<14}┼{:─<17}┼{:─<10}┼{:─<9}┤{}",
-            ansi::box_color(), "", "", "", "", ansi::RESET);
+        let bc = ansi::box_color();
+        let rs = ansi::RESET;
+        println!("{bc}┌{:─<36}┬{:─<10}┬{:─<9}┐{rs}", "", "", "");
+        println!(
+            "{bc}│ {}{:<35}{bc}│ {}{:<9}{bc}│ {}{:<8}{bc}│{rs}",
+            ansi::muted(),
+            "id",
+            ansi::muted(),
+            "code",
+            ansi::muted(),
+            "expires"
+        );
+        println!("{bc}├{:─<36}┼{:─<10}┼{:─<9}┤{rs}", "", "", "");
 
         for entry in vault.entries() {
             let secs = seconds_remaining_now(entry);
             let code = generate_code_now(entry).unwrap_or_else(|_| "------".into());
             let formatted = format!("{} {}", &code[..3], &code[3..]);
-            let (issuer, account) = if let Some(pos) = entry.name.find(':') {
-                (&entry.name[..pos], &entry.name[pos + 1..])
+            let id = if entry.id.is_empty() {
+                entry.name.as_str()
             } else {
-                (entry.name.as_str(), "")
+                entry.id.as_str()
             };
-            println!("{}│ {}{:<13}{}│ {}{:<16}{}│ {}{}{:<9}{}{}│ {}{}{:<8}{}{}│{}",
-                ansi::box_color(),
-                ansi::RESET, issuer, ansi::box_color(),
-                ansi::RESET, account, ansi::box_color(),
-                ansi::RESET, ansi::brand(), formatted, ansi::RESET, ansi::box_color(),
-                ansi::RESET, ansi::timer(secs), format!("{}s", secs), ansi::RESET, ansi::box_color(),
-                ansi::RESET);
+            println!(
+                "{bc}│ {rs}{id:<35}{bc}│ {}{formatted:<9}{bc}│ {}{:<8}{bc}│{rs}",
+                ansi::brand(),
+                ansi::timer(secs),
+                format!("{secs}s")
+            );
         }
 
-        println!("{}└{:─<14}┴{:─<17}┴{:─<10}┴{:─<9}┘{}",
-            ansi::box_color(), "", "", "", "", ansi::RESET);
+        println!("{bc}└{:─<36}┴{:─<10}┴{:─<9}┘{rs}", "", "", "");
     } else {
         for entry in vault.entries() {
-            println!("{}", entry.name);
+            let id = if entry.id.is_empty() {
+                entry.name.as_str()
+            } else {
+                entry.id.as_str()
+            };
+            println!("{}", id);
         }
     }
     Ok(())

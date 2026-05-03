@@ -3,16 +3,19 @@ use predicates::str::contains;
 use tempfile::TempDir;
 
 fn init_vault(tmp: &TempDir) {
-    Command::cargo_bin("tofa").unwrap()
+    Command::cargo_bin("tofa")
+        .unwrap()
         .env("TOFA_PASSPHRASE", "testpass")
         .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap())
-        .arg("init").assert().success();
+        .arg("init")
+        .assert()
+        .success();
 }
 
 fn tofa(tmp: &TempDir) -> Command {
     let mut cmd = Command::cargo_bin("tofa").unwrap();
     cmd.env("TOFA_PASSPHRASE", "testpass")
-       .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap());
+        .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap());
     cmd
 }
 
@@ -20,7 +23,11 @@ fn tofa(tmp: &TempDir) -> Command {
 fn destroy_removes_vault() {
     let tmp = TempDir::new().unwrap();
     init_vault(&tmp);
-    tofa(&tmp).arg("destroy").write_stdin("y\n").assert().success();
+    tofa(&tmp)
+        .arg("destroy")
+        .write_stdin("y\n")
+        .assert()
+        .success();
     assert!(!tmp.path().join("vault.enc").exists());
 }
 
@@ -28,7 +35,11 @@ fn destroy_removes_vault() {
 fn destroy_aborts_on_n() {
     let tmp = TempDir::new().unwrap();
     init_vault(&tmp);
-    tofa(&tmp).arg("destroy").write_stdin("n\n").assert().success();
+    tofa(&tmp)
+        .arg("destroy")
+        .write_stdin("n\n")
+        .assert()
+        .success();
     assert!(tmp.path().join("vault.enc").exists());
 }
 
@@ -36,16 +47,23 @@ fn destroy_aborts_on_n() {
 fn destroy_fails_wrong_passphrase() {
     let tmp = TempDir::new().unwrap();
     init_vault(&tmp);
-    Command::cargo_bin("tofa").unwrap()
+    Command::cargo_bin("tofa")
+        .unwrap()
         .env("TOFA_PASSPHRASE", "wrongpass")
         .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap())
-        .arg("destroy").write_stdin("y\n")
-        .assert().failure().stderr(contains("wrong passphrase"));
+        .arg("destroy")
+        .write_stdin("y\n")
+        .assert()
+        .failure()
+        .stderr(contains("wrong passphrase"));
 }
 
 #[test]
 fn destroy_fails_no_vault() {
     let tmp = TempDir::new().unwrap();
-    tofa(&tmp).arg("destroy").assert().failure()
+    tofa(&tmp)
+        .arg("destroy")
+        .assert()
+        .failure()
         .stderr(contains("no vault"));
 }

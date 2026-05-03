@@ -9,6 +9,6 @@ pub mod init;
 pub mod list;
 pub mod qr;
 pub mod rekey;
-pub mod scan;
 pub mod remove;
 pub mod rename;
+pub mod scan;

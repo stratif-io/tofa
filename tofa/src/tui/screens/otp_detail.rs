@@ -1,5 +1,4 @@
 use crate::tui::state::AppState;
-use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -11,6 +10,7 @@ use tofa_core::{
     store::Vault,
     totp::{format_code, generate_code_now, seconds_remaining_now},
 };
+use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let entry = match vault.entries().get(state.selected_index) {
@@ -34,7 +34,12 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let box_w = area.width.min(62);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
-    let modal = Rect { x: area.x + pad_x, y: area.y + pad_y, width: box_w, height: box_h };
+    let modal = Rect {
+        x: area.x + pad_x,
+        y: area.y + pad_y,
+        width: box_w,
+        height: box_h,
+    };
 
     f.render_widget(Clear, modal);
     f.render_widget(
@@ -53,7 +58,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         height: modal.height.saturating_sub(2),
     };
 
-    let algo_str = format!("{} · {}d · {}s", entry.algorithm, entry.digits, entry.period);
+    let algo_str = format!(
+        "{} · {}d · {}s",
+        entry.algorithm, entry.digits, entry.period
+    );
 
     // Title row + field rows + optional reveal prompt + help row
     let mut constraints = vec![
@@ -80,26 +88,38 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "OTP Details",
-            Style::default().fg(theme::TEXT).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::TEXT)
+                .add_modifier(Modifier::BOLD),
         ))),
         chunks[0],
     );
 
     let field_rows: &[(&str, &str, bool)] = &[
-        ("Name",    entry.name.as_str(),       false),
-        ("Code",    &format!("{}  {}s", format_code(&code), secs), true),
-        ("Params",  &algo_str,                 false),
-        ("Secret",  &secret_display,           false),
+        ("Name", entry.name.as_str(), false),
+        ("Code", &format!("{}  {}s", format_code(&code), secs), true),
+        ("Params", &algo_str, false),
+        ("Secret", &secret_display, false),
         ("Created", entry.created_at.as_str(), false),
     ];
 
     for (i, (label, value, is_code)) in field_rows.iter().enumerate() {
         let value_col = if *is_code { timer_col } else { theme::TEXT };
-        let value_mod = if *is_code { Modifier::BOLD } else { Modifier::empty() };
+        let value_mod = if *is_code {
+            Modifier::BOLD
+        } else {
+            Modifier::empty()
+        };
         f.render_widget(
             Paragraph::new(Line::from(vec![
-                Span::styled(format!("{label:<10}"), Style::default().fg(theme::TEXT_MUTED)),
-                Span::styled(*value, Style::default().fg(value_col).add_modifier(value_mod)),
+                Span::styled(
+                    format!("{label:<10}"),
+                    Style::default().fg(theme::TEXT_MUTED),
+                ),
+                Span::styled(
+                    *value,
+                    Style::default().fg(value_col).add_modifier(value_mod),
+                ),
             ])),
             chunks[2 + i],
         );

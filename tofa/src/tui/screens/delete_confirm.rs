@@ -1,5 +1,4 @@
 use crate::tui::state::AppState;
-use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -8,6 +7,7 @@ use ratatui::{
     Frame,
 };
 use tofa_core::store::Vault;
+use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
@@ -40,7 +40,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let content = vec![
         Line::from(Span::styled(
             "Delete this account?",
-            Style::default().fg(theme::DANGER).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::DANGER)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(Span::styled(
@@ -54,21 +56,24 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         Line::from(""),
         Line::from(""),
         Line::from(vec![
-            Span::styled("[ y ] Yes   ", Style::default().fg(theme::DANGER).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "[ y ] Yes   ",
+                Style::default()
+                    .fg(theme::DANGER)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled("[ n ] No", Style::default().fg(theme::TEXT_MUTED)),
         ]),
     ];
 
     f.render_widget(
-        Paragraph::new(content)
-            .alignment(Alignment::Center)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .border_style(Style::default().fg(theme::DANGER))
-                    .style(Style::default().bg(theme::BG)),
-            ),
+        Paragraph::new(content).alignment(Alignment::Center).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(theme::DANGER))
+                .style(Style::default().bg(theme::BG)),
+        ),
         inner,
     );
 }

@@ -3,24 +3,45 @@
 use crate::palette::{BRAND_RGB, DANGER_RGB, SUCCESS_RGB, TEXT_MUTED_RGB, WARNING_RGB};
 
 pub const RESET: &str = "\x1b[0m";
-pub const BOLD: &str  = "\x1b[1m";
+pub const BOLD: &str = "\x1b[1m";
 
 pub fn fg(r: u8, g: u8, b: u8) -> String {
     format!("\x1b[38;2;{r};{g};{b}m")
 }
 
-pub fn brand()     -> String { let (r,g,b) = BRAND_RGB;      fg(r,g,b) }
-pub fn success()   -> String { let (r,g,b) = SUCCESS_RGB;    fg(r,g,b) }
-pub fn warning()   -> String { let (r,g,b) = WARNING_RGB;    fg(r,g,b) }
-pub fn danger()    -> String { let (r,g,b) = DANGER_RGB;     fg(r,g,b) }
-pub fn muted()     -> String { let (r,g,b) = TEXT_MUTED_RGB; fg(r,g,b) }
-pub fn box_color() -> String { fg(117, 89, 184) }
+pub fn brand() -> String {
+    let (r, g, b) = BRAND_RGB;
+    fg(r, g, b)
+}
+pub fn success() -> String {
+    let (r, g, b) = SUCCESS_RGB;
+    fg(r, g, b)
+}
+pub fn warning() -> String {
+    let (r, g, b) = WARNING_RGB;
+    fg(r, g, b)
+}
+pub fn danger() -> String {
+    let (r, g, b) = DANGER_RGB;
+    fg(r, g, b)
+}
+pub fn muted() -> String {
+    let (r, g, b) = TEXT_MUTED_RGB;
+    fg(r, g, b)
+}
+pub fn box_color() -> String {
+    fg(117, 89, 184)
+}
 
 /// Color for a seconds-remaining value (same logic as palette::timer_color)
 pub fn timer(seconds: u64) -> String {
-    if seconds >= 10 { brand() }
-    else if seconds >= 5 { warning() }
-    else { danger() }
+    if seconds >= 10 {
+        brand()
+    } else if seconds >= 5 {
+        warning()
+    } else {
+        danger()
+    }
 }
 
 #[cfg(test)]

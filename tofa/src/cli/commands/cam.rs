@@ -109,7 +109,8 @@ fn handle_conn(mut stream: TcpStream) -> Option<String> {
     }
 
     // CORS preflight or other
-    let resp = "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: 0\r\n\r\n";
+    let resp =
+        "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: 0\r\n\r\n";
     stream.write_all(resp.as_bytes()).ok();
     None
 }
@@ -141,7 +142,7 @@ fn build_html() -> String {
     background: #010409;
     box-shadow: 0 0 0 1px #21262d;
   }
-  video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
   #overlay {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
@@ -328,7 +329,10 @@ pub fn run(args: CamArgs, vault_path: PathBuf) -> CliResult {
     #[cfg(target_os = "macos")]
     std::process::Command::new("open").arg(&url).spawn().ok();
     #[cfg(target_os = "linux")]
-    std::process::Command::new("xdg-open").arg(&url).spawn().ok();
+    std::process::Command::new("xdg-open")
+        .arg(&url)
+        .spawn()
+        .ok();
 
     // Block until the browser posts the QR URI
     let uri = server.wait_for_result()?;
@@ -346,6 +350,7 @@ pub fn run(args: CamArgs, vault_path: PathBuf) -> CliResult {
         for otp in accounts {
             let name = args.name.clone().unwrap_or_else(|| make_name(&otp));
             vault.add_entry(VaultEntry {
+                id: String::new(),
                 name,
                 secret: otp.secret,
                 created_at: today.clone(),
@@ -363,6 +368,7 @@ pub fn run(args: CamArgs, vault_path: PathBuf) -> CliResult {
     let name = args.name.unwrap_or_else(|| make_name(&otp));
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     let entry = VaultEntry {
+        id: String::new(),
         name: name.clone(),
         secret: otp.secret,
         created_at: today,

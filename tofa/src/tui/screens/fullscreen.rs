@@ -1,5 +1,4 @@
 use crate::tui::state::AppState;
-use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -11,6 +10,7 @@ use tofa_core::{
     store::Vault,
     totp::{format_code, generate_code_now, seconds_remaining_now},
 };
+use tofa_theme::palette as theme;
 use tui_big_text::{BigText, PixelSize};
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
@@ -24,7 +24,11 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let timer_col = tofa_theme::palette::timer_color(secs);
 
     let is_8digit = entry.digits == 8;
-    let use_half_height = if is_8digit { area.width >= 80 } else { area.width >= 68 };
+    let use_half_height = if is_8digit {
+        area.width >= 80
+    } else {
+        area.width >= 68
+    };
     let (modal_w, modal_h) = if use_half_height {
         let min_w = if is_8digit { 82u16 } else { 70u16 };
         (area.width.min(min_w), 13u16)
@@ -34,7 +38,12 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     };
     let modal_x = area.x + (area.width.saturating_sub(modal_w)) / 2;
     let modal_y = area.y + (area.height.saturating_sub(modal_h)) / 2;
-    let modal = Rect { x: modal_x, y: modal_y, width: modal_w, height: modal_h };
+    let modal = Rect {
+        x: modal_x,
+        y: modal_y,
+        width: modal_w,
+        height: modal_h,
+    };
 
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
     f.render_widget(Clear, modal);
@@ -84,7 +93,11 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     );
 
     let spaced = format_code(&code);
-    let pixel_size = if use_half_height { PixelSize::HalfHeight } else { PixelSize::Quadrant };
+    let pixel_size = if use_half_height {
+        PixelSize::HalfHeight
+    } else {
+        PixelSize::Quadrant
+    };
     let big_text = BigText::builder()
         .pixel_size(pixel_size)
         .style(Style::default().fg(timer_col).add_modifier(Modifier::BOLD))

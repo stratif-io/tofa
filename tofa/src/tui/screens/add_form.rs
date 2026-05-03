@@ -1,5 +1,4 @@
 use crate::tui::state::AppState;
-use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -7,12 +6,16 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
+use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
     let error_line = if let Some(msg) = &state.status_message {
-        Line::from(Span::styled(msg.as_str(), Style::default().fg(theme::DANGER)))
+        Line::from(Span::styled(
+            msg.as_str(),
+            Style::default().fg(theme::DANGER),
+        ))
     } else {
         Line::from("")
     };
@@ -39,7 +42,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     let content = vec![
         Line::from(Span::styled(
             "Add OTP",
-            Style::default().fg(theme::TEXT).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::TEXT)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(Span::styled(

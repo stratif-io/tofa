@@ -1,3 +1,4 @@
+use crate::{palette, theme::ThemeMode};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -5,26 +6,39 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Clear, Paragraph, Widget},
 };
-use crate::{palette, theme::ThemeMode};
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum ToastVariant { Success, Error }
+pub enum ToastVariant {
+    Success,
+    Error,
+}
 
 #[derive(Clone)]
 pub struct Toast {
     pub message: String,
     pub variant: ToastVariant,
-    pub theme:   ThemeMode,
+    pub theme: ThemeMode,
 }
 
 impl Toast {
     pub fn success(msg: impl Into<String>) -> Self {
-        Self { message: msg.into(), variant: ToastVariant::Success, theme: ThemeMode::Dark }
+        Self {
+            message: msg.into(),
+            variant: ToastVariant::Success,
+            theme: ThemeMode::Dark,
+        }
     }
     pub fn error(msg: impl Into<String>) -> Self {
-        Self { message: msg.into(), variant: ToastVariant::Error, theme: ThemeMode::Dark }
+        Self {
+            message: msg.into(),
+            variant: ToastVariant::Error,
+            theme: ThemeMode::Dark,
+        }
     }
-    pub fn theme(mut self, t: ThemeMode) -> Self { self.theme = t; self }
+    pub fn theme(mut self, t: ThemeMode) -> Self {
+        self.theme = t;
+        self
+    }
 }
 
 /// Bounded queue of active toasts. Push to add; the TUI tick should call `tick()`.
@@ -33,16 +47,25 @@ pub struct ToastQueue {
 }
 
 impl ToastQueue {
-    pub fn new() -> Self { Self { inner: std::collections::VecDeque::new() } }
+    pub fn new() -> Self {
+        Self {
+            inner: std::collections::VecDeque::new(),
+        }
+    }
 
     pub fn push(&mut self, toast: Toast) {
-        if self.inner.len() >= 3 { self.inner.pop_front(); }
+        if self.inner.len() >= 3 {
+            self.inner.pop_front();
+        }
         self.inner.push_back((toast, 20)); // ~2s at ~10fps
     }
 
     /// Decrement counters and remove expired toasts. Call once per render tick.
     pub fn tick(&mut self) {
-        self.inner.retain_mut(|(_, t)| { *t = t.saturating_sub(1); *t > 0 });
+        self.inner.retain_mut(|(_, t)| {
+            *t = t.saturating_sub(1);
+            *t > 0
+        });
     }
 
     pub fn latest(&self) -> Option<&Toast> {
@@ -54,7 +77,7 @@ impl Widget for Toast {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let color = match self.variant {
             ToastVariant::Success => palette::SUCCESS,
-            ToastVariant::Error   => palette::DANGER,
+            ToastVariant::Error => palette::DANGER,
         };
         let text = format!(" {} ", self.message);
         let width = (text.len() as u16).min(area.width);
@@ -74,7 +97,9 @@ mod tests {
     #[test]
     fn queue_caps_at_3() {
         let mut q = ToastQueue::new();
-        for i in 0..5 { q.push(Toast::success(format!("msg {i}"))); }
+        for i in 0..5 {
+            q.push(Toast::success(format!("msg {i}")));
+        }
         assert!(q.inner.len() <= 3);
     }
 

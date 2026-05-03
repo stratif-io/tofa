@@ -1,5 +1,4 @@
 use crate::tui::state::AppState;
-use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -7,6 +6,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph},
     Frame,
 };
+use tofa_theme::palette as theme;
 
 pub fn filtered<'a>(entries: &'a [(String, bool)], query: &str) -> Vec<&'a (String, bool)> {
     let q = query.to_lowercase();
@@ -23,7 +23,12 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     let box_w = area.width.min(72);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
-    let modal = Rect { x: area.x + pad_x, y: area.y + pad_y, width: box_w, height: box_h };
+    let modal = Rect {
+        x: area.x + pad_x,
+        y: area.y + pad_y,
+        width: box_w,
+        height: box_h,
+    };
 
     f.render_widget(
         Block::default()
@@ -60,14 +65,22 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         path_str.to_string()
     };
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(truncated, Style::default().fg(theme::TEXT_MUTED)))),
+        Paragraph::new(Line::from(Span::styled(
+            truncated,
+            Style::default().fg(theme::TEXT_MUTED),
+        ))),
         chunks[0],
     );
 
     f.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled("/ ", Style::default().fg(theme::TEXT_MUTED)),
-            Span::styled(state.fp_query.clone(), Style::default().fg(theme::TEXT).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                state.fp_query.clone(),
+                Style::default()
+                    .fg(theme::TEXT)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled("▌", Style::default().fg(theme::BRAND)),
         ])),
         chunks[1],
@@ -80,7 +93,11 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         .map(|(i, (name, is_dir))| {
             let selected = i == state.fp_selected;
             let border_col = if selected { theme::BRAND } else { theme::BG };
-            let text_col = if *is_dir { theme::TEXT_MUTED } else { theme::TEXT };
+            let text_col = if *is_dir {
+                theme::TEXT_MUTED
+            } else {
+                theme::TEXT
+            };
             let icon = if *is_dir { "▸ " } else { "  " };
             ListItem::new(Line::from(vec![
                 Span::styled("▌ ", Style::default().fg(border_col)),

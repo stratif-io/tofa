@@ -1,5 +1,4 @@
 use crate::tui::state::AppState;
-use tofa_theme::palette as theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -7,6 +6,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Paragraph},
     Frame,
 };
+use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
@@ -31,7 +31,12 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     let box_h = needed_h.min(area.height);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
-    let modal = Rect { x: area.x + pad_x, y: area.y + pad_y, width: box_w, height: box_h };
+    let modal = Rect {
+        x: area.x + pad_x,
+        y: area.y + pad_y,
+        width: box_w,
+        height: box_h,
+    };
 
     f.render_widget(Clear, modal);
     f.render_widget(
@@ -63,7 +68,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Scan with your authenticator app",
-            Style::default().fg(theme::TEXT).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::TEXT)
+                .add_modifier(Modifier::BOLD),
         )))
         .alignment(Alignment::Center),
         chunks[0],
@@ -84,7 +91,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         .collect();
 
     f.render_widget(Clear, qr_rect);
-    f.render_widget(Block::default().style(Style::default().bg(Color::White)), qr_rect);
+    f.render_widget(
+        Block::default().style(Style::default().bg(Color::White)),
+        qr_rect,
+    );
     f.render_widget(Paragraph::new(qr_lines), qr_rect);
 
     f.render_widget(
@@ -102,7 +112,12 @@ fn render_too_small(f: &mut Frame, area: Rect, needed_w: u16, needed_h: u16) {
     let box_w = area.width.min(52);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
-    let modal = Rect { x: area.x + pad_x, y: area.y + pad_y, width: box_w, height: box_h };
+    let modal = Rect {
+        x: area.x + pad_x,
+        y: area.y + pad_y,
+        width: box_w,
+        height: box_h,
+    };
 
     f.render_widget(Clear, modal);
     f.render_widget(
@@ -135,7 +150,9 @@ fn render_too_small(f: &mut Frame, area: Rect, needed_w: u16, needed_h: u16) {
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Terminal too small",
-            Style::default().fg(theme::DANGER).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(theme::DANGER)
+                .add_modifier(Modifier::BOLD),
         )))
         .alignment(Alignment::Center),
         rows[1],

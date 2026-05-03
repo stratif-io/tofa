@@ -1,8 +1,12 @@
-use tofa_core::store::{Vault, VaultEntry};
 use tempfile::tempdir;
+use tofa_core::store::{Vault, VaultEntry};
 
 fn make_entry(name: &str) -> VaultEntry {
-    VaultEntry::new(name.to_string(), "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ".to_string(), "2026-01-01".to_string())
+    VaultEntry::new(
+        name.to_string(),
+        "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ".to_string(),
+        "2026-01-01".to_string(),
+    )
 }
 
 #[test]

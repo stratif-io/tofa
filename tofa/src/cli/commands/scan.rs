@@ -33,6 +33,7 @@ pub fn run(args: ScanArgs, vault_path: PathBuf) -> CliResult {
         for otp in accounts {
             let name = args.name.clone().unwrap_or_else(|| make_name(&otp));
             vault.add_entry(VaultEntry {
+                id: String::new(),
                 name,
                 secret: otp.secret,
                 created_at: today.clone(),
@@ -50,6 +51,7 @@ pub fn run(args: ScanArgs, vault_path: PathBuf) -> CliResult {
     let name = args.name.unwrap_or_else(|| make_name(&otp));
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     let entry = VaultEntry {
+        id: String::new(),
         name: name.clone(),
         secret: otp.secret,
         created_at: today,
@@ -89,9 +91,18 @@ fn capture_screen(path: &PathBuf) -> CliResult {
 
 #[cfg(target_os = "linux")]
 fn capture_screen(path: &PathBuf) -> CliResult {
-    let ok = std::process::Command::new("scrot").arg(path).status().ok().is_ok_and(|s: std::process::ExitStatus| s.success());
-    if ok { return Ok(()); }
-    let status = std::process::Command::new("gnome-screenshot").args(["-f"]).arg(path).status()?;
+    let ok = std::process::Command::new("scrot")
+        .arg(path)
+        .status()
+        .ok()
+        .is_ok_and(|s: std::process::ExitStatus| s.success());
+    if ok {
+        return Ok(());
+    }
+    let status = std::process::Command::new("gnome-screenshot")
+        .args(["-f"])
+        .arg(path)
+        .status()?;
     if !status.success() {
         return Err("screenshot capture failed (install scrot or gnome-screenshot)".into());
     }

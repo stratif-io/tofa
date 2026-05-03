@@ -18,7 +18,8 @@
     "icon": ["icons/icon.png", "icons/icon.icns"],
     "resources": ["icons/tray_icon.png"],
     "macOS": {
-      "infoPlist": "Info.plist"
+      "infoPlist": "Info.plist",
+      "activationPolicy": "accessory"
     }
   }
 }

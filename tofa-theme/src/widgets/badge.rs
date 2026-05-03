@@ -1,4 +1,4 @@
-use ratatui::{buffer::Buffer, layout::Rect, style::Style, text::{Line, Span}, widgets::Widget};
+use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 use crate::theme::ThemeMode;
 
 pub enum BadgeVariant { Success, Warning, Danger, Brand }

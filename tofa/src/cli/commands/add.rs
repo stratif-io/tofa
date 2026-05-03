@@ -1,5 +1,6 @@
 use crate::cli::{open_vault, read_passphrase, CliResult};
 use clap::Args;
+use tofa_theme::{ansi, voice};
 use tofa_core::{
     qr::OtpSecret,
     totp::{generate_code_now, seconds_remaining_now},
@@ -75,8 +76,8 @@ pub fn add_single(name: &str, otp: OtpSecret, vault: &mut Vault, path: &PathBuf,
     let secs = seconds_remaining_now(&entry);
     vault.add_entry(entry);
     vault.save(path, pass)?;
-    println!("Added {name}");
-    println!("Current code: {} {}  ({}s)", &code[..3], &code[3..], secs);
+    println!("{}{}{}", ansi::success(), voice::ADDED_OK, ansi::RESET);
+    println!("{}{} {}{}  {}({}s){}", ansi::brand(), &code[..3], &code[3..], ansi::RESET, ansi::muted(), secs, ansi::RESET);
     Ok(())
 }
 

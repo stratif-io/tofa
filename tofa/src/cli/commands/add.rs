@@ -69,7 +69,7 @@ pub fn add_single(
     name: &str,
     otp: OtpSecret,
     vault: &mut Vault,
-    path: &PathBuf,
+    path: &std::path::Path,
     pass: &str,
 ) -> CliResult {
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
@@ -103,7 +103,7 @@ pub fn add_single(
 fn import_migration(
     uri: &str,
     vault: &mut Vault,
-    path: &PathBuf,
+    path: &std::path::Path,
     pass: &str,
     name_override: &Option<String>,
 ) -> CliResult {

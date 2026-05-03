@@ -76,7 +76,10 @@ pub fn read_passphrase(prompt: &str) -> Result<String, Box<dyn std::error::Error
     Ok(pass)
 }
 
-pub fn open_vault(path: &PathBuf, passphrase: &str) -> Result<Vault, Box<dyn std::error::Error>> {
+pub fn open_vault(
+    path: &std::path::Path,
+    passphrase: &str,
+) -> Result<Vault, Box<dyn std::error::Error>> {
     if !path.exists() {
         return Err(format!(
             "no vault at {}. Run 'tofa init' to create one.",

@@ -34,7 +34,7 @@ pub fn run(args: ImportArgs, vault_path: PathBuf) -> CliResult {
 }
 
 fn import_json(
-    path: &PathBuf,
+    path: &std::path::Path,
     vault: &mut tofa_core::Vault,
 ) -> Result<(usize, usize), Box<dyn std::error::Error>> {
     let content = std::fs::read_to_string(path)?;
@@ -57,10 +57,10 @@ fn import_json(
 }
 
 fn import_qr(
-    path: &PathBuf,
+    path: &std::path::Path,
     vault: &mut tofa_core::Vault,
 ) -> Result<(usize, usize), Box<dyn std::error::Error>> {
-    let uri = tofa_core::qr::scan_qr_uri(path.as_path())?;
+    let uri = tofa_core::qr::scan_qr_uri(path)?;
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     if uri.starts_with("otpauth-migration://") {
         let accounts = tofa_core::qr::parse_migration(&uri)?;

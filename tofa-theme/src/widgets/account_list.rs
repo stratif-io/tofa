@@ -18,6 +18,12 @@ pub struct AccountListState {
     pub list_state: ListState,
 }
 
+impl Default for AccountListState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AccountListState {
     pub fn new() -> Self {
         Self {

@@ -27,9 +27,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     // Use the selected entry's period for the header timer, fall back to 30s
     let selected_entry = vault.entries().get(state.selected_index);
-    let header_secs = selected_entry
-        .map(|e| seconds_remaining_now(e))
-        .unwrap_or(30);
+    let header_secs = selected_entry.map(seconds_remaining_now).unwrap_or(30);
 
     render_header(f, chunks[0], vault, header_secs);
     render_list(f, chunks[1], state, vault);

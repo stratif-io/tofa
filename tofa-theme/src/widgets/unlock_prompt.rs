@@ -13,6 +13,12 @@ pub struct UnlockPrompt {
     pub theme: ThemeMode,
 }
 
+impl Default for UnlockPrompt {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UnlockPrompt {
     pub fn new() -> Self {
         Self {

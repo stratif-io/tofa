@@ -482,7 +482,7 @@ fn proto_encode_varint(mut val: u64) -> Vec<u8> {
 }
 
 fn proto_field_varint(field: u32, val: u64) -> Vec<u8> {
-    let tag = ((field as u64) << 3) | 0;
+    let tag = (field as u64) << 3;
     let mut buf = proto_encode_varint(tag);
     buf.extend(proto_encode_varint(val));
     buf

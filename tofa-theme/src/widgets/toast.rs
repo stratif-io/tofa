@@ -46,6 +46,12 @@ pub struct ToastQueue {
     inner: std::collections::VecDeque<(Toast, u8)>, // (toast, ticks_remaining)
 }
 
+impl Default for ToastQueue {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ToastQueue {
     pub fn new() -> Self {
         Self {

@@ -1,7 +1,7 @@
 <div align="center">
   <img src="tofa-app/src-tauri/icons/128x128@2x.png" width="96" alt="tofa" />
   <h1>tofa</h1>
-  <p><strong>Offline, encrypted 2FA for macOS — menu bar app and eye-candy terminal TUI.</strong></p>
+  <p><strong>Stop reaching for your phone every time a site asks for a 6-digit code.</strong></p>
 
   [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![Rust](https://img.shields.io/badge/rust-1.78%2B-orange.svg)](https://www.rust-lang.org)
@@ -11,17 +11,25 @@
 
 ---
 
-tofa is a local-first TOTP authenticator with two interfaces: a macOS menu bar app and a full-featured terminal TUI. Every secret stays encrypted on disk — no cloud sync, no account, no telemetry.
+tofa keeps all your 2FA codes one click away in the macOS menu bar — no phone, no cloud, no account. Secrets stay encrypted on disk with AES-256-GCM. There is also a full-featured terminal TUI for keyboard-first workflows.
+
+## Why tofa
+
+You're mid-flow at your desk and a site asks for a 6-digit OTP. You unlock your phone, open the authenticator app, wait for a code, squint at it, and type it in. That interruption is annoying and unnecessary when your Mac is right in front of you.
+
+tofa lives in your menu bar. One click, one copy, back to work.
 
 ## Features
 
-- **Always one click away** — tray icon opens a compact popover with live codes and countdown rings
-- **Eye-candy TUI** — violet accent, per-entry progress bars, mouse support, live countdown
+- **One click away** — menu bar icon opens a compact popover with live codes and countdown bars
+- **Dark / light / auto theme** — matches your system appearance or override it in Settings
 - **AES-256-GCM vault** encrypted with an Argon2id-derived key; secrets never hit disk in plaintext
-- **QR scanning** — scan your screen, drop an image, or use the camera to add accounts instantly
+- **Multi-format import** — open a QR image, a JSON export (Aegis, andOTP), a plain URI list (TXT), or a ZIP archive; scan your screen; or use the camera
 - **Google Authenticator migration** — import `otpauth-migration://` QR codes directly
 - **Manual entry** — paste a raw Base32 secret or a full `otpauth://` URI
-- **Session lock** — auto-locks after 5 minutes of inactivity; lock manually from the menu
+- **Configurable vault path** — choose where the encrypted vault lives from the Settings screen
+- **Session lock** — auto-locks after 10 minutes of inactivity; lock manually from the tray menu
+- **Eye-candy TUI** — violet accent, per-entry progress bars, mouse support, live countdown
 - **Scriptable CLI** — add, list, copy codes, import/export, and pipe into scripts
 
 ## Quick start
@@ -40,6 +48,19 @@ cargo install --path tofa
 tofa          # open the TUI
 tofa --help   # CLI reference
 ```
+
+## Menu bar app
+
+Click the tray icon to open the popover. On first launch, create a passphrase to protect your vault. Then add accounts from the **+** button:
+
+| Method | How |
+|--------|-----|
+| **Open file** | Pick a QR image (PNG/JPG), an Aegis or andOTP JSON export, a TXT file with one `otpauth://` URI per line, or a ZIP containing any of the above |
+| **Scan screen** | Captures your screen and detects any QR code on it |
+| **Camera** | Opens a browser-based QR scanner using your webcam |
+| **Paste URI** | Type or paste an `otpauth://totp/…` URI directly |
+
+Codes refresh automatically. Click any entry to copy it to your clipboard. The vault locks after 10 minutes of inactivity or via the tray menu.
 
 ## CLI & TUI
 
@@ -76,7 +97,7 @@ All business logic lives in `tofa-core`. The app and CLI are pure UI layers.
 - Key derivation: **Argon2id** (m=64 MiB, t=3, p=1)
 - Encryption: **AES-256-GCM** with a random 96-bit nonce per write
 - Atomic writes: vault saved to a temp file then renamed — no partial writes
-- Passphrase cached in memory with a 5-minute TTL; zeroed on lock via `zeroize`
+- Passphrase cached in memory with a 10-minute TTL; zeroed on lock via `zeroize`
 
 ## Built with
 

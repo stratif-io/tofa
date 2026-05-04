@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.4.1...tofa-macos-v0.4.2) (2026-05-04)
+
+
+### Bug Fixes
+
+* **app:** position popover flush below tray on any display ([d85d8bd](https://github.com/stratif-io/tofa/commit/d85d8bd3b6d6194733d5914daf23096499574b87))
+* **app:** position popover flush below tray on any display ([f71b6f2](https://github.com/stratif-io/tofa/commit/f71b6f234ba98d3cd359b3e1c0d7bdfc67f16814))
+* **app:** use native Tauri dialog for QR image import ([a8c08a9](https://github.com/stratif-io/tofa/commit/a8c08a98ef921b8d6c32893be122d08a0bd5a69f))
+* **app:** use native Tauri dialog for QR image import ([5e50f00](https://github.com/stratif-io/tofa/commit/5e50f00754f7d429bb42684414c457af7d0a788e))
+
 ## [0.4.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.4.0...tofa-macos-v0.4.1) (2026-05-04)
 
 

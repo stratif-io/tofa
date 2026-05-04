@@ -26,7 +26,7 @@
       </feMerge>
     </filter>
 
-    <linearGradient id="arrow-stroke" x1="410" y1="400" x2="860" y2="400" gradientUnits="userSpaceOnUse">
+    <linearGradient id="arrow-stroke" x1="460" y1="400" x2="820" y2="400" gradientUnits="userSpaceOnUse">
       <stop offset="0"   stop-color="#7C5CFF" stop-opacity="0.55"/>
       <stop offset="1"   stop-color="#B8A4F0" stop-opacity="1.00"/>
     </linearGradient>
@@ -94,15 +94,17 @@
         letter-spacing="6">OFFLINE · ENCRYPTED · 2FA</text>
 
   <!-- LAYER: drag arrow -->
+  <!-- DMG window is 660x400 with icons centred at (160,200) and (500,200), -->
+  <!-- icon-size 120. PNG is rendered @2x: clear corridor between icons is x=440-880. -->
   <g filter="url(#arrow-glow)">
-    <line x1="410" y1="400" x2="860" y2="400"
+    <line x1="460" y1="400" x2="820" y2="400"
           stroke="url(#arrow-stroke)" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="868" cy="400" r="2.0" fill="#B8A4F0" fill-opacity="0.40"/>
-    <circle cx="876" cy="400" r="2.4" fill="#B8A4F0" fill-opacity="0.55"/>
-    <circle cx="884" cy="400" r="2.8" fill="#B8A4F0" fill-opacity="0.70"/>
-    <circle cx="892" cy="400" r="3.2" fill="#B8A4F0" fill-opacity="0.85"/>
-    <circle cx="900" cy="400" r="3.6" fill="#B8A4F0" fill-opacity="1.00"/>
-    <polygon points="910,392 926,400 910,408" fill="#D4C5FF"/>
+    <circle cx="828" cy="400" r="2.0" fill="#B8A4F0" fill-opacity="0.40"/>
+    <circle cx="836" cy="400" r="2.4" fill="#B8A4F0" fill-opacity="0.55"/>
+    <circle cx="844" cy="400" r="2.8" fill="#B8A4F0" fill-opacity="0.70"/>
+    <circle cx="852" cy="400" r="3.2" fill="#B8A4F0" fill-opacity="0.85"/>
+    <circle cx="860" cy="400" r="3.6" fill="#B8A4F0" fill-opacity="1.00"/>
+    <polygon points="860,392 876,400 860,408" fill="#D4C5FF"/>
   </g>
 
   <!-- LAYER: footer -->

@@ -1,6 +1,7 @@
 # tofa add
 
-_Brief intent — fill in._
+Add a new account to the vault. Accepts a base32 `--secret`, an `otpauth://`
+URI, or a path to a QR image.
 
 <!-- BEGIN auto:help -->
 **Synopsis**
@@ -22,8 +23,54 @@ tofa add [FLAGS]
 
 ## Examples
 
-_TBD — fill in._
+From a base32 secret:
+
+```console
+$ tofa add --name "GitHub:you" --secret JBSWY3DPEHPK3PXP
+Passphrase: ********
+✓ added GitHub:you
+```
+
+From an `otpauth://` URI (issuer and label parsed automatically):
+
+```console
+$ tofa add --uri "otpauth://totp/GitHub:you?secret=JBSWY3DPEHPK3PXP&issuer=GitHub"
+Passphrase: ********
+✓ added GitHub:you
+```
+
+From a QR image:
+
+```console
+$ tofa add --qr ~/Downloads/github-qr.png
+Passphrase: ********
+✓ added GitHub:you (issuer=GitHub, label=you)
+```
+
+A migration QR (Google Authenticator export, contains many accounts) imports
+all of them at once:
+
+```console
+$ tofa add --qr ~/Downloads/migration.png
+Passphrase: ********
+✓ added GitHub:you
+✓ added Discord:you
+✓ added Slack:work
+imported 3 accounts
+```
 
 ## Notes
 
-_TBD — fill in._
+- Exactly one of `--secret`, `--uri`, or `--qr` is required.
+- `--secret` requires `--name`; `--uri` and `--qr` derive the name themselves
+  (override with `--name`).
+- The vault is rewritten atomically: a temp file is written and then renamed,
+  so the old vault is never partially overwritten.
+- Exit code `0` on success, non-zero on parse errors, wrong passphrase, or
+  duplicate account ids.
+
+## See also
+
+- **[`tofa scan`](./scan.md)** — capture the screen instead of supplying a file.
+- **[`tofa cam`](./cam.md)** — webcam capture.
+- **[`tofa import`](./import.md)** — bulk import from a JSON export.

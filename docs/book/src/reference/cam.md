@@ -1,6 +1,6 @@
 # tofa cam
 
-_Brief intent — fill in._
+Open a browser-based webcam scanner and add the first QR detected.
 
 <!-- BEGIN auto:help -->
 **Synopsis**
@@ -20,8 +20,30 @@ tofa cam [FLAGS]
 
 ## Examples
 
-_TBD — fill in._
+Default camera:
+
+```console
+$ tofa cam
+Passphrase: ********
+Open http://127.0.0.1:54321 in your browser…
+✓ added GitHub:you
+```
+
+Pick a specific camera (e.g., the second one):
+
+```console
+$ tofa cam --camera 1
+```
 
 ## Notes
 
-_TBD — fill in._
+- The browser scanner runs locally on a random port — nothing leaves your
+  machine.
+- Grant the browser permission to use the camera when prompted.
+- Once a QR decodes, the page closes itself and `tofa` continues with the
+  detected account.
+
+## See also
+
+- **[`tofa scan`](./scan.md)** — screen capture variant (no camera needed).
+- **[`tofa add --qr`](./add.md)** — for an image on disk.

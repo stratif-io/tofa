@@ -51,6 +51,20 @@
   <!-- LAYER: dot grid -->
   <rect width="1320" height="800" fill="url(#dotgrid)"/>
 
+  <!-- LAYER: icon platforms -->
+  <!-- Subtle pads at each icon position. Lifts the area enough that the icon -->
+  <!-- label text rendered by Finder remains legible regardless of macOS -->
+  <!-- appearance mode (light mode → dark text, dark mode → light text). -->
+  <!-- Sized to cover icon (240x240) + label band (~40px below), with breathing room. -->
+  <g>
+    <rect x="190"  y="270" width="260" height="320" rx="24"
+          fill="#FFFFFF" fill-opacity="0.05"
+          stroke="#7C5CFF" stroke-opacity="0.18" stroke-width="1"/>
+    <rect x="870" y="270" width="260" height="320" rx="24"
+          fill="#FFFFFF" fill-opacity="0.05"
+          stroke="#7C5CFF" stroke-opacity="0.18" stroke-width="1"/>
+  </g>
+
   <!-- LAYER: OTP digit motif -->
   <g font-family="Menlo, monospace" font-size="44" fill="#7C5CFF" fill-opacity="0.06" text-anchor="middle">
     <g transform="translate(580, 130)">

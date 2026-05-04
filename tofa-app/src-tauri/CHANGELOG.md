@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/cabichahine/tofa/compare/tofa-app-v0.2.0...tofa-app-v0.2.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* CI fixes, test fixes, project hygiene and guidelines ([ff87ab4](https://github.com/cabichahine/tofa/commit/ff87ab46329c54b48f6aa388664e96d43cb098df))
+
 ## [0.2.0](https://github.com/cabichahine/tofa/compare/tofa-app-v0.1.0...tofa-app-v0.2.0) (2026-05-04)
 
 

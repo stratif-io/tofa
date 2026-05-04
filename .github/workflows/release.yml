@@ -126,13 +126,19 @@ jobs:
           VERSION="${VERSION#v}"
           APP=$(find target/universal-apple-darwin/release/bundle/macos -name "*.app" | head -1)
           DMG_FILE="tofa-app-${VERSION}.dmg"
+          # Window matches the PNG (1320x800). Finder enlarges the window to
+          # fit the background when the PNG exceeds --window-size, ignoring
+          # the configured icon coordinates relative to the smaller window.
+          # Icon centres land in the platforms drawn at PNG (320,420) and
+          # (1000,420). Icon size 160 keeps icons proportional in the wider
+          # canvas while still fitting inside the 260x320 platforms.
           create-dmg \
             --volname "Tofa" \
             --background "tofa-app/packaging/dmg-background.png" \
-            --window-size 660 400 \
-            --icon-size 120 \
-            --icon "Tofa.app" 160 200 \
-            --app-drop-link 500 200 \
+            --window-size 1320 800 \
+            --icon-size 160 \
+            --icon "Tofa.app" 320 420 \
+            --app-drop-link 1000 420 \
             --hide-extension "Tofa.app" \
             --no-internet-enable \
             "$DMG_FILE" \

@@ -4516,7 +4516,7 @@ dependencies = [
 
 [[package]]
 name = "tofa"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "arboard",
  "assert_cmd",
@@ -4533,7 +4533,6 @@ dependencies = [
  "tempfile",
  "thiserror 1.0.69",
  "tofa-core",
- "tofa-theme",
  "tui-big-text",
  "unicode-width",
  "zeroize",
@@ -4541,7 +4540,7 @@ dependencies = [
 
 [[package]]
 name = "tofa-app"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4577,13 +4576,6 @@ dependencies = [
  "thiserror 1.0.69",
  "totp-rs",
  "zeroize",
-]
-
-[[package]]
-name = "tofa-theme"
-version = "0.1.0"
-dependencies = [
- "ratatui",
 ]
 
 [[package]]

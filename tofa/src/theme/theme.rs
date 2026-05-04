@@ -1,4 +1,4 @@
-use crate::palette;
+use crate::theme::palette;
 use ratatui::style::Color;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,3 +1,4 @@
+use crate::theme::palette as theme;
 use crate::tui::state::AppState;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -6,7 +7,6 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph},
     Frame,
 };
-use tofa_theme::palette as theme;
 
 pub fn filtered<'a>(entries: &'a [(String, bool)], query: &str) -> Vec<&'a (String, bool)> {
     let q = query.to_lowercase();

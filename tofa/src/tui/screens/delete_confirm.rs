@@ -1,3 +1,4 @@
+use crate::theme::palette as theme;
 use crate::tui::state::AppState;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -7,7 +8,6 @@ use ratatui::{
     Frame,
 };
 use tofa_core::store::Vault;
-use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);

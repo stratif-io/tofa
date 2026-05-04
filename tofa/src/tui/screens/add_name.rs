@@ -1,3 +1,4 @@
+use crate::theme::palette as theme;
 use crate::tui::state::AppState;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -10,7 +11,6 @@ use tofa_core::{
     store::VaultEntry,
     totp::{format_code, generate_code_now, seconds_remaining_now},
 };
-use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
@@ -40,7 +40,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     };
     let code = generate_code_now(&tmp_entry).unwrap_or_else(|_| "------".to_string());
     let secs = seconds_remaining_now(&tmp_entry);
-    let timer_col = tofa_theme::palette::timer_color(secs);
+    let timer_col = crate::theme::palette::timer_color(secs);
 
     let error_line = if let Some(msg) = &state.status_message {
         Line::from(Span::styled(

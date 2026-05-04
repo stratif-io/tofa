@@ -1,3 +1,4 @@
+use crate::theme::palette as theme;
 use crate::tui::state::AppState;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -6,7 +7,6 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Paragraph},
     Frame,
 };
-use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     let Some(msg) = &state.status_message else {

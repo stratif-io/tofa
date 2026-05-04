@@ -1,3 +1,4 @@
+use crate::theme::palette as theme;
 use crate::tui::state::AppState;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -11,7 +12,6 @@ use tofa_core::{
     store::Vault,
     totp::{format_code, generate_code_now, mask_code, seconds_remaining_now},
 };
-use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
@@ -36,7 +36,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 }
 
 fn render_header(f: &mut Frame, area: Rect, vault: &Vault, secs: u64) {
-    let timer_col = tofa_theme::palette::timer_color(secs);
+    let timer_col = crate::theme::palette::timer_color(secs);
     let count = vault.entries().len();
 
     let left = Line::from(vec![
@@ -133,7 +133,7 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             let selected = i == state.selected_index;
             let label = &labels[i];
             let secs = seconds_remaining_now(entry);
-            let timer_col = tofa_theme::palette::timer_color(secs);
+            let timer_col = crate::theme::palette::timer_color(secs);
 
             let show = state.show_codes || selected;
             let code_str = if show {

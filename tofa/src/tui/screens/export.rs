@@ -1,3 +1,4 @@
+use crate::theme::palette as theme;
 use crate::tui::state::AppState;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -7,7 +8,6 @@ use ratatui::{
     Frame,
 };
 use tofa_core::store::Vault;
-use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let box_h = area.height.saturating_sub(4).max(8);

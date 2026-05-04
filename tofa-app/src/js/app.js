@@ -79,6 +79,20 @@ function loaderDone() {
   setTimeout(() => { $('loader-bar-inner').style.width = '0%'; }, 300);
 }
 
+// ── Popover pinning ────────────────────────────────────────────────────────
+// The Tauri popover hides on focus loss by default. For operations that
+// legitimately steal focus (file picker, screen scan, camera scan, native
+// folder dialog), pin the popover open while the operation runs so the
+// user doesn't lose their place.
+async function withPopoverPinned(fn) {
+  try { await invoke('set_popover_pinned', { pinned: true }); } catch (_) {}
+  try {
+    return await fn();
+  } finally {
+    try { await invoke('set_popover_pinned', { pinned: false }); } catch (_) {}
+  }
+}
+
 // Blocking overlay — high-visibility feedback for operations long enough
 // that the user needs to know something is happening (unlock, scan,
 // import). The thin loader bar is a secondary indicator.
@@ -348,7 +362,7 @@ async function openSettings() {
 
   $('btn-browse-vault').addEventListener('click', async () => {
     try {
-      const picked = await invoke('pick_vault_folder');
+      const picked = await withPopoverPinned(() => invoke('pick_vault_folder'));
       if (picked) $('settings-vault-path').value = picked;
     } catch (_) {}
   });
@@ -405,7 +419,7 @@ function bindAddListeners() {
       loaderStart();
       showBlocking('Scanning screen for QR codes…');
       try {
-        const added = await invoke('scan_screen');
+        const added = await withPopoverPinned(() => invoke('scan_screen'));
         const data = await invoke('get_entries');
         renderList(data);
         showView('view-list');
@@ -423,7 +437,7 @@ function bindAddListeners() {
       loaderStart();
       showBlocking('Waiting for camera scan…');
       try {
-        const added = await invoke('scan_camera');
+        const added = await withPopoverPinned(() => invoke('scan_camera'));
         const data = await invoke('get_entries');
         renderList(data);
         showView('view-list');
@@ -437,26 +451,36 @@ function bindAddListeners() {
   const btnFile = $('btn-open-file');
   if (btnFile) {
     btnFile.addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*,.json,.txt,.zip';
-      input.onchange = async () => {
-        const file = input.files[0];
-        if (!file) return;
-        const buf = await file.arrayBuffer();
-        const b64 = bufToBase64(buf);
-        loaderStart();
-        showBlocking(`Importing ${file.name}…`);
-        try {
-          const added = await invoke('import_file', { filename: file.name, b64 });
-          const data = await invoke('get_entries');
-          renderList(data);
-          showView('view-list');
-          toast(`Added: ${added.join(', ')}`);
-        } catch (err) { toast(String(err), true); }
-        finally { loaderDone(); hideBlocking(); }
-      };
-      input.click();
+      withPopoverPinned(() => new Promise(resolve => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,.json,.txt,.zip';
+        input.onchange = async () => {
+          const file = input.files[0];
+          if (!file) { resolve(); return; }
+          const buf = await file.arrayBuffer();
+          const b64 = bufToBase64(buf);
+          loaderStart();
+          showBlocking(`Importing ${file.name}…`);
+          try {
+            const added = await invoke('import_file', { filename: file.name, b64 });
+            const data = await invoke('get_entries');
+            renderList(data);
+            showView('view-list');
+            toast(`Added: ${added.join(', ')}`);
+          } catch (err) { toast(String(err), true); }
+          finally { loaderDone(); hideBlocking(); resolve(); }
+        };
+        // Cancelling the file picker does not fire onchange; resolve on focus
+        // return so the popover unpins reliably.
+        const onFocus = () => {
+          window.removeEventListener('focus', onFocus);
+          // Give the change handler a tick to run if a file was picked.
+          setTimeout(() => resolve(), 300);
+        };
+        window.addEventListener('focus', onFocus);
+        input.click();
+      }));
     });
   }
 

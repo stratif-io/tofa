@@ -7,6 +7,7 @@
   [![Rust](https://img.shields.io/badge/rust-1.78%2B-orange.svg)](https://www.rust-lang.org)
   [![Tauri](https://img.shields.io/badge/tauri-v2-purple.svg)](https://tauri.app)
   [![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#)
+  [![Docs](https://img.shields.io/badge/docs-cabichahine.github.io%2Ftofa-blue.svg)](https://cabichahine.github.io/tofa/)
 </div>
 
 ---
@@ -31,6 +32,8 @@ cargo install --path tofa
 tofa          # open the interactive TUI
 tofa --help   # CLI reference
 ```
+
+**Full reference:** <https://cabichahine.github.io/tofa/>
 
 ```
 tofa                               # open the interactive TUI

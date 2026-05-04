@@ -97,20 +97,42 @@ jobs:
         with:
           key: tauri-universal
 
+      - name: Cache Tauri CLI
+        id: cache-tauri-cli
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-tauri
+          key: tauri-cli-${{ runner.os }}-v2
+
       - name: Install Tauri CLI
+        if: steps.cache-tauri-cli.outputs.cache-hit != 'true'
         run: cargo install tauri-cli --version "^2" --locked
 
-      - name: Build universal app
-        working-directory: tofa-app
-        run: cargo tauri build --target universal-apple-darwin
+      - name: Install create-dmg
+        run: brew install create-dmg
 
-      - name: Rename DMG
+      - name: Build universal app (app bundle only)
+        working-directory: tofa-app
+        run: cargo tauri build --target universal-apple-darwin --bundles app
+
+      - name: Create custom DMG
         run: |
           VERSION="${GITHUB_REF_NAME#tofa-app-v}"
           VERSION="${VERSION#v}"
-          DMG=$(find target/universal-apple-darwin/release/bundle/dmg -name "*.dmg" | head -1)
-          mv "$DMG" "tofa-app-${VERSION}.dmg"
-          echo "DMG_FILE=tofa-app-${VERSION}.dmg" >> "$GITHUB_ENV"
+          APP=$(find target/universal-apple-darwin/release/bundle/macos -name "*.app" | head -1)
+          DMG_FILE="tofa-app-${VERSION}.dmg"
+          create-dmg \
+            --volname "Tofa" \
+            --background "tofa-app/packaging/dmg-background.png" \
+            --window-size 660 400 \
+            --icon-size 120 \
+            --icon "Tofa.app" 160 200 \
+            --app-drop-link 500 200 \
+            --hide-extension "Tofa.app" \
+            --no-internet-enable \
+            "$DMG_FILE" \
+            "$APP"
+          echo "DMG_FILE=$DMG_FILE" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4
         with:

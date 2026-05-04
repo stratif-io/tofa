@@ -10,7 +10,7 @@
     },
     "tofa-app/src-tauri": {
       "release-type": "rust",
-      "component": "tofa-app",
+      "component": "Tofa macOS",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": true,
       "include-v-in-tag": true

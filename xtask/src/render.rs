@@ -27,6 +27,31 @@ pub fn render_help_block(cmd: &Command) -> String {
     out
 }
 
+pub fn replace_block(content: &str, new_inner: &str) -> String {
+    const BEGIN: &str = "<!-- BEGIN auto:help -->";
+    const END: &str = "<!-- END auto:help -->";
+    if let (Some(b), Some(e)) = (content.find(BEGIN), content.find(END)) {
+        let before = &content[..b + BEGIN.len()];
+        let after = &content[e..];
+        return format!("{before}\n{new_inner}\n{after}");
+    }
+    // Markers missing: append after first H1, or at end.
+    let mut out = String::new();
+    let mut inserted = false;
+    for line in content.lines() {
+        out.push_str(line);
+        out.push('\n');
+        if !inserted && line.starts_with("# ") {
+            out.push_str(&format!("\n{BEGIN}\n{new_inner}\n{END}\n"));
+            inserted = true;
+        }
+    }
+    if !inserted {
+        out.push_str(&format!("\n{BEGIN}\n{new_inner}\n{END}\n"));
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -73,5 +98,28 @@ mod tests {
         let out = render_help_block(&cmd);
         assert!(!out.contains("--vault"));
         assert!(!out.contains("**Flags**"));
+    }
+
+    #[test]
+    fn replace_block_swaps_inner_content() {
+        let before = "# tofa add\n\nIntent.\n\n<!-- BEGIN auto:help -->\nold\n<!-- END auto:help -->\n\n## Examples\n\nstuff\n";
+        let new = "NEW BLOCK";
+        let after = replace_block(before, new);
+        assert!(after.contains("Intent."));
+        assert!(after.contains("## Examples"));
+        assert!(after.contains("stuff"));
+        assert!(after.contains("<!-- BEGIN auto:help -->\nNEW BLOCK\n<!-- END auto:help -->"));
+        assert!(!after.contains("\nold\n"));
+    }
+
+    #[test]
+    fn replace_block_inserts_after_h1_when_markers_absent() {
+        let before = "# tofa add\n\nSome prose.\n";
+        let after = replace_block(before, "INNER");
+        assert!(after.contains("# tofa add"));
+        assert!(after.contains("<!-- BEGIN auto:help -->"));
+        assert!(after.contains("INNER"));
+        assert!(after.contains("<!-- END auto:help -->"));
+        assert!(after.contains("Some prose."));
     }
 }

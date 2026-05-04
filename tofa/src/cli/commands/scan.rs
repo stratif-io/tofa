@@ -95,7 +95,7 @@ fn capture_screen(path: &PathBuf) -> CliResult {
         .arg(path)
         .status()
         .ok()
-        .is_ok_and(|s: std::process::ExitStatus| s.success());
+        .is_some_and(|s: std::process::ExitStatus| s.success());
     if ok {
         return Ok(());
     }

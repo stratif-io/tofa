@@ -1,5 +1,9 @@
 # Tofa — Claude Code Guidelines
 
+## Files not to commit
+
+`docs/superpowers/` contains AI planning specs and must never be committed — it is gitignored.
+
 ## Commit messages
 
 All commits must follow **Conventional Commits** (`https://www.conventionalcommits.org`):
@@ -35,3 +39,7 @@ refactor/remove-drag-drop
 ```
 
 Types mirror the commit types above. Words separated by hyphens, all lowercase.
+
+## Workflow
+
+All feature work is done in **git worktrees** managed by the `superpowers:using-git-worktrees` skill. Never work directly on `main`. Each task gets its own worktree + branch, following the branch naming convention above.

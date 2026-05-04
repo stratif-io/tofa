@@ -1,4 +1,5 @@
 use crate::cli::{find_entry, open_vault, read_passphrase, CliResult};
+use crate::theme::{ansi, voice};
 use clap::Args;
 use std::io::Write;
 use std::path::PathBuf;
@@ -7,7 +8,6 @@ use tofa_core::{
     store::VaultEntry,
     totp::{generate_code_now, seconds_remaining_now},
 };
-use tofa_theme::{ansi, voice};
 
 #[derive(Args)]
 pub struct CodeArgs {

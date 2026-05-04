@@ -1,6 +1,6 @@
 //! Raw ANSI escape helpers for CLI output. No external deps.
 
-use crate::palette::{BRAND_RGB, DANGER_RGB, SUCCESS_RGB, TEXT_MUTED_RGB, WARNING_RGB};
+use crate::theme::palette::{BRAND_RGB, DANGER_RGB, SUCCESS_RGB, TEXT_MUTED_RGB, WARNING_RGB};
 
 pub const RESET: &str = "\x1b[0m";
 pub const BOLD: &str = "\x1b[1m";

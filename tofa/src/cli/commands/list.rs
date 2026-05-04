@@ -1,8 +1,8 @@
 use crate::cli::{open_vault, read_passphrase, CliResult};
+use crate::theme::ansi;
 use clap::Args;
 use std::path::PathBuf;
 use tofa_core::totp::{generate_code_now, seconds_remaining_now};
-use tofa_theme::ansi;
 
 #[derive(Args)]
 pub struct ListArgs {

@@ -1,3 +1,4 @@
+use crate::theme::palette as theme;
 use crate::tui::state::AppState;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -10,7 +11,6 @@ use tofa_core::{
     store::Vault,
     totp::{format_code, generate_code_now, seconds_remaining_now},
 };
-use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let entry = match vault.entries().get(state.selected_index) {
@@ -20,7 +20,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     let code = generate_code_now(entry).unwrap_or_else(|_| "------".to_string());
     let secs = seconds_remaining_now(entry);
-    let timer_col = tofa_theme::palette::timer_color(secs);
+    let timer_col = crate::theme::palette::timer_color(secs);
 
     let secret_display = if state.detail_secret_visible {
         entry.secret.clone()

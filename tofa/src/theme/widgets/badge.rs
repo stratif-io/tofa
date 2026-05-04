@@ -1,4 +1,4 @@
-use crate::theme::ThemeMode;
+use crate::theme::theme::ThemeMode;
 use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 
 pub enum BadgeVariant {
@@ -30,7 +30,7 @@ impl Badge {
 
 impl Widget for Badge {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        use crate::palette;
+        use crate::theme::palette;
         let color = match self.variant {
             BadgeVariant::Success => palette::SUCCESS,
             BadgeVariant::Warning => palette::WARNING,

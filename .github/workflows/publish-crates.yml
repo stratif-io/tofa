@@ -17,21 +17,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      # Publish in dependency order: core → theme → CLI
+      # Publish in dependency order: core first, then CLI
       - name: Publish tofa-core
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish -p tofa-core --no-verify
 
       - name: Wait for tofa-core to be indexed
-        run: sleep 30
-
-      - name: Publish tofa-theme
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p tofa-theme --no-verify
-
-      - name: Wait for tofa-theme to be indexed
         run: sleep 30
 
       - name: Publish tofa

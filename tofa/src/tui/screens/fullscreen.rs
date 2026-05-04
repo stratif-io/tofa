@@ -1,3 +1,4 @@
+use crate::theme::palette as theme;
 use crate::tui::state::AppState;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -10,7 +11,6 @@ use tofa_core::{
     store::Vault,
     totp::{format_code, generate_code_now, seconds_remaining_now},
 };
-use tofa_theme::palette as theme;
 use tui_big_text::{BigText, PixelSize};
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
@@ -21,7 +21,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     let code = generate_code_now(entry).unwrap_or_else(|_| "------".to_string());
     let secs = seconds_remaining_now(entry);
-    let timer_col = tofa_theme::palette::timer_color(secs);
+    let timer_col = crate::theme::palette::timer_color(secs);
 
     let is_8digit = entry.digits == 8;
     let use_half_height = if is_8digit {

@@ -39,4 +39,4 @@ On lock (manual, timeout, or process exit) the buffer is zeroed.
 ## Reporting a vulnerability
 
 Open a private security advisory at
-<https://github.com/cabichahine/tofa/security/advisories/new>.
+<https://github.com/stratif-io/tofa/security/advisories/new>.

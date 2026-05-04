@@ -4,7 +4,7 @@
 machine in an `AES-256-GCM` vault — no cloud, no account, no telemetry.
 
 This site documents the **command-line interface** and its companion TUI.
-For the macOS menu bar app see the [project README](https://github.com/cabichahine/tofa).
+For the macOS menu bar app see the [project README](https://github.com/stratif-io/tofa).
 
 ## What's in here
 

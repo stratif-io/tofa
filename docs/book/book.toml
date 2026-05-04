@@ -11,5 +11,5 @@ build-dir = "dist"
 [output.html]
 default-theme = "navy"
 preferred-dark-theme = "navy"
-git-repository-url = "https://github.com/cabichahine/tofa"
-edit-url-template = "https://github.com/cabichahine/tofa/edit/main/docs/book/{path}"
+git-repository-url = "https://github.com/stratif-io/tofa"
+edit-url-template = "https://github.com/stratif-io/tofa/edit/main/docs/book/{path}"

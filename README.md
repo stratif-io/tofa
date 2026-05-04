@@ -7,7 +7,7 @@
   [![Rust](https://img.shields.io/badge/rust-1.78%2B-orange.svg)](https://www.rust-lang.org)
   [![Tauri](https://img.shields.io/badge/tauri-v2-purple.svg)](https://tauri.app)
   [![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#)
-  [![Docs](https://img.shields.io/badge/docs-cabichahine.github.io%2Ftofa-blue.svg)](https://cabichahine.github.io/tofa/)
+  [![Docs](https://img.shields.io/badge/docs-live-blue.svg)](https://stratif-io.github.io/tofa/)
 </div>
 
 ---
@@ -33,7 +33,7 @@ tofa          # open the interactive TUI
 tofa --help   # CLI reference
 ```
 
-**Full reference:** <https://cabichahine.github.io/tofa/>
+**Full reference:** <https://stratif-io.github.io/tofa/>
 
 ```
 tofa                               # open the interactive TUI
@@ -65,7 +65,7 @@ The TUI shows all accounts with live countdown bars, violet accent, and mouse su
 The first GUI built on `tofa-core`. One click from the tray icon opens a compact popover with live codes — no phone, no alt-tab.
 
 ```bash
-git clone https://github.com/cabichahine/tofa
+git clone https://github.com/stratif-io/tofa
 cd tofa/tofa-app
 cargo tauri build        # → src-tauri/target/release/bundle/macos/tofa.app
 ```

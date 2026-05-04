@@ -6,7 +6,7 @@
 then:
 
 ```bash
-git clone https://github.com/cabichahine/tofa
+git clone https://github.com/stratif-io/tofa
 cd tofa
 cargo install --path tofa
 ```

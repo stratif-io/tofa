@@ -23,7 +23,7 @@ pub fn run(args: ListArgs, vault_path: PathBuf) -> CliResult {
         println!(
             "{bc}│ {}{:<35}{bc}│ {}{:<9}{bc}│ {}{:<8}{bc}│{rs}",
             ansi::muted(),
-            "id",
+            "name",
             ansi::muted(),
             "code",
             ansi::muted(),
@@ -35,13 +35,9 @@ pub fn run(args: ListArgs, vault_path: PathBuf) -> CliResult {
             let secs = seconds_remaining_now(entry);
             let code = generate_code_now(entry).unwrap_or_else(|_| "------".into());
             let formatted = format!("{} {}", &code[..3], &code[3..]);
-            let id = if entry.id.is_empty() {
-                entry.name.as_str()
-            } else {
-                entry.id.as_str()
-            };
             println!(
-                "{bc}│ {rs}{id:<35}{bc}│ {}{formatted:<9}{bc}│ {}{:<8}{bc}│{rs}",
+                "{bc}│ {rs}{:<35}{bc}│ {}{formatted:<9}{bc}│ {}{:<8}{bc}│{rs}",
+                entry.name,
                 ansi::brand(),
                 ansi::timer(secs),
                 format!("{secs}s")
@@ -51,12 +47,7 @@ pub fn run(args: ListArgs, vault_path: PathBuf) -> CliResult {
         println!("{bc}└{:─<36}┴{:─<10}┴{:─<9}┘{rs}", "", "", "");
     } else {
         for entry in vault.entries() {
-            let id = if entry.id.is_empty() {
-                entry.name.as_str()
-            } else {
-                entry.id.as_str()
-            };
-            println!("{}", id);
+            println!("{}", entry.name);
         }
     }
     Ok(())

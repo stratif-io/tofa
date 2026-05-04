@@ -2,8 +2,7 @@ use std::path::PathBuf;
 use tofa_core::{
     generate_migration_uri,
     qr::{parse_migration, scan_qr_uri, OtpSecret},
-    store::VaultEntry, // kept for entry_from_otp
-    totp::generate_code_at,
+    store::VaultEntry,
 };
 
 fn fixture(name: &str) -> PathBuf {
@@ -14,6 +13,7 @@ fn fixture(name: &str) -> PathBuf {
 
 fn entry_from_otp(otp: &OtpSecret) -> VaultEntry {
     VaultEntry {
+        id: String::new(),
         name: String::new(),
         secret: otp.secret.clone(),
         created_at: String::new(),

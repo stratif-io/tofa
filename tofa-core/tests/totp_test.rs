@@ -10,6 +10,7 @@ fn entry(secret: &str) -> VaultEntry {
 fn entry_with(secret: &str, period: u32, digits: u8, algorithm: &str) -> VaultEntry {
     let base = entry(secret);
     VaultEntry {
+        id: String::new(),
         period,
         digits,
         algorithm: algorithm.into(),

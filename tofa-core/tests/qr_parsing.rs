@@ -13,6 +13,7 @@ fn fixture(name: &str) -> PathBuf {
 
 fn entry_from_otp(otp: &tofa_core::qr::OtpSecret) -> VaultEntry {
     VaultEntry {
+        id: String::new(),
         name: String::new(),
         secret: otp.secret.clone(),
         created_at: String::new(),

@@ -30,7 +30,7 @@ fn gen_fixtures() {
     let periods = [(30u32, "30s"), (60u32, "60s")];
     let secret = "JBSWY3DPEHPK3PXP";
 
-    for (algo_id, algo_label) in &algorithms {
+    for (algo_id, _algo_label) in &algorithms {
         for (digits, digits_label) in &digits_variants {
             for (period, period_label) in &periods {
                 let name = format!("Demo TOTP {algo_id} {digits_label}d {period_label}");

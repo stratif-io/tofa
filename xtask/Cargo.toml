@@ -8,6 +8,10 @@ publish = false
 name = "xtask"
 path = "src/main.rs"
 
+[lib]
+name = "xtask"
+path = "src/lib.rs"
+
 [dependencies]
 tofa = { path = "../tofa" }
 clap = { version = "4", features = ["derive"] }

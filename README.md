@@ -62,7 +62,7 @@ The TUI shows all accounts with live countdown bars, violet accent, and mouse su
 The first GUI built on `tofa-core`. One click from the tray icon opens a compact popover with live codes — no phone, no alt-tab.
 
 ```bash
-git clone https://github.com/cabichahine/tofa
+git clone https://github.com/stratif-io/tofa
 cd tofa/tofa-app
 cargo tauri build        # → src-tauri/target/release/bundle/macos/tofa.app
 ```

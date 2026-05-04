@@ -70,6 +70,7 @@ pub fn run() {
             let item_scan_camera =
                 MenuItem::with_id(app, "scan-camera", "Scan Camera", false, None::<&str>)?;
             let item_lock = MenuItem::with_id(app, "lock", "Lock", false, None::<&str>)?;
+            let item_quit = MenuItem::with_id(app, "quit", "Quit Tofa", true, Some("CmdOrCtrl+Q"))?;
 
             let menu = Menu::with_items(
                 app,
@@ -80,7 +81,7 @@ pub fn run() {
                     &PredefinedMenuItem::separator(app)?,
                     &item_lock,
                     &PredefinedMenuItem::separator(app)?,
-                    &PredefinedMenuItem::quit(app, None)?,
+                    &item_quit,
                 ],
             )?;
 
@@ -117,6 +118,10 @@ pub fn run() {
                         "scan-camera" => "scan-camera",
                         "settings" => "settings",
                         "lock" => "lock",
+                        "quit" => {
+                            app.exit(0);
+                            return;
+                        }
                         _ => return,
                     };
                     if let Some(win) = app.get_webview_window("popover") {

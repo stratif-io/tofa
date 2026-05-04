@@ -13,6 +13,9 @@
       <stop offset="0.6" stop-color="#7C5CFF" stop-opacity="0.10"/>
       <stop offset="1"   stop-color="#7C5CFF" stop-opacity="0"/>
     </radialGradient>
+    <pattern id="dotgrid" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="1" fill="#FFFFFF" fill-opacity="0.03"/>
+    </pattern>
   </defs>
 
   <!-- LAYER: background gradient -->
@@ -20,4 +23,7 @@
 
   <!-- LAYER: halo -->
   <ellipse cx="660" cy="400" rx="600" ry="320" fill="url(#halo)"/>
+
+  <!-- LAYER: dot grid -->
+  <rect width="1320" height="800" fill="url(#dotgrid)"/>
 </svg>

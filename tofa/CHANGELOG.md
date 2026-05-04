@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/cabichahine/tofa/compare/v0.2.0...v0.2.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* **ci:** resolve merge conflict — use version 0.2.1 from main ([be001d6](https://github.com/cabichahine/tofa/commit/be001d60598077c46bc232500886c73c09f7f77d))
+
 ## [0.2.0](https://github.com/cabichahine/tofa/compare/v0.1.0...v0.2.0) (2026-05-04)
 
 

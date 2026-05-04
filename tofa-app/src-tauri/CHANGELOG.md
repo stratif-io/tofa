@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.2](https://github.com/cabichahine/tofa/compare/tofa-app-v0.2.1...tofa-app-v0.2.2) (2026-05-04)
+
+
+### Bug Fixes
+
+* **ci:** correct DMG path and bump app version to 0.2.0 ([57e976c](https://github.com/cabichahine/tofa/commit/57e976ca20ee0605f2b44c4a70725d02ba4cd20b))
+* **ci:** correct DMG path and bump app version to 0.2.0 ([2a7427e](https://github.com/cabichahine/tofa/commit/2a7427e12bed3c6d6c719f757da2d676702a8dc9))
+* **ci:** resolve merge conflict — use version 0.2.1 from main ([be001d6](https://github.com/cabichahine/tofa/commit/be001d60598077c46bc232500886c73c09f7f77d))
+
 ## [0.2.1](https://github.com/cabichahine/tofa/compare/tofa-app-v0.2.0...tofa-app-v0.2.1) (2026-05-04)
 
 

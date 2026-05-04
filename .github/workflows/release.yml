@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v[0-9]*'          # CLI release:  v1.2.3
-      - 'tofa-app-v[0-9]*' # App release:  tofa-app-v1.2.3
+      - 'tofa-macos-v[0-9]*' # App release: tofa-macos-v1.2.3
 
 permissions:
   contents: write
@@ -84,7 +84,7 @@ jobs:
   # ── macOS app (universal DMG) ───────────────────────────────────────────────
   build-app:
     name: Build macOS App
-    if: startsWith(github.ref_name, 'tofa-app-v') || startsWith(github.ref_name, 'v')
+    if: startsWith(github.ref_name, 'tofa-macos-v') || startsWith(github.ref_name, 'v')
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -117,7 +117,7 @@ jobs:
 
       - name: Create custom DMG
         run: |
-          VERSION="${GITHUB_REF_NAME#tofa-app-v}"
+          VERSION="${GITHUB_REF_NAME#tofa-macos-v}"
           VERSION="${VERSION#v}"
           APP=$(find target/universal-apple-darwin/release/bundle/macos -name "*.app" | head -1)
           DMG_FILE="tofa-app-${VERSION}.dmg"

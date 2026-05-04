@@ -1,2 +1,4 @@
 #!/bin/sh
+set -e
 cargo fmt --all -- --check
+cargo run -p xtask --quiet -- gen-docs --check

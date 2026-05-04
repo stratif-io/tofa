@@ -17,3 +17,6 @@ tofa-app/src-tauri/gen/
 # Superpowers AI tooling — not part of the project
 docs/superpowers/
 .worktrees/
+
+# mdBook build output
+docs/book/dist/

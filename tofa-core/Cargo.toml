@@ -4,8 +4,8 @@ version = "0.3.0"
 edition = "2021"
 license = "MIT"
 description = "Core library for tofa — encrypted TOTP vault"
-repository = "https://github.com/cabichahine/tofa"
-homepage = "https://github.com/cabichahine/tofa"
+repository = "https://github.com/stratif-io/tofa"
+homepage = "https://github.com/stratif-io/tofa"
 keywords = ["totp", "otp", "vault", "encryption", "2fa"]
 categories = ["authentication", "cryptography"]
 

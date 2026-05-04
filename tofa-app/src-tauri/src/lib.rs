@@ -49,6 +49,22 @@ pub fn run() {
                     .inner_size(320.0, 480.0)
                     .build()?;
 
+            // Make the window follow the active Space instead of switching to the Space it lives in
+            #[cfg(target_os = "macos")]
+            {
+                use objc2::rc::Retained;
+                use objc2_app_kit::{NSWindow, NSWindowCollectionBehavior};
+                let _ = _window.with_webview(|wv| unsafe {
+                    let ns_window = wv.ns_window() as *mut NSWindow;
+                    if let Some(win) = Retained::retain(ns_window) {
+                        win.setCollectionBehavior(
+                            NSWindowCollectionBehavior::MoveToActiveSpace
+                                | NSWindowCollectionBehavior::Transient,
+                        );
+                    }
+                });
+            }
+
             let item_scan_screen =
                 MenuItem::with_id(app, "scan-screen", "Scan Screen", false, None::<&str>)?;
             let item_scan_camera =

@@ -1,7 +1,7 @@
 use crate::cli::{read_passphrase, CliResult};
 use clap::Args;
-use tofa_core::Vault;
 use std::path::PathBuf;
+use tofa_core::Vault;
 
 #[derive(Args)]
 pub struct InitArgs {}

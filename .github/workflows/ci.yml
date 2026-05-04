@@ -6,19 +6,38 @@ on:
   pull_request:
 
 jobs:
-  check:
-    name: Check (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+  # Full workspace check on macOS (Tauri app needs webkit2gtk / AppKit)
+  check-macos:
+    name: Check (macOS)
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+
       - name: fmt
-        run: cargo fmt --check
+        run: cargo fmt --check --all
+
       - name: clippy
         run: cargo clippy --workspace -- -D warnings
+
       - name: test
         run: cargo test --workspace
+
+  # CLI + core only on Linux (Tauri requires native GTK/WebKit unavailable here)
+  check-linux:
+    name: Check (Linux, CLI + core)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: fmt
+        run: cargo fmt --check --all
+
+      - name: clippy
+        run: cargo clippy -p tofa -p tofa-core -- -D warnings
+
+      - name: test
+        run: cargo test -p tofa -p tofa-core

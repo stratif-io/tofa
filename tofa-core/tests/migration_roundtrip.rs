@@ -1,10 +1,9 @@
+use std::path::PathBuf;
 use tofa_core::{
     generate_migration_uri,
     qr::{parse_migration, scan_qr_uri, OtpSecret},
-    store::VaultEntry, // kept for entry_from_otp
-    totp::generate_code_at,
+    store::VaultEntry,
 };
-use std::path::PathBuf;
 
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -14,12 +13,17 @@ fn fixture(name: &str) -> PathBuf {
 
 fn entry_from_otp(otp: &OtpSecret) -> VaultEntry {
     VaultEntry {
+        id: String::new(),
         name: String::new(),
         secret: otp.secret.clone(),
         created_at: String::new(),
         period: otp.meta.period.unwrap_or(30),
         digits: otp.meta.digits.unwrap_or(6),
-        algorithm: otp.meta.algorithm.clone().unwrap_or_else(|| "SHA1".to_string()),
+        algorithm: otp
+            .meta
+            .algorithm
+            .clone()
+            .unwrap_or_else(|| "SHA1".to_string()),
     }
 }
 
@@ -51,7 +55,11 @@ fn migration_uri_roundtrip() {
     // generate_migration_uri doesn't preserve period/digits/algorithm yet,
     // so only verify that secrets round-trip correctly.
     for (orig, dec) in original.iter().zip(decoded.iter()) {
-        assert_eq!(orig.secret, dec.secret, "secrets must match for {:?}", orig.meta.account);
+        assert_eq!(
+            orig.secret, dec.secret,
+            "secrets must match for {:?}",
+            orig.meta.account
+        );
     }
 }
 
@@ -62,11 +70,13 @@ fn migration_qr_image_roundtrip() {
 
     let tuples: Vec<(String, String, String)> = original
         .iter()
-        .map(|otp| (
-            otp.meta.account.clone().unwrap_or_default(),
-            otp.meta.issuer.clone().unwrap_or_default(),
-            otp.secret.clone(),
-        ))
+        .map(|otp| {
+            (
+                otp.meta.account.clone().unwrap_or_default(),
+                otp.meta.issuer.clone().unwrap_or_default(),
+                otp.secret.clone(),
+            )
+        })
         .collect();
 
     let refs: Vec<(&str, &str, &str)> = tuples
@@ -99,6 +109,10 @@ fn render_uri_to_png(uri: &str, path: &std::path::Path) {
     use image::Luma;
     use qrcode::QrCode;
     let code = QrCode::new(uri.as_bytes()).expect("QrCode::new");
-    let img = code.render::<Luma<u8>>().quiet_zone(true).module_dimensions(8, 8).build();
+    let img = code
+        .render::<Luma<u8>>()
+        .quiet_zone(true)
+        .module_dimensions(8, 8)
+        .build();
     img.save(path).expect("save QR PNG");
 }

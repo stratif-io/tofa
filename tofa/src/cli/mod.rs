@@ -2,8 +2,8 @@ pub mod commands;
 
 use clap::{Parser, Subcommand};
 use rpassword::prompt_password;
-use tofa_core::Vault;
 use std::path::PathBuf;
+use tofa_core::Vault;
 
 pub type CliResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -76,7 +76,10 @@ pub fn read_passphrase(prompt: &str) -> Result<String, Box<dyn std::error::Error
     Ok(pass)
 }
 
-pub fn open_vault(path: &PathBuf, passphrase: &str) -> Result<Vault, Box<dyn std::error::Error>> {
+pub fn open_vault(
+    path: &std::path::Path,
+    passphrase: &str,
+) -> Result<Vault, Box<dyn std::error::Error>> {
     if !path.exists() {
         return Err(format!(
             "no vault at {}. Run 'tofa init' to create one.",
@@ -84,33 +87,60 @@ pub fn open_vault(path: &PathBuf, passphrase: &str) -> Result<Vault, Box<dyn std
         )
         .into());
     }
-    let vault = Vault::load(path, passphrase)
-        .map_err(|_| "wrong passphrase.")?;
+    let vault = Vault::load(path, passphrase).map_err(|_| "wrong passphrase.")?;
     Ok(vault)
 }
 
 pub fn find_entry<'a>(
     vault: &'a Vault,
-    name: &str,
+    query: &str,
 ) -> Result<(usize, &'a tofa_core::VaultEntry), Box<dyn std::error::Error>> {
-    let lower = name.to_lowercase();
-    let matches: Vec<(usize, &tofa_core::VaultEntry)> = vault
-        .entries()
+    let entries = vault.entries();
+
+    // 1. Exact id match
+    if let Some(hit) = entries.iter().enumerate().find(|(_, e)| e.id == query) {
+        return Ok(hit);
+    }
+
+    // 2. Id prefix match (e.g. "GitHub:carlo@174" or just "GitHub:carlo")
+    let id_prefix: Vec<_> = entries
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| !e.id.is_empty() && e.id.starts_with(query))
+        .collect();
+    if id_prefix.len() == 1 {
+        return Ok(id_prefix.into_iter().next().unwrap());
+    }
+    if id_prefix.len() > 1 {
+        let list = id_prefix
+            .iter()
+            .map(|(_, e)| format!("  {}", e.id))
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Err(format!(
+            "\"{query}\" matches multiple accounts:\n{list}\nUse a more specific id."
+        )
+        .into());
+    }
+
+    // 3. Fuzzy name match (backward compat / entries without id)
+    let lower = query.to_lowercase();
+    let name_matches: Vec<_> = entries
         .iter()
         .enumerate()
         .filter(|(_, e)| e.name.to_lowercase().contains(&lower))
         .collect();
-    match matches.len() {
-        0 => Err(format!("no account matching \"{name}\".").into()),
-        1 => Ok(matches.into_iter().next().unwrap()),
+    match name_matches.len() {
+        0 => Err(format!("no account matching \"{query}\".").into()),
+        1 => Ok(name_matches.into_iter().next().unwrap()),
         _ => {
-            let list = matches
+            let list = name_matches
                 .iter()
-                .map(|(_, e)| format!("  {}", e.name))
+                .map(|(_, e)| format!("  {} (id: {})", e.name, e.id))
                 .collect::<Vec<_>>()
                 .join("\n");
             Err(format!(
-                "\"{name}\" matches multiple accounts:\n{list}\nUse a more specific name."
+                "\"{query}\" matches multiple accounts:\n{list}\nUse the full id to disambiguate."
             )
             .into())
         }
@@ -120,19 +150,19 @@ pub fn find_entry<'a>(
 pub fn dispatch(cmd: Commands, vault_flag: Option<PathBuf>) -> CliResult {
     let vault_path = resolve_vault_path(vault_flag);
     match cmd {
-        Commands::Init(args)         => commands::init::run(args, vault_path),
-        Commands::Destroy            => commands::destroy::run(vault_path),
-        Commands::List(args)         => commands::list::run(args, vault_path),
-        Commands::Code(args)         => commands::code::run(args, vault_path),
-        Commands::Add(args)          => commands::add::run(args, vault_path),
-        Commands::Remove(args)       => commands::remove::run(args, vault_path),
-        Commands::Rename(args)       => commands::rename::run(args, vault_path),
-        Commands::Qr(args)           => commands::qr::run(args, vault_path),
-        Commands::Rekey              => commands::rekey::run(vault_path),
-        Commands::Completions(args)  => commands::completions::run(args),
-        Commands::Export(args)       => commands::export::run(args, vault_path),
-        Commands::Import(args)       => commands::import::run(args, vault_path),
-        Commands::Scan(args)         => commands::scan::run(args, vault_path),
-        Commands::Cam(args)          => commands::cam::run(args, vault_path),
+        Commands::Init(args) => commands::init::run(args, vault_path),
+        Commands::Destroy => commands::destroy::run(vault_path),
+        Commands::List(args) => commands::list::run(args, vault_path),
+        Commands::Code(args) => commands::code::run(args, vault_path),
+        Commands::Add(args) => commands::add::run(args, vault_path),
+        Commands::Remove(args) => commands::remove::run(args, vault_path),
+        Commands::Rename(args) => commands::rename::run(args, vault_path),
+        Commands::Qr(args) => commands::qr::run(args, vault_path),
+        Commands::Rekey => commands::rekey::run(vault_path),
+        Commands::Completions(args) => commands::completions::run(args),
+        Commands::Export(args) => commands::export::run(args, vault_path),
+        Commands::Import(args) => commands::import::run(args, vault_path),
+        Commands::Scan(args) => commands::scan::run(args, vault_path),
+        Commands::Cam(args) => commands::cam::run(args, vault_path),
     }
 }

@@ -1,8 +1,8 @@
 mod commands;
 mod state;
 
-use std::sync::Mutex;
 use state::AppState;
+use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -13,6 +13,7 @@ use tauri_plugin_positioner::WindowExt;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_positioner::init())
         .manage(Mutex::new(AppState::new()))
         .invoke_handler(tauri::generate_handler![
@@ -23,38 +24,49 @@ pub fn run() {
             commands::copy_code,
             commands::get_settings,
             commands::save_settings,
+            commands::get_secret,
             commands::lock,
             commands::scan_screen,
+            commands::scan_camera,
             commands::scan_image_bytes,
             commands::add_from_uri,
             commands::delete_entry,
+            commands::pick_vault_folder,
+            commands::import_file,
         ])
         .setup(|app| {
-            let _window = WebviewWindowBuilder::new(
-                app,
-                "popover",
-                WebviewUrl::App("index.html".into()),
-            )
-            .decorations(false)
-            .always_on_top(true)
-            .resizable(false)
-            .visible(false)
-            .inner_size(320.0, 480.0)
-            .build()?;
+            #[cfg(target_os = "macos")]
+            let _ = app
+                .handle()
+                .set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            let item_scan_screen = MenuItem::with_id(app, "scan-screen", "Scan Screen", false, None::<&str>)?;
-            let item_scan_camera = MenuItem::with_id(app, "scan-camera", "Scan Camera", false, None::<&str>)?;
+            let _window =
+                WebviewWindowBuilder::new(app, "popover", WebviewUrl::App("index.html".into()))
+                    .decorations(false)
+                    .always_on_top(true)
+                    .resizable(false)
+                    .visible(false)
+                    .inner_size(320.0, 480.0)
+                    .build()?;
+
+            let item_scan_screen =
+                MenuItem::with_id(app, "scan-screen", "Scan Screen", false, None::<&str>)?;
+            let item_scan_camera =
+                MenuItem::with_id(app, "scan-camera", "Scan Camera", false, None::<&str>)?;
             let item_lock = MenuItem::with_id(app, "lock", "Lock", false, None::<&str>)?;
 
-            let menu = Menu::with_items(app, &[
-                &item_scan_screen,
-                &item_scan_camera,
-                &MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?,
-                &PredefinedMenuItem::separator(app)?,
-                &item_lock,
-                &PredefinedMenuItem::separator(app)?,
-                &PredefinedMenuItem::quit(app, None)?,
-            ])?;
+            let menu = Menu::with_items(
+                app,
+                &[
+                    &item_scan_screen,
+                    &item_scan_camera,
+                    &MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?,
+                    &PredefinedMenuItem::separator(app)?,
+                    &item_lock,
+                    &PredefinedMenuItem::separator(app)?,
+                    &PredefinedMenuItem::quit(app, None)?,
+                ],
+            )?;
 
             // Enable scan/lock items when unlocked, disable when locked
             let ss = item_scan_screen.clone();
@@ -75,9 +87,9 @@ pub fn run() {
                 let _ = lk2.set_enabled(false);
             });
 
-            let tray_icon = tauri::image::Image::from_bytes(
-                include_bytes!("../icons/tray_icon.png")
-            ).unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
+            let tray_icon =
+                tauri::image::Image::from_bytes(include_bytes!("../icons/tray_icon.png"))
+                    .unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
 
             let tray = TrayIconBuilder::new()
                 .icon(tray_icon)
@@ -92,7 +104,8 @@ pub fn run() {
                         _ => return,
                     };
                     if let Some(win) = app.get_webview_window("popover") {
-                        let _ = win.move_window(tauri_plugin_positioner::Position::TrayBottomCenter);
+                        let _ =
+                            win.move_window(tauri_plugin_positioner::Position::TrayBottomCenter);
                         let _ = win.show();
                         let _ = win.set_focus();
                         let _ = win.emit("tray-action", action);
@@ -114,9 +127,8 @@ pub fn run() {
                         if visible {
                             let _ = win.hide();
                         } else {
-                            let _ = win.move_window(
-                                tauri_plugin_positioner::Position::TrayBottomCenter,
-                            );
+                            let _ = win
+                                .move_window(tauri_plugin_positioner::Position::TrayBottomCenter);
                             let _ = win.show();
                             let _ = win.set_focus();
                         }

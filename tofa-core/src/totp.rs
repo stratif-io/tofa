@@ -14,10 +14,10 @@ pub enum TotpError {
 
 fn parse_algorithm(s: &str) -> Result<Algorithm, TotpError> {
     match s.to_uppercase().as_str() {
-        "SHA1"   => Ok(Algorithm::SHA1),
+        "SHA1" => Ok(Algorithm::SHA1),
         "SHA256" => Ok(Algorithm::SHA256),
         "SHA512" => Ok(Algorithm::SHA512),
-        other    => Err(TotpError::UnsupportedAlgorithm(other.to_string())),
+        other => Err(TotpError::UnsupportedAlgorithm(other.to_string())),
     }
 }
 
@@ -56,7 +56,11 @@ pub fn format_code(raw: &str) -> String {
 
 /// Format a masked placeholder matching the entry's digit count.
 pub fn mask_code(entry: &VaultEntry) -> &'static str {
-    if entry.digits == 8 { "•••• ••••" } else { "••• •••" }
+    if entry.digits == 8 {
+        "•••• ••••"
+    } else {
+        "••• •••"
+    }
 }
 
 /// Seconds remaining in the entry's TOTP window at a specific timestamp.

@@ -8,6 +8,10 @@ tofa.iconset/
 tofa-app/src-tauri/target/
 .DS_Store
 *.json
+!release-please-config.json
+!.release-please-manifest.json
+!tofa-app/src-tauri/tauri.conf.json
+!tofa-app/src-tauri/capabilities/*.json
 
 # Superpowers AI tooling — not part of the project
 docs/superpowers/

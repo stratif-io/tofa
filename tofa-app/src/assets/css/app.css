@@ -1,0 +1,177 @@
+/* Tauri-specific overrides on top of design system */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 320px;
+  height: 480px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide non-active views */
+.view { display: none; }
+.view.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+/* Scrollable account list area */
+.account-list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.account-list::-webkit-scrollbar { width: 4px; }
+.account-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Drag region for macOS window */
+.app-header {
+  -webkit-app-region: drag;
+  cursor: default;
+}
+.app-header button,
+.app-header input {
+  -webkit-app-region: no-drag;
+}
+
+/* Loader bar */
+#loader-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--border);
+  z-index: 100;
+}
+#loader-bar-inner {
+  height: 100%;
+  background: var(--brand);
+  width: 0%;
+  transition: width 0.3s var(--ease-out);
+}
+
+/* Account item in list */
+.account-item {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: var(--s-3);
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.account-item:hover { background: var(--brand-bg); }
+.account-item:last-child { border-bottom: none; }
+
+.account-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: var(--brand-bg);
+  color: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.account-name  { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+.account-login { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+.account-code  { font-family: var(--font-mono); font-weight: 700; font-size: 18px; color: var(--brand); letter-spacing: 0.05em; }
+.account-code.masked { color: var(--border-strong); letter-spacing: 0.1em; }
+
+/* Detail view */
+.detail-code {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 36px;
+  color: var(--brand);
+  letter-spacing: 0.1em;
+  text-align: center;
+  padding: var(--s-5) 0 var(--s-2);
+  transition: color 0.5s;
+}
+
+/* Progress bar with CSS variable */
+.otp-progress {
+  height: 2px;
+  background: var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.otp-progress-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: var(--progress, 100%);
+  background: var(--brand);
+  transition: width 1s linear, background 0.5s;
+}
+
+
+
+/* Detail metadata table */
+#detail-meta td {
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+#detail-meta td:first-child {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  width: 80px;
+  padding-right: var(--s-3);
+}
+#detail-meta td:last-child {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-all;
+}
+#detail-meta tr:last-child td { border-bottom: none; }
+.secret-masked {
+  cursor: pointer;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+}
+.secret-masked:hover { color: var(--brand); }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: var(--s-5);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brand);
+  color: var(--on-brand);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-md);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.toast.visible { opacity: 1; }
+.toast.error { background: var(--danger); color: white; }
+
+/* Logo eye-open animation */
+@keyframes eye-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+@keyframes eye-close {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.logo-svg.eye-opening { animation: eye-pop 0.35s ease forwards; }
+.logo-svg.eye-closing { animation: eye-close 0.25s ease forwards; }

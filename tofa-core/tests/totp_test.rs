@@ -9,7 +9,15 @@ fn entry(secret: &str) -> VaultEntry {
 
 fn entry_with(secret: &str, period: u32, digits: u8, algorithm: &str) -> VaultEntry {
     let base = entry(secret);
-    VaultEntry { period, digits, algorithm: algorithm.into(), name: base.name.clone(), secret: base.secret.clone(), created_at: base.created_at.clone() }
+    VaultEntry {
+        id: String::new(),
+        period,
+        digits,
+        algorithm: algorithm.into(),
+        name: base.name.clone(),
+        secret: base.secret.clone(),
+        created_at: base.created_at.clone(),
+    }
 }
 
 // RFC 6238 test vector: secret = "12345678901234567890" (ASCII), SHA1, 30s window
@@ -72,7 +80,12 @@ fn eight_digit_code_has_correct_length() {
 #[test]
 fn sha256_generates_code() {
     // SHA-256 secret — just check it produces a 6-digit string without error
-    let e = entry_with("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", 30, 6, "SHA256");
+    let e = entry_with(
+        "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ",
+        30,
+        6,
+        "SHA256",
+    );
     let code = generate_code_at(&e, 0).unwrap();
     assert_eq!(code.len(), 6);
     assert!(code.chars().all(|c| c.is_ascii_digit()));

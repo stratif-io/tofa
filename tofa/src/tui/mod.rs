@@ -1,24 +1,27 @@
 pub mod screens;
 pub mod state;
-pub mod theme;
 
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers, MouseButton,
+        MouseEventKind,
+    },
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
-use tofa_core::{
-    generate_migration_uri, uri_to_qr_lines,
-    qr::{parse_input, parse_migration, scan_qr_uri},
-    store::{Vault, VaultEntry},
-    totp::generate_code_now,
-};
 use state::{AppState, OtpMetaDisplay, Screen};
 use std::{
     io,
     path::{Path, PathBuf},
     time::{Duration, Instant},
+};
+use tofa_core::{
+    generate_migration_uri,
+    qr::{parse_input, parse_migration, scan_qr_uri},
+    store::{Vault, VaultEntry},
+    totp::generate_code_now,
+    uri_to_qr_lines,
 };
 
 const IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "gif", "bmp", "webp"];
@@ -59,11 +62,15 @@ fn run_app(
     let mut app_state = AppState::new();
     let mut vault: Option<Vault> = None;
     let path = vault_override
-        .map(|p| if p.starts_with("~") {
-            dirs::home_dir()
-                .unwrap_or_else(|| PathBuf::from("."))
-                .join(p.strip_prefix("~").unwrap_or(&p))
-        } else { p })
+        .map(|p| {
+            if p.starts_with("~") {
+                dirs::home_dir()
+                    .unwrap_or_else(|| PathBuf::from("."))
+                    .join(p.strip_prefix("~").unwrap_or(&p))
+            } else {
+                p
+            }
+        })
         .unwrap_or_else(default_vault_path);
     app_state.is_new_vault = !path.exists();
 
@@ -81,7 +88,9 @@ fn run_app(
                         .expect("vault must be initialized after unlock"),
                 ),
                 Screen::Fullscreen => {
-                    let v = vault.as_ref().expect("vault must be initialized after unlock");
+                    let v = vault
+                        .as_ref()
+                        .expect("vault must be initialized after unlock");
                     screens::list::render(f, area, &app_state, v);
                     screens::fullscreen::render(f, area, &app_state, v);
                 }
@@ -97,18 +106,24 @@ fn run_app(
                 ),
                 Screen::FilePicker => screens::file_picker::render(f, area, &app_state),
                 Screen::OtpDetail => {
-                    let v = vault.as_ref().expect("vault must be initialized after unlock");
+                    let v = vault
+                        .as_ref()
+                        .expect("vault must be initialized after unlock");
                     screens::list::render(f, area, &app_state, v);
                     screens::otp_detail::render(f, area, &app_state, v);
                 }
                 Screen::Export => {
-                    let v = vault.as_ref().expect("vault must be initialized after unlock");
+                    let v = vault
+                        .as_ref()
+                        .expect("vault must be initialized after unlock");
                     screens::list::render(f, area, &app_state, v);
                     screens::export::render(f, area, &app_state, v);
                 }
                 Screen::ExportQr => screens::export_qr::render(f, area, &app_state),
                 Screen::ScanningQr => {
-                    let v = vault.as_ref().expect("vault must be initialized after unlock");
+                    let v = vault
+                        .as_ref()
+                        .expect("vault must be initialized after unlock");
                     screens::list::render(f, area, &app_state, v);
                     screens::scanning_qr::render(f, area, &app_state);
                 }
@@ -131,8 +146,7 @@ fn run_app(
             match action {
                 PendingVaultAction::DeleteEntry(idx) => {
                     v.remove_entry(idx);
-                    if app_state.selected_index > 0
-                        && app_state.selected_index >= v.entries().len()
+                    if app_state.selected_index > 0 && app_state.selected_index >= v.entries().len()
                     {
                         app_state.selected_index -= 1;
                     }
@@ -154,12 +168,15 @@ fn run_app(
                     let meta = app_state.add_meta.take();
                     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
                     v.add_entry(tofa_core::store::VaultEntry {
+                        id: String::new(),
                         name: name.clone(),
                         secret: secret.to_string(),
                         created_at: today,
                         period: meta.as_ref().and_then(|m| m.period).unwrap_or(30),
                         digits: meta.as_ref().and_then(|m| m.digits).unwrap_or(6),
-                        algorithm: meta.as_ref().and_then(|m| m.algorithm.clone())
+                        algorithm: meta
+                            .as_ref()
+                            .and_then(|m| m.algorithm.clone())
                             .unwrap_or_else(|| "SHA1".to_string()),
                     });
                     if save_vault(&mut app_state, v, &path) {
@@ -190,7 +207,9 @@ fn run_app(
             if let Some(fp) = app_state.pending_scan_path.take() {
                 std::thread::sleep(Duration::from_millis(120));
                 let raw = app_state.add_secret_input.trim().to_string();
-                let v = vault.as_mut().expect("vault must be initialized after unlock");
+                let v = vault
+                    .as_mut()
+                    .expect("vault must be initialized after unlock");
                 match scan_qr_uri(&fp) {
                     Ok(uri) if uri.starts_with("otpauth-migration://") => {
                         try_import_migration(&mut app_state, &uri, v, &path);
@@ -206,120 +225,130 @@ fn run_app(
 
         if event::poll(Duration::from_millis(50))? {
             match event::read()? {
-              Event::Mouse(mouse) => {
-                if let MouseEventKind::Down(MouseButton::Left) = mouse.kind {
-                    // Dismiss toast on any click
-                    if app_state.status_message.is_some() {
-                        app_state.status_message = None;
-                        app_state.status_message_at = None;
-                    } else {
-                        match app_state.screen {
-                            Screen::List => {
-                                let v = vault.as_ref().expect("vault initialized");
-                                let row = mouse.row as usize;
-                                let col = mouse.column as usize;
-                                let list_start = 2;
-                                let list_end = list_start + v.entries().len() * 2;
-                                let content_width = list_row_content_width(v);
-                                if row >= list_start && row < list_end && col < content_width {
-                                    let entry_row = row - list_start;
-                                    let is_separator = entry_row % 2 == 1;
-                                    if !is_separator {
-                                        let clicked = entry_row / 2;
-                                        app_state.selected_index = clicked;
-                                        copy_selected_code(&mut app_state, v);
+                Event::Mouse(mouse) => {
+                    if let MouseEventKind::Down(MouseButton::Left) = mouse.kind {
+                        // Dismiss toast on any click
+                        if app_state.status_message.is_some() {
+                            app_state.status_message = None;
+                            app_state.status_message_at = None;
+                        } else {
+                            match app_state.screen {
+                                Screen::List => {
+                                    let v = vault.as_ref().expect("vault initialized");
+                                    let row = mouse.row as usize;
+                                    let col = mouse.column as usize;
+                                    let list_start = 2;
+                                    let list_end = list_start + v.entries().len() * 2;
+                                    let content_width = list_row_content_width(v);
+                                    if row >= list_start && row < list_end && col < content_width {
+                                        let entry_row = row - list_start;
+                                        let is_separator = entry_row % 2 == 1;
+                                        if !is_separator {
+                                            let clicked = entry_row / 2;
+                                            app_state.selected_index = clicked;
+                                            copy_selected_code(&mut app_state, v);
+                                        }
                                     }
                                 }
+                                Screen::Fullscreen => {
+                                    app_state.screen = Screen::List;
+                                }
+                                Screen::OtpDetail => {
+                                    app_state.reset_detail_reveal();
+                                    app_state.screen = Screen::List;
+                                }
+                                Screen::Export => {
+                                    app_state.screen = Screen::List;
+                                }
+                                _ => {}
                             }
-                            Screen::Fullscreen => {
-                                app_state.screen = Screen::List;
-                            }
-                            Screen::OtpDetail => {
-                                app_state.reset_detail_reveal();
-                                app_state.screen = Screen::List;
-                            }
-                            Screen::Export => {
-                                app_state.screen = Screen::List;
-                            }
-                            _ => {}
                         }
                     }
                 }
-              }
-              Event::Key(key) => {
-                if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
-                    return Ok(());
-                }
-
-                match app_state.screen {
-                    Screen::Unlock => {
-                        handle_unlock_key(key.code, &mut app_state, &mut vault, &path)
+                Event::Key(key) => {
+                    if key.modifiers.contains(KeyModifiers::CONTROL)
+                        && key.code == KeyCode::Char('c')
+                    {
+                        return Ok(());
                     }
-                    Screen::List => {
-                        if handle_list_key(
+
+                    match app_state.screen {
+                        Screen::Unlock => {
+                            handle_unlock_key(key.code, &mut app_state, &mut vault, &path)
+                        }
+                        Screen::List => {
+                            if handle_list_key(
+                                key.code,
+                                &mut app_state,
+                                vault
+                                    .as_mut()
+                                    .expect("vault must be initialized after unlock"),
+                            )? {
+                                return Ok(());
+                            }
+                        }
+                        Screen::Fullscreen => handle_fullscreen_key(
+                            key.code,
+                            &mut app_state,
+                            vault
+                                .as_ref()
+                                .expect("vault must be initialized after unlock"),
+                        ),
+                        Screen::AddForm => handle_add_form_key(
                             key.code,
                             &mut app_state,
                             vault
                                 .as_mut()
                                 .expect("vault must be initialized after unlock"),
-                        )? {
-                            return Ok(());
+                            &path,
+                        )?,
+                        Screen::AddName => handle_add_name_key(
+                            key.code,
+                            &mut app_state,
+                            vault
+                                .as_mut()
+                                .expect("vault must be initialized after unlock"),
+                            &path,
+                        )?,
+                        Screen::FilePicker => handle_file_picker_key(
+                            key.code,
+                            &mut app_state,
+                            vault
+                                .as_mut()
+                                .expect("vault must be initialized after unlock"),
+                            &path,
+                        )?,
+                        Screen::OtpDetail => handle_otp_detail_key(
+                            key.code,
+                            &mut app_state,
+                            vault
+                                .as_ref()
+                                .expect("vault must be initialized after unlock"),
+                        ),
+                        Screen::Export => handle_export_key(
+                            key.code,
+                            &mut app_state,
+                            vault
+                                .as_ref()
+                                .expect("vault must be initialized after unlock"),
+                        )?,
+                        Screen::ExportQr => {
+                            if key.code == KeyCode::Esc {
+                                app_state.screen = Screen::Export;
+                            }
                         }
+                        Screen::DeleteConfirm => handle_delete_confirm_key(
+                            key.code,
+                            &mut app_state,
+                            vault
+                                .as_mut()
+                                .expect("vault must be initialized after unlock"),
+                            &path,
+                        )?,
+                        Screen::ScanningQr => {} // inputs blocked while scanning
                     }
-                    Screen::Fullscreen => handle_fullscreen_key(
-                        key.code,
-                        &mut app_state,
-                        vault
-                            .as_ref()
-                            .expect("vault must be initialized after unlock"),
-                    ),
-                    Screen::AddForm => handle_add_form_key(
-                        key.code,
-                        &mut app_state,
-                        vault.as_mut().expect("vault must be initialized after unlock"),
-                        &path,
-                    )?,
-                    Screen::AddName => handle_add_name_key(
-                        key.code,
-                        &mut app_state,
-                        vault
-                            .as_mut()
-                            .expect("vault must be initialized after unlock"),
-                        &path,
-                    )?,
-                    Screen::FilePicker => handle_file_picker_key(
-                        key.code,
-                        &mut app_state,
-                        vault.as_mut().expect("vault must be initialized after unlock"),
-                        &path,
-                    )?,
-                    Screen::OtpDetail => handle_otp_detail_key(
-                        key.code,
-                        &mut app_state,
-                        vault.as_ref().expect("vault must be initialized after unlock"),
-                    ),
-                    Screen::Export => handle_export_key(
-                        key.code,
-                        &mut app_state,
-                        vault.as_ref().expect("vault must be initialized after unlock"),
-                    )?,
-                    Screen::ExportQr => {
-                        if key.code == KeyCode::Esc {
-                            app_state.screen = Screen::Export;
-                        }
-                    }
-                    Screen::DeleteConfirm => handle_delete_confirm_key(
-                        key.code,
-                        &mut app_state,
-                        vault
-                            .as_mut()
-                            .expect("vault must be initialized after unlock"),
-                        &path,
-                    )?,
-                    Screen::ScanningQr => {} // inputs blocked while scanning
                 }
-              }
-              _ => {}
+                _ => {}
             }
         }
     }
@@ -337,7 +366,9 @@ fn handle_unlock_key(key: KeyCode, state: &mut AppState, vault: &mut Option<Vaul
         // Second step: confirm passphrase
         match key {
             KeyCode::Char(c) => state.passphrase_confirm.push(c),
-            KeyCode::Backspace => { state.passphrase_confirm.pop(); }
+            KeyCode::Backspace => {
+                state.passphrase_confirm.pop();
+            }
             KeyCode::Esc => {
                 state.unlock_confirming = false;
                 state.passphrase_confirm = Zeroizing::new(String::new());
@@ -358,7 +389,8 @@ fn handle_unlock_key(key: KeyCode, state: &mut AppState, vault: &mut Option<Vaul
                             } else {
                                 Screen::List
                             };
-                            let pass_bytes = Zeroizing::new(state.passphrase_input.as_bytes().to_vec());
+                            let pass_bytes =
+                                Zeroizing::new(state.passphrase_input.as_bytes().to_vec());
                             state.vault_key_cache = Some(pass_bytes);
                             state.passphrase_input.clear();
                             state.passphrase_confirm = Zeroizing::new(String::new());
@@ -383,7 +415,9 @@ fn handle_unlock_key(key: KeyCode, state: &mut AppState, vault: &mut Option<Vaul
 
     match key {
         KeyCode::Char(c) => state.passphrase_input.push(c),
-        KeyCode::Backspace => { state.passphrase_input.pop(); }
+        KeyCode::Backspace => {
+            state.passphrase_input.pop();
+        }
         KeyCode::Enter => {
             if state.is_new_vault {
                 // First-time: move to confirmation step
@@ -438,7 +472,9 @@ fn handle_list_key(
             state.selected_index -= 1;
         }
         KeyCode::Up | KeyCode::Char('k') if !accumulating => {}
-        KeyCode::Down | KeyCode::Char('j') if !accumulating && len > 0 && state.selected_index < len - 1 => {
+        KeyCode::Down | KeyCode::Char('j')
+            if !accumulating && len > 0 && state.selected_index < len - 1 =>
+        {
             state.selected_index += 1;
         }
         KeyCode::Down | KeyCode::Char('j') if !accumulating => {}
@@ -480,13 +516,14 @@ fn handle_list_key(
             state.add_secret_input.push(c);
             let raw = state.add_secret_input.trim().to_string();
             let unescaped = raw.replace("\\ ", " ");
-            if let Some(fp) = [unescaped.as_str(), raw.as_str()]
-                .iter()
-                .find_map(|s| {
-                    let p = std::path::PathBuf::from(s);
-                    if p.is_file() { Some(p) } else { None }
-                })
-            {
+            if let Some(fp) = [unescaped.as_str(), raw.as_str()].iter().find_map(|s| {
+                let p = std::path::PathBuf::from(s);
+                if p.is_file() {
+                    Some(p)
+                } else {
+                    None
+                }
+            }) {
                 state.pending_scan_path = Some(fp);
             }
         }
@@ -515,12 +552,7 @@ fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
     }
 }
 
-fn try_import_migration(
-    state: &mut AppState,
-    uri: &str,
-    vault: &mut Vault,
-    path: &Path,
-) {
+fn try_import_migration(state: &mut AppState, uri: &str, vault: &mut Vault, path: &Path) {
     // Always close any modal and return to List, success or failure.
     state.clear_add_form();
     state.fp_query.clear();
@@ -538,6 +570,7 @@ fn try_import_migration(
                     (None, None) => format!("imported-{}", vault.entries().len() + 1),
                 };
                 vault.add_entry(VaultEntry {
+                    id: String::new(),
                     name,
                     secret: otp.secret,
                     created_at: today.clone(),
@@ -600,13 +633,14 @@ fn handle_add_form_key(
             state.add_secret_input.push(c);
             let raw = state.add_secret_input.trim().to_string();
             let unescaped = raw.replace("\\ ", " ");
-            if let Some(fp) = [unescaped.as_str(), raw.as_str()]
-                .iter()
-                .find_map(|s| {
-                    let p = std::path::PathBuf::from(s);
-                    if p.is_file() { Some(p) } else { None }
-                })
-            {
+            if let Some(fp) = [unescaped.as_str(), raw.as_str()].iter().find_map(|s| {
+                let p = std::path::PathBuf::from(s);
+                if p.is_file() {
+                    Some(p)
+                } else {
+                    None
+                }
+            }) {
                 state.pending_scan_path = Some(fp);
                 state.screen = Screen::ScanningQr;
             }
@@ -680,7 +714,8 @@ fn handle_delete_confirm_key(
 ) -> Result<(), Box<dyn std::error::Error>> {
     match key {
         KeyCode::Char('y') | KeyCode::Char('Y') => {
-            state.pending_vault_action = Some(state::PendingVaultAction::DeleteEntry(state.selected_index));
+            state.pending_vault_action =
+                Some(state::PendingVaultAction::DeleteEntry(state.selected_index));
             state.status_message = Some("Saving…".to_string());
             state.status_message_at = None; // don't auto-dismiss until save completes
             state.screen = Screen::List;
@@ -725,9 +760,12 @@ fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
                 state.detail_passphrase.clear();
             }
             KeyCode::Char(c) => state.detail_passphrase.push(c),
-            KeyCode::Backspace => { state.detail_passphrase.pop(); }
+            KeyCode::Backspace => {
+                state.detail_passphrase.pop();
+            }
             KeyCode::Enter => {
-                let correct = state.vault_key_cache
+                let correct = state
+                    .vault_key_cache
                     .as_ref()
                     .and_then(|k| std::str::from_utf8(k).ok())
                     .map(|k| k == state.detail_passphrase.as_str())
@@ -960,16 +998,28 @@ fn lock_screen(state: &mut AppState) {
 
 fn list_row_content_width(vault: &Vault) -> usize {
     let entries = vault.entries();
-    let max_label_w = entries.iter().map(|e| {
-        if let Some(pos) = e.name.find(':') {
-            let issuer = &e.name[..pos];
-            let account = &e.name[pos + 1..];
-            if account.is_empty() { e.name.chars().count() } else { issuer.chars().count() + 3 + account.chars().count() }
-        } else {
-            e.name.chars().count()
-        }
-    }).max().unwrap_or(0);
-    let max_code_w: usize = entries.iter().map(|e| if e.digits == 8 { 9usize } else { 7 }).max().unwrap_or(7);
+    let max_label_w = entries
+        .iter()
+        .map(|e| {
+            if let Some(pos) = e.name.find(':') {
+                let issuer = &e.name[..pos];
+                let account = &e.name[pos + 1..];
+                if account.is_empty() {
+                    e.name.chars().count()
+                } else {
+                    issuer.chars().count() + 3 + account.chars().count()
+                }
+            } else {
+                e.name.chars().count()
+            }
+        })
+        .max()
+        .unwrap_or(0);
+    let max_code_w: usize = entries
+        .iter()
+        .map(|e| if e.digits == 8 { 9usize } else { 7 })
+        .max()
+        .unwrap_or(7);
     const BAR_LEN: usize = 20;
     // cursor(2) + label(max_label_w) + gap(2) + code(max_code_w) + bar(1+BAR_LEN) + space(1) + secs("16s"=3)
     2 + max_label_w + 2 + max_code_w + 1 + BAR_LEN + 1 + 3
@@ -981,7 +1031,8 @@ fn save_vault(state: &mut AppState, vault: &Vault, path: &Path) -> bool {
         Some(k) => k.clone(),
         None => {
             // No key in cache — vault-disk divergence would happen silently; refuse loudly.
-            state.status_message = Some("SAVE ERROR: vault is locked — changes not persisted!".to_string());
+            state.status_message =
+                Some("SAVE ERROR: vault is locked — changes not persisted!".to_string());
             state.status_message_at = None; // persistent, never auto-dismiss
             return false;
         }

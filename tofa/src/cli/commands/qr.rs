@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 #[derive(Args)]
 pub struct QrArgs {
-    /// Account name (partial, case-insensitive)
+    /// Entry id or name (partial match)
     pub name: Option<String>,
     /// Export all accounts as a migration QR
     #[arg(long, conflicts_with = "name")]
@@ -18,8 +18,9 @@ fn percent_encode(s: &str) -> String {
     let mut out = String::new();
     for byte in s.bytes() {
         match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9'
-            | b'-' | b'_' | b'.' | b'~' => out.push(byte as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(byte as char)
+            }
             b => out.push_str(&format!("%{b:02X}")),
         }
     }

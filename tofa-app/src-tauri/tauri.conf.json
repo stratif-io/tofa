@@ -1,5 +1,5 @@
 {
-  "productName": "tofa",
+  "productName": "Tofa",
   "version": "0.1.0",
   "identifier": "com.cabichahine.tofa",
   "build": {
@@ -18,8 +18,7 @@
     "icon": ["icons/icon.png", "icons/icon.icns"],
     "resources": ["icons/tray_icon.png"],
     "macOS": {
-      "infoPlist": "Info.plist",
-      "activationPolicy": "accessory"
+      "infoPlist": "Info.plist"
     }
   }
 }

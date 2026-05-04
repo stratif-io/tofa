@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 #[derive(Args)]
 pub struct RenameArgs {
-    pub name: String,
+    pub id: String,
     pub new_name: String,
 }
 
@@ -19,7 +19,7 @@ pub fn run(args: RenameArgs, vault_path: PathBuf) -> CliResult {
         return Err(format!("\"{}\" already exists.", args.new_name).into());
     }
 
-    let (index, entry) = find_entry(&vault, &args.name)?;
+    let (index, entry) = find_entry(&vault, &args.id)?;
     let old_name = entry.name.clone();
     vault.rename_entry(index, args.new_name.clone());
     vault.save(&vault_path, &pass)?;

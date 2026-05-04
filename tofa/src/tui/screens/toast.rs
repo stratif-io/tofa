@@ -1,4 +1,4 @@
-use crate::tui::{state::AppState, theme};
+use crate::tui::state::AppState;
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Modifier, Style},
@@ -6,15 +6,18 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Paragraph},
     Frame,
 };
+use tofa_theme::palette as theme;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
-    let Some(msg) = &state.status_message else { return };
+    let Some(msg) = &state.status_message else {
+        return;
+    };
 
     let is_copy = msg.contains("Copied") || msg.contains("copied");
     let (border_col, text_col) = if is_copy {
-        (theme::ACCENT, theme::ACCENT)
+        (theme::BRAND, theme::BRAND)
     } else {
-        (theme::URGENT, theme::URGENT)
+        (theme::DANGER, theme::DANGER)
     };
     let label = if is_copy {
         format!("  ✓  {}  ", msg)

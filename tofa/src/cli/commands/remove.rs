@@ -5,13 +5,13 @@ use std::path::PathBuf;
 
 #[derive(Args)]
 pub struct RemoveArgs {
-    pub name: String,
+    pub id: String,
 }
 
 pub fn run(args: RemoveArgs, vault_path: PathBuf) -> CliResult {
     let pass = read_passphrase("Passphrase: ")?;
     let mut vault = open_vault(&vault_path, &pass)?;
-    let (index, entry) = find_entry(&vault, &args.name)?;
+    let (index, entry) = find_entry(&vault, &args.id)?;
     let full_name = entry.name.clone();
 
     eprint!("Remove \"{full_name}\"? [y/N] ");

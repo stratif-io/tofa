@@ -5,7 +5,7 @@ use tempfile::TempDir;
 fn tofa(tmp: &TempDir) -> Command {
     let mut cmd = Command::cargo_bin("tofa").unwrap();
     cmd.env("TOFA_PASSPHRASE", "testpass")
-       .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap());
+        .env("TOFA_VAULT", tmp.path().join("vault.enc").to_str().unwrap());
     cmd
 }
 
@@ -20,7 +20,10 @@ fn init_creates_vault() {
 fn init_fails_if_vault_exists() {
     let tmp = TempDir::new().unwrap();
     tofa(&tmp).arg("init").assert().success();
-    tofa(&tmp).arg("init").assert().failure()
+    tofa(&tmp)
+        .arg("init")
+        .assert()
+        .failure()
         .stderr(contains("already exists"));
 }
 
@@ -28,10 +31,12 @@ fn init_fails_if_vault_exists() {
 fn init_creates_parent_dirs() {
     let tmp = TempDir::new().unwrap();
     let vault = tmp.path().join("a").join("b").join("vault.enc");
-    Command::cargo_bin("tofa").unwrap()
+    Command::cargo_bin("tofa")
+        .unwrap()
         .env("TOFA_PASSPHRASE", "testpass")
         .env("TOFA_VAULT", vault.to_str().unwrap())
         .arg("init")
-        .assert().success();
+        .assert()
+        .success();
     assert!(vault.exists());
 }

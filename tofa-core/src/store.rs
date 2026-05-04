@@ -17,6 +17,9 @@ pub enum StoreError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VaultEntry {
+    /// Stable unique identifier: `{name}@{unix_ts}` or `{name}@{unix_ts}#{n}` on collision.
+    #[serde(default)]
+    pub id: String,
     pub name: String,
     pub secret: String,
     pub created_at: String,
@@ -28,9 +31,15 @@ pub struct VaultEntry {
     pub algorithm: String,
 }
 
-fn default_period() -> u32 { 30 }
-fn default_digits() -> u8 { 6 }
-fn default_algorithm() -> String { "SHA1".to_string() }
+fn default_period() -> u32 {
+    30
+}
+fn default_digits() -> u8 {
+    6
+}
+fn default_algorithm() -> String {
+    "SHA1".to_string()
+}
 
 impl Drop for VaultEntry {
     fn drop(&mut self) {
@@ -40,7 +49,15 @@ impl Drop for VaultEntry {
 
 impl VaultEntry {
     pub fn new(name: String, secret: String, created_at: String) -> Self {
-        Self { name, secret, created_at, period: 30, digits: 6, algorithm: "SHA1".to_string() }
+        Self {
+            id: String::new(),
+            name,
+            secret,
+            created_at,
+            period: 30,
+            digits: 6,
+            algorithm: "SHA1".to_string(),
+        }
     }
 }
 
@@ -103,8 +120,29 @@ impl Vault {
         Ok(())
     }
 
-    pub fn add_entry(&mut self, entry: VaultEntry) {
+    pub fn add_entry(&mut self, mut entry: VaultEntry) {
+        entry.id = self.generate_id(&entry.name);
         self.data.entries.push(entry);
+    }
+
+    fn generate_id(&self, name: &str) -> String {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let base = format!("{}@{}", name, ts);
+        if !self.data.entries.iter().any(|e| e.id == base) {
+            return base;
+        }
+        let mut n = 2u32;
+        loop {
+            let candidate = format!("{}#{}", base, n);
+            if !self.data.entries.iter().any(|e| e.id == candidate) {
+                return candidate;
+            }
+            n += 1;
+        }
     }
 
     pub fn remove_entry(&mut self, index: usize) {

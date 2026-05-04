@@ -1,5 +1,19 @@
-/* global OTP */
+/* global OTP, IssuerIcons */
 'use strict';
+
+// Render the icon HTML for an entry: brand SVG when we have one, otherwise
+// the legacy initial-letter circle. Returns a string (innerHTML-friendly).
+function entryIconHTML(entry) {
+  const issuer = entry.issuer || entry.account || '';
+  const icon = (window.IssuerIcons && window.IssuerIcons.iconForIssuer)
+    ? window.IssuerIcons.iconForIssuer(issuer)
+    : null;
+  if (icon) {
+    return `<svg class="account-icon-svg" viewBox="0 0 24 24" style="color:${icon.color}" aria-hidden="true"><use href="#${icon.id}"/></svg>`;
+  }
+  const initial = (issuer || '?')[0].toUpperCase();
+  return `<div class="account-icon">${initial}</div>`;
+}
 
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
@@ -65,6 +79,32 @@ function loaderDone() {
   setTimeout(() => { $('loader-bar-inner').style.width = '0%'; }, 300);
 }
 
+// ── Popover pinning ────────────────────────────────────────────────────────
+// The Tauri popover hides on focus loss by default. For operations that
+// legitimately steal focus (file picker, screen scan, camera scan, native
+// folder dialog), pin the popover open while the operation runs so the
+// user doesn't lose their place.
+async function withPopoverPinned(fn) {
+  try { await invoke('set_popover_pinned', { pinned: true }); } catch (_) {}
+  try {
+    return await fn();
+  } finally {
+    try { await invoke('set_popover_pinned', { pinned: false }); } catch (_) {}
+  }
+}
+
+// Blocking overlay — high-visibility feedback for operations long enough
+// that the user needs to know something is happening (unlock, scan,
+// import). The thin loader bar is a secondary indicator.
+function showBlocking(message) {
+  const msg = $('blocking-overlay-message');
+  if (msg) msg.textContent = message;
+  $('blocking-overlay').classList.add('visible');
+}
+function hideBlocking() {
+  $('blocking-overlay').classList.remove('visible');
+}
+
 // ── Toast ──────────────────────────────────────────────────────────────────
 let toastTimer;
 function toast(msg, error = false) {
@@ -112,11 +152,10 @@ function applyFilter(query) {
     const item = document.createElement('div');
     item.className = 'account-item';
     item.dataset.name = entry.name;
-    const initial = (entry.issuer || entry.account || '?')[0].toUpperCase();
     const secs = entry.seconds_left ?? OTP.secondsRemaining(entry.period);
     const timerColor = secs < 5 ? 'var(--danger)' : secs < 10 ? 'var(--warning)' : 'var(--brand)';
     item.innerHTML = `
-      <div class="account-icon">${initial}</div>
+      ${entryIconHTML(entry)}
       <div style="flex:1;min-width:0;overflow:hidden;">
         <div class="account-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${entry.issuer || entry.name}</div>
         <div class="account-login" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${entry.account}</div>
@@ -213,9 +252,10 @@ function openDetail(name) {
   const entry = entries.find(e => e.name === name);
   if (!entry) return;
   selectedName = name;
-  const initial = (entry.issuer || entry.account || '?')[0].toUpperCase();
   $('detail-title').textContent = entry.issuer || entry.name;
-  $('detail-icon').textContent = initial;
+  // Replace the detail icon container with our themed icon (SVG or initial).
+  $('detail-icon').outerHTML =
+    `<div id="detail-icon" class="account-icon-detail">${entryIconHTML(entry)}</div>`;
   updateDetailCode(entry);
   renderDetailMeta(entry);
   $('reveal-overlay').style.display = 'none';
@@ -322,7 +362,7 @@ async function openSettings() {
 
   $('btn-browse-vault').addEventListener('click', async () => {
     try {
-      const picked = await invoke('pick_vault_folder');
+      const picked = await withPopoverPinned(() => invoke('pick_vault_folder'));
       if (picked) $('settings-vault-path').value = picked;
     } catch (_) {}
   });
@@ -377,15 +417,16 @@ function bindAddListeners() {
         await new Promise(r => setTimeout(r, 1000));
       }
       loaderStart();
+      showBlocking('Scanning screen for QR codes…');
       try {
-        const added = await invoke('scan_screen');
+        const added = await withPopoverPinned(() => invoke('scan_screen'));
         const data = await invoke('get_entries');
         renderList(data);
         showView('view-list');
         startTick();
         toast(`Added: ${added.join(', ')}`);
       } catch (err) { toast(String(err), true); }
-      finally { loaderDone(); }
+      finally { loaderDone(); hideBlocking(); }
     });
   }
 
@@ -394,40 +435,52 @@ function bindAddListeners() {
     btnCam.addEventListener('click', async () => {
       toast('Opening camera in browser…');
       loaderStart();
+      showBlocking('Waiting for camera scan…');
       try {
-        const added = await invoke('scan_camera');
+        const added = await withPopoverPinned(() => invoke('scan_camera'));
         const data = await invoke('get_entries');
         renderList(data);
         showView('view-list');
         startTick();
         toast(`Added: ${added.join(', ')}`);
       } catch (err) { toast(String(err), true); }
-      finally { loaderDone(); }
+      finally { loaderDone(); hideBlocking(); }
     });
   }
 
   const btnFile = $('btn-open-file');
   if (btnFile) {
     btnFile.addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*,.json,.txt,.zip';
-      input.onchange = async () => {
-        const file = input.files[0];
-        if (!file) return;
-        const buf = await file.arrayBuffer();
-        const b64 = bufToBase64(buf);
-        loaderStart();
-        try {
-          const added = await invoke('import_file', { filename: file.name, b64 });
-          const data = await invoke('get_entries');
-          renderList(data);
-          showView('view-list');
-          toast(`Added: ${added.join(', ')}`);
-        } catch (err) { toast(String(err), true); }
-        finally { loaderDone(); }
-      };
-      input.click();
+      withPopoverPinned(() => new Promise(resolve => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,.json,.txt,.zip';
+        input.onchange = async () => {
+          const file = input.files[0];
+          if (!file) { resolve(); return; }
+          const buf = await file.arrayBuffer();
+          const b64 = bufToBase64(buf);
+          loaderStart();
+          showBlocking(`Importing ${file.name}…`);
+          try {
+            const added = await invoke('import_file', { filename: file.name, b64 });
+            const data = await invoke('get_entries');
+            renderList(data);
+            showView('view-list');
+            toast(`Added: ${added.join(', ')}`);
+          } catch (err) { toast(String(err), true); }
+          finally { loaderDone(); hideBlocking(); resolve(); }
+        };
+        // Cancelling the file picker does not fire onchange; resolve on focus
+        // return so the popover unpins reliably.
+        const onFocus = () => {
+          window.removeEventListener('focus', onFocus);
+          // Give the change handler a tick to run if a file was picked.
+          setTimeout(() => resolve(), 300);
+        };
+        window.addEventListener('focus', onFocus);
+        input.click();
+      }));
     });
   }
 
@@ -446,8 +499,11 @@ $('form-unlock').addEventListener('submit', async e => {
   loaderStart();
   const closeEyeAfterDelay = () => setLogoEye(false);
 
+  let vaultExists;
+  try { vaultExists = await invoke('vault_exists'); } catch (_) { vaultExists = true; }
+  showBlocking(vaultExists ? 'Decrypting vault…' : 'Creating vault…');
+
   try {
-    const vaultExists = await invoke('vault_exists');
     let data;
     if (vaultExists) {
       data = await invoke('unlock', { passphrase });
@@ -458,6 +514,7 @@ $('form-unlock').addEventListener('submit', async e => {
         errEl.style.visibility = 'visible';
         loaderDone();
         closeEyeAfterDelay();
+        hideBlocking();
         return;
       }
       data = await invoke('create_vault', { passphrase });
@@ -471,6 +528,7 @@ $('form-unlock').addEventListener('submit', async e => {
     closeEyeAfterDelay(); // wrong passphrase — close eye after delay
   } finally {
     loaderDone();
+    hideBlocking();
     $('input-passphrase').value = '';
     $('input-passphrase-confirm').value = '';
   }
@@ -512,8 +570,7 @@ $('btn-detail-copy').addEventListener('click', async () => {
 
 $('btn-detail-del').addEventListener('click', async () => {
   if (!selectedName) return;
-  const overlay = $('blocking-overlay');
-  overlay.style.display = 'flex';
+  showBlocking('Deleting…');
   loaderStart();
   try {
     await invoke('delete_entry', { name: selectedName });
@@ -524,7 +581,7 @@ $('btn-detail-del').addEventListener('click', async () => {
     toast('Deleted');
   } catch (err) { toast(String(err), true); }
   finally {
-    overlay.style.display = 'none';
+    hideBlocking();
     loaderDone();
   }
 });

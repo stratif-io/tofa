@@ -4297,21 +4297,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tauri-plugin-positioner"
-version = "2.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02dcd56dd4797bd4d6c4c658daed40ce563176f92df90fbd2c904ce145de17ef"
-dependencies = [
- "log",
- "serde",
- "serde_json",
- "serde_repr",
- "tauri",
- "tauri-plugin",
- "thiserror 2.0.18",
-]
-
-[[package]]
 name = "tauri-runtime"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4561,20 +4546,20 @@ dependencies = [
 
 [[package]]
 name = "tofa-app"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
  "dirs 5.0.1",
  "objc2",
  "objc2-app-kit",
+ "objc2-foundation",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-dialog",
- "tauri-plugin-positioner",
  "tofa-core",
  "tokio",
  "zeroize",

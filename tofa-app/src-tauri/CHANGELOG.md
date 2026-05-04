@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.4.0...tofa-macos-v0.4.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* **app:** popover follows tray to secondary screens, stays open durin… ([9d460d3](https://github.com/stratif-io/tofa/commit/9d460d3df9fb01c4bb4f64774ef36c0ff971876a))
+* **app:** popover follows tray to secondary screens, stays open during dialogs ([fee84ad](https://github.com/stratif-io/tofa/commit/fee84ad41b9e9d271cbdad27b9edef57744958c2))
+* **app:** set popover position via NSWindow.setFrameTopLeftPoint directly ([4b44998](https://github.com/stratif-io/tofa/commit/4b449987372d6298f91863362d172575d7e23c1f))
+* **app:** use tray click position (not enum-wrapped rect) to find target monitor ([4e58713](https://github.com/stratif-io/tofa/commit/4e587139e3efb31e0a09b7d3af442dc8b9f5d3b7))
+* **app:** use tray click position to find target monitor ([cb45998](https://github.com/stratif-io/tofa/commit/cb45998a51fa1d60fdd8cb2d50c009ac9dfc2b72))
+* **ci:** align DMG icon positions with background platforms ([a0b047c](https://github.com/stratif-io/tofa/commit/a0b047cac5f93f465383409951384f05acfe4c15))
+
 ## [0.4.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.3.0...tofa-macos-v0.4.0) (2026-05-04)
 
 

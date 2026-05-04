@@ -26,4 +26,26 @@
 
   <!-- LAYER: dot grid -->
   <rect width="1320" height="800" fill="url(#dotgrid)"/>
+
+  <!-- LAYER: OTP digit motif -->
+  <g font-family="Menlo, monospace" font-size="44" fill="#7C5CFF" fill-opacity="0.06" text-anchor="middle">
+    <g transform="translate(580, 130)">
+      <text x="0" y="0">3</text>
+      <text x="0" y="56">4</text>
+      <text x="0" y="112">5</text>
+      <text x="0" y="168">6</text>
+    </g>
+    <g transform="translate(660, 102)">
+      <text x="0" y="0">7</text>
+      <text x="0" y="56">8</text>
+      <text x="0" y="112">9</text>
+      <text x="0" y="168">0</text>
+    </g>
+    <g transform="translate(740, 158)">
+      <text x="0" y="0">1</text>
+      <text x="0" y="56">2</text>
+      <text x="0" y="112">3</text>
+      <text x="0" y="168">4</text>
+    </g>
+  </g>
 </svg>

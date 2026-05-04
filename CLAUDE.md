@@ -1,5 +1,9 @@
 # Tofa — Claude Code Guidelines
 
+## Files not to commit
+
+`docs/superpowers/` contains AI planning specs and must never be committed — it is gitignored.
+
 ## Commit messages
 
 All commits must follow **Conventional Commits** (`https://www.conventionalcommits.org`):

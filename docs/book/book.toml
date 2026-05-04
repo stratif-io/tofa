@@ -1,0 +1,15 @@
+[book]
+title = "tofa"
+description = "Offline, encrypted 2FA — CLI documentation"
+authors = ["Carlo Abi Chahine"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "dist"
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/cabichahine/tofa"
+edit-url-template = "https://github.com/cabichahine/tofa/edit/main/docs/book/{path}"

@@ -14,7 +14,7 @@ tofa export [FLAGS]
 
 | Flag | Description |
 |---|---|
-| `--output <PATH>` | Write to a file instead of stdout. |
+| `--output <PATH>` | Write to a file instead of stdout |
 
 <!-- END auto:help -->
 

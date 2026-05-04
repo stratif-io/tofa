@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 #[derive(Args)]
 pub struct ExportArgs {
+    /// Write to a file instead of stdout
     #[arg(long, value_name = "PATH")]
     pub output: Option<PathBuf>,
 }

@@ -215,6 +215,56 @@ pub fn run() {
                 .build(app)?;
 
             tray.on_tray_icon_event(|tray, event| {
+                // DEBUG: dump everything Tauri reports about a tray click so
+                // we can pinpoint multi-monitor coordinate-system issues.
+                // Remove before merging to main.
+                if let TrayIconEvent::Click { position, rect, .. } = &event {
+                    eprintln!(
+                        "[tray] click position = ({:.1}, {:.1})",
+                        position.x, position.y
+                    );
+                    eprintln!("[tray] rect = {:?}", rect);
+                    if let Some(win) = tray.app_handle().get_webview_window("popover") {
+                        let scale = win.scale_factor().unwrap_or(1.0);
+                        eprintln!("[tray] popover.scale_factor = {}", scale);
+                        if let Ok(monitors) = win.available_monitors() {
+                            eprintln!("[tray] available_monitors:");
+                            for (i, m) in monitors.iter().enumerate() {
+                                let p = m.position();
+                                let s = m.size();
+                                eprintln!(
+                                    "  [{}] name={:?} pos=({},{}) size=({}x{}) scale={}",
+                                    i,
+                                    m.name(),
+                                    p.x,
+                                    p.y,
+                                    s.width,
+                                    s.height,
+                                    m.scale_factor()
+                                );
+                            }
+                        }
+                        let cx = position.x as i32;
+                        let cy = position.y as i32;
+                        let monitors = win.available_monitors().unwrap_or_default();
+                        let matched = monitors.iter().enumerate().find(|(_, m)| {
+                            let p = m.position();
+                            let s = m.size();
+                            cx >= p.x
+                                && cx < p.x + s.width as i32
+                                && cy >= p.y
+                                && cy < p.y + s.height as i32
+                        });
+                        match matched {
+                            Some((i, _)) => eprintln!("[tray] matched monitor index = {}", i),
+                            None => eprintln!(
+                                "[tray] NO MONITOR MATCHED click ({},{}) — fallback to primary",
+                                cx, cy
+                            ),
+                        }
+                    }
+                }
+
                 // Capture the click position on every tray event. `position`
                 // is already PhysicalPosition<f64> in absolute screen pixels,
                 // so we don't need to know which monitor the click was on
@@ -235,6 +285,10 @@ pub fn run() {
                             let _ = win.hide();
                         } else {
                             show_popover_under_tray(&win);
+                            // DEBUG: what position did we end up at?
+                            if let Ok(p) = win.outer_position() {
+                                eprintln!("[tray] popover positioned at ({}, {})", p.x, p.y);
+                            }
                         }
                     }
                 }

@@ -184,6 +184,7 @@ pub fn run() {
             commands::add_from_uri,
             commands::delete_entry,
             commands::pick_vault_folder,
+            commands::pick_and_import_file,
             commands::import_file,
         ])
         .setup(|app| {

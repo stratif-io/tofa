@@ -450,37 +450,15 @@ function bindAddListeners() {
 
   const btnFile = $('btn-open-file');
   if (btnFile) {
-    btnFile.addEventListener('click', () => {
-      withPopoverPinned(() => new Promise(resolve => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*,.json,.txt,.zip';
-        input.onchange = async () => {
-          const file = input.files[0];
-          if (!file) { resolve(); return; }
-          const buf = await file.arrayBuffer();
-          const b64 = bufToBase64(buf);
-          loaderStart();
-          showBlocking(`Importing ${file.name}…`);
-          try {
-            const added = await invoke('import_file', { filename: file.name, b64 });
-            const data = await invoke('get_entries');
-            renderList(data);
-            showView('view-list');
-            toast(`Added: ${added.join(', ')}`);
-          } catch (err) { toast(String(err), true); }
-          finally { loaderDone(); hideBlocking(); resolve(); }
-        };
-        // Cancelling the file picker does not fire onchange; resolve on focus
-        // return so the popover unpins reliably.
-        const onFocus = () => {
-          window.removeEventListener('focus', onFocus);
-          // Give the change handler a tick to run if a file was picked.
-          setTimeout(() => resolve(), 300);
-        };
-        window.addEventListener('focus', onFocus);
-        input.click();
-      }));
+    btnFile.addEventListener('click', async () => {
+      try {
+        const added = await withPopoverPinned(() => invoke('pick_and_import_file'));
+        if (added.length === 0) return;
+        const data = await invoke('get_entries');
+        renderList(data);
+        showView('view-list');
+        toast(`Added: ${added.join(', ')}`);
+      } catch (err) { toast(String(err), true); }
     });
   }
 

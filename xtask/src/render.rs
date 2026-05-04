@@ -56,6 +56,16 @@ pub fn replace_block(content: &str, new_inner: &str) -> String {
     out
 }
 
+pub fn scaffold_page(cmd_name: &str, help_block: &str) -> String {
+    format!(
+        "# tofa {cmd_name}\n\n\
+         _Brief intent — fill in._\n\n\
+         <!-- BEGIN auto:help -->\n{help_block}\n<!-- END auto:help -->\n\n\
+         ## Examples\n\n_TBD — fill in._\n\n\
+         ## Notes\n\n_TBD — fill in._\n"
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -140,5 +150,14 @@ mod tests {
         assert!(after.contains("Trailing."));
         // Old inner content is gone
         assert!(!after.contains("\nold\n"));
+    }
+
+    #[test]
+    fn scaffold_page_includes_all_required_sections() {
+        let out = scaffold_page("add", "BLOCK");
+        assert!(out.starts_with("# tofa add\n"));
+        assert!(out.contains("<!-- BEGIN auto:help -->\nBLOCK\n<!-- END auto:help -->"));
+        assert!(out.contains("## Examples"));
+        assert!(out.contains("## Notes"));
     }
 }

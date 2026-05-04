@@ -7,8 +7,7 @@ use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Listener, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow,
-    WebviewWindowBuilder,
+    Emitter, Listener, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
 
 /// If true, the popover does NOT auto-hide on focus loss. JS toggles this
@@ -39,57 +38,114 @@ fn store_tray_click(x: f64, y: f64) {
     TRAY_CLICK_SET.store(true, Ordering::Relaxed);
 }
 
-/// Position the popover horizontally centred under the last tray click,
-/// on the monitor that contains that click. Falls back to centring on
-/// the primary monitor if no click has been captured yet.
-fn position_popover_under_tray(window: &WebviewWindow) {
-    let win_size = window.outer_size().unwrap_or(PhysicalSize::new(320, 480));
+/// Move the popover's NSWindow top-left to the given Cocoa-screen point.
+///
+/// We bypass Tauri's `set_position` because in multi-display setups it
+/// silently no-ops (returns Ok but the window stays put). Calling
+/// `setFrameTopLeftPoint:` on the underlying NSWindow works reliably.
+///
+/// Cocoa screen coordinates: origin at the bottom-left of the *primary*
+/// screen, x right, y UP, units are POINTS (not physical pixels).
+#[cfg(target_os = "macos")]
+fn set_window_top_left_cocoa(win: &WebviewWindow, x_pt: f64, y_pt: f64) {
+    use objc2::rc::Retained;
+    use objc2_app_kit::NSWindow;
+    use objc2_foundation::NSPoint;
 
+    let _ = win.with_webview(move |wv| unsafe {
+        let ns_window = wv.ns_window() as *mut NSWindow;
+        if let Some(window) = Retained::retain(ns_window) {
+            window.setFrameTopLeftPoint(NSPoint::new(x_pt, y_pt));
+        }
+    });
+}
+
+/// Position the popover under the tray icon on whichever monitor contains
+/// the click. Uses NSWindow directly to avoid Tauri's broken multi-display
+/// `set_position`.
+fn position_popover_under_tray(window: &WebviewWindow) {
     if !TRAY_CLICK_SET.load(Ordering::Relaxed) {
         if let Ok(Some(m)) = window.primary_monitor() {
             let mp = m.position();
             let ms = m.size();
             let scale = m.scale_factor();
-            let x = mp.x + (ms.width as i32 - win_size.width as i32) / 2;
-            let y = mp.y + (28.0 * scale) as i32;
-            let _ = window.set_position(PhysicalPosition::new(x, y));
+            let primary_h_pt = ms.height as f64 / scale;
+            // Centre on primary in Cocoa points.
+            let cx_pt = (ms.width as f64 / scale) / 2.0 - 320.0 / 2.0;
+            let cy_pt = primary_h_pt - 28.0; // 28 pt below the menu bar
+            #[cfg(target_os = "macos")]
+            set_window_top_left_cocoa(window, mp.x as f64 + cx_pt, cy_pt);
+            let _ = window;
         }
         return;
     }
 
-    let cx = TRAY_CLICK_X.load(Ordering::Relaxed);
-    let cy = TRAY_CLICK_Y.load(Ordering::Relaxed);
+    // Tauri reports monitor positions and click position in POINTS but
+    // monitor sizes in PHYSICAL PIXELS. Normalise size to points using
+    // each monitor's scale factor before doing bounds arithmetic.
+    let click_x_pt = TRAY_CLICK_X.load(Ordering::Relaxed) as f64;
+    let click_y_pt = TRAY_CLICK_Y.load(Ordering::Relaxed) as f64;
 
-    // Find the monitor containing the click. All values here are in physical
-    // screen pixels (Tauri reports both monitor.position()/size() and
-    // TrayIconEvent::Click.position in physical coords), so no scaling is
-    // needed for the bounds check.
     let monitors = window.available_monitors().unwrap_or_default();
     let monitor = monitors.iter().find(|m| {
         let p = m.position();
         let s = m.size();
-        cx >= p.x && cx < p.x + s.width as i32 && cy >= p.y && cy < p.y + s.height as i32
+        let scale = m.scale_factor();
+        let w_pt = s.width as f64 / scale;
+        let h_pt = s.height as f64 / scale;
+        click_x_pt >= p.x as f64
+            && click_x_pt < p.x as f64 + w_pt
+            && click_y_pt >= p.y as f64
+            && click_y_pt < p.y as f64 + h_pt
     });
+
+    let primary_h_pt = window
+        .primary_monitor()
+        .ok()
+        .flatten()
+        .map(|m| m.size().height as f64 / m.scale_factor())
+        .unwrap_or(0.0);
 
     if let Some(m) = monitor {
         let mp = m.position();
         let ms = m.size();
         let scale = m.scale_factor();
-        // Just below the menu bar. macOS menu bar height is ~28 logical
-        // points; multiply by the monitor's scale factor for physical px.
-        let y = mp.y + (28.0 * scale) as i32;
-        // Centre horizontally on the click x, clamped to monitor bounds.
-        let mut x = cx - win_size.width as i32 / 2;
-        let max_x = mp.x + ms.width as i32 - win_size.width as i32;
-        x = x.clamp(mp.x, max_x);
-        eprintln!(
-            "[pos] target=({},{}) win_size=({},{}) monitor.pos=({},{}) scale={}",
-            x, y, win_size.width, win_size.height, mp.x, mp.y, scale
-        );
-        match window.set_position(PhysicalPosition::new(x, y)) {
-            Ok(()) => eprintln!("[pos] set_position ok"),
-            Err(e) => eprintln!("[pos] set_position ERR: {:?}", e),
+        let mw_pt = ms.width as f64 / scale;
+        // 28 points below the top of the screen — macOS menu bar height.
+        let target_top_y_pt = mp.y as f64 + 28.0;
+        // Centre horizontally on the click, clamped to the monitor's bounds.
+        let popover_w_pt = 320.0;
+        let mut target_x_pt = click_x_pt - popover_w_pt / 2.0;
+        let max_x_pt = mp.x as f64 + mw_pt - popover_w_pt;
+        if target_x_pt < mp.x as f64 {
+            target_x_pt = mp.x as f64;
         }
+        if target_x_pt > max_x_pt {
+            target_x_pt = max_x_pt;
+        }
+
+        // Convert Tauri (top-left, y-down, points) → Cocoa (bottom-left of
+        // primary, y-up, points). Cocoa's y for the window's TOP edge is
+        // primary_height_pt − tauri_top_y_pt.
+        let cocoa_top_y_pt = primary_h_pt - target_top_y_pt;
+
+        eprintln!(
+            "[pos] click=({:.0},{:.0}) target_topleft_tauri=({:.0},{:.0}) → cocoa=({:.0},{:.0}) primary_h={:.0}",
+            click_x_pt, click_y_pt, target_x_pt, target_top_y_pt, target_x_pt, cocoa_top_y_pt, primary_h_pt
+        );
+
+        #[cfg(target_os = "macos")]
+        set_window_top_left_cocoa(window, target_x_pt, cocoa_top_y_pt);
+        // Keep the function buildable on non-macOS platforms even though
+        // we only ship the menu-bar app on macOS.
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = window.set_position(PhysicalPosition::new(
+                (target_x_pt * scale) as i32,
+                (target_top_y_pt * scale) as i32,
+            ));
+        }
+
         if let Ok(p) = window.outer_position() {
             eprintln!("[pos] outer_position after set = ({}, {})", p.x, p.y);
         }
@@ -97,15 +153,13 @@ fn position_popover_under_tray(window: &WebviewWindow) {
 }
 
 /// Show the popover under the tray on the right monitor, then focus it.
-///
-/// On macOS, calling `set_position` on a hidden NSWindow can be silently
-/// ignored or overridden when the window is shown. Calling it BOTH before
-/// and after `show()` is the safest way to make the new position stick.
 fn show_popover_under_tray(win: &WebviewWindow) {
     position_popover_under_tray(win);
     let _ = win.show();
-    position_popover_under_tray(win);
     let _ = win.set_focus();
+    // Re-position once visible — some macOS state transitions can shift
+    // the frame on show.
+    position_popover_under_tray(win);
 }
 
 pub fn run() {

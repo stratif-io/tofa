@@ -6,17 +6,26 @@ on:
   pull_request:
 
 jobs:
-  # Full workspace check on macOS (Tauri app needs webkit2gtk / AppKit)
+  # fmt is platform-independent — run once on Linux (fast)
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --check --all
+
+  # Full workspace check on macOS (Tauri app needs AppKit)
   check-macos:
     name: Check (macOS)
     runs-on: macos-latest
+    needs: fmt
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-
-      - name: fmt
-        run: cargo fmt --check --all
 
       - name: clippy
         run: cargo clippy --workspace -- -D warnings
@@ -28,13 +37,11 @@ jobs:
   check-linux:
     name: Check (Linux, CLI + core)
     runs-on: ubuntu-latest
+    needs: fmt
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-
-      - name: fmt
-        run: cargo fmt --check --all
 
       - name: clippy
         run: cargo clippy -p tofa -p tofa-core -- -D warnings

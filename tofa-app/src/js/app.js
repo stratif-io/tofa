@@ -79,6 +79,18 @@ function loaderDone() {
   setTimeout(() => { $('loader-bar-inner').style.width = '0%'; }, 300);
 }
 
+// Blocking overlay — high-visibility feedback for operations long enough
+// that the user needs to know something is happening (unlock, scan,
+// import). The thin loader bar is a secondary indicator.
+function showBlocking(message) {
+  const msg = $('blocking-overlay-message');
+  if (msg) msg.textContent = message;
+  $('blocking-overlay').classList.add('visible');
+}
+function hideBlocking() {
+  $('blocking-overlay').classList.remove('visible');
+}
+
 // ── Toast ──────────────────────────────────────────────────────────────────
 let toastTimer;
 function toast(msg, error = false) {
@@ -391,6 +403,7 @@ function bindAddListeners() {
         await new Promise(r => setTimeout(r, 1000));
       }
       loaderStart();
+      showBlocking('Scanning screen for QR codes…');
       try {
         const added = await invoke('scan_screen');
         const data = await invoke('get_entries');
@@ -399,7 +412,7 @@ function bindAddListeners() {
         startTick();
         toast(`Added: ${added.join(', ')}`);
       } catch (err) { toast(String(err), true); }
-      finally { loaderDone(); }
+      finally { loaderDone(); hideBlocking(); }
     });
   }
 
@@ -408,6 +421,7 @@ function bindAddListeners() {
     btnCam.addEventListener('click', async () => {
       toast('Opening camera in browser…');
       loaderStart();
+      showBlocking('Waiting for camera scan…');
       try {
         const added = await invoke('scan_camera');
         const data = await invoke('get_entries');
@@ -416,7 +430,7 @@ function bindAddListeners() {
         startTick();
         toast(`Added: ${added.join(', ')}`);
       } catch (err) { toast(String(err), true); }
-      finally { loaderDone(); }
+      finally { loaderDone(); hideBlocking(); }
     });
   }
 
@@ -432,6 +446,7 @@ function bindAddListeners() {
         const buf = await file.arrayBuffer();
         const b64 = bufToBase64(buf);
         loaderStart();
+        showBlocking(`Importing ${file.name}…`);
         try {
           const added = await invoke('import_file', { filename: file.name, b64 });
           const data = await invoke('get_entries');
@@ -439,7 +454,7 @@ function bindAddListeners() {
           showView('view-list');
           toast(`Added: ${added.join(', ')}`);
         } catch (err) { toast(String(err), true); }
-        finally { loaderDone(); }
+        finally { loaderDone(); hideBlocking(); }
       };
       input.click();
     });
@@ -460,8 +475,11 @@ $('form-unlock').addEventListener('submit', async e => {
   loaderStart();
   const closeEyeAfterDelay = () => setLogoEye(false);
 
+  let vaultExists;
+  try { vaultExists = await invoke('vault_exists'); } catch (_) { vaultExists = true; }
+  showBlocking(vaultExists ? 'Decrypting vault…' : 'Creating vault…');
+
   try {
-    const vaultExists = await invoke('vault_exists');
     let data;
     if (vaultExists) {
       data = await invoke('unlock', { passphrase });
@@ -472,6 +490,7 @@ $('form-unlock').addEventListener('submit', async e => {
         errEl.style.visibility = 'visible';
         loaderDone();
         closeEyeAfterDelay();
+        hideBlocking();
         return;
       }
       data = await invoke('create_vault', { passphrase });
@@ -485,6 +504,7 @@ $('form-unlock').addEventListener('submit', async e => {
     closeEyeAfterDelay(); // wrong passphrase — close eye after delay
   } finally {
     loaderDone();
+    hideBlocking();
     $('input-passphrase').value = '';
     $('input-passphrase-confirm').value = '';
   }
@@ -526,8 +546,7 @@ $('btn-detail-copy').addEventListener('click', async () => {
 
 $('btn-detail-del').addEventListener('click', async () => {
   if (!selectedName) return;
-  const overlay = $('blocking-overlay');
-  overlay.style.display = 'flex';
+  showBlocking('Deleting…');
   loaderStart();
   try {
     await invoke('delete_entry', { name: selectedName });
@@ -538,7 +557,7 @@ $('btn-detail-del').addEventListener('click', async () => {
     toast('Deleted');
   } catch (err) { toast(String(err), true); }
   finally {
-    overlay.style.display = 'none';
+    hideBlocking();
     loaderDone();
   }
 });

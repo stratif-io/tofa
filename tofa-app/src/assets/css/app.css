@@ -36,7 +36,7 @@ html, body {
   -webkit-app-region: no-drag;
 }
 
-/* Loader bar */
+/* Loader bar — kept as a low-attention progress indicator for short ops */
 #loader-bar {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -49,6 +49,69 @@ html, body {
   background: var(--brand);
   width: 0%;
   transition: width 0.3s var(--ease-out);
+}
+
+/* Blocking overlay — used for any user-initiated operation long enough that
+   the user needs visible feedback (unlock, QR scan, image import, delete).
+   Hidden by default; toggled via .visible. */
+.blocking-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.blocking-overlay.visible { display: flex; }
+
+.blocking-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s-5) var(--s-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.blocking-message {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  text-align: center;
+}
+
+/* Spinner */
+.spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--brand);
+  animation: spinner-rotate 0.9s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* Inline spinner for use next to text (e.g. unlock button) */
+.spinner-inline {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: spinner-rotate 0.9s linear infinite;
+  vertical-align: -2px;
+  margin-right: var(--s-2);
 }
 
 /* Account item in list */

@@ -78,9 +78,12 @@
 <!-- Loader bar -->
 <div id="loader-bar"><div id="loader-bar-inner"></div></div>
 
-<!-- Blocking overlay (delete, etc.) -->
-<div id="blocking-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center;">
-  <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">Deleting…</div>
+<!-- Blocking overlay (unlock, scan, import, delete, etc.) -->
+<div id="blocking-overlay" class="blocking-overlay" role="status" aria-live="polite">
+  <div class="blocking-card">
+    <div class="spinner" aria-hidden="true"></div>
+    <div id="blocking-overlay-message" class="blocking-message">Working…</div>
+  </div>
 </div>
 
 <!-- Toast -->

@@ -1,4 +1,4 @@
-use crate::theme::{palette, theme::ThemeMode, wink};
+use crate::theme::{mode::ThemeMode, palette, wink};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,

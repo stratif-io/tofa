@@ -101,15 +101,15 @@ jobs:
         run: cargo install tauri-cli --version "^2" --locked
 
       - name: Build universal app
-        working-directory: tofa-app/src-tauri
+        working-directory: tofa-app
         run: cargo tauri build --target universal-apple-darwin
 
       - name: Rename DMG
         run: |
           VERSION="${GITHUB_REF_NAME#tofa-app-v}"
           VERSION="${VERSION#v}"
-          mv tofa-app/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg \
-             "tofa-app-${VERSION}.dmg"
+          DMG=$(find target/universal-apple-darwin/release/bundle/dmg -name "*.dmg" | head -1)
+          mv "$DMG" "tofa-app-${VERSION}.dmg"
           echo "DMG_FILE=tofa-app-${VERSION}.dmg" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4

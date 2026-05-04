@@ -82,14 +82,29 @@ fn position_popover_under_tray(window: &WebviewWindow) {
         let mut x = cx - win_size.width as i32 / 2;
         let max_x = mp.x + ms.width as i32 - win_size.width as i32;
         x = x.clamp(mp.x, max_x);
-        let _ = window.set_position(PhysicalPosition::new(x, y));
+        eprintln!(
+            "[pos] target=({},{}) win_size=({},{}) monitor.pos=({},{}) scale={}",
+            x, y, win_size.width, win_size.height, mp.x, mp.y, scale
+        );
+        match window.set_position(PhysicalPosition::new(x, y)) {
+            Ok(()) => eprintln!("[pos] set_position ok"),
+            Err(e) => eprintln!("[pos] set_position ERR: {:?}", e),
+        }
+        if let Ok(p) = window.outer_position() {
+            eprintln!("[pos] outer_position after set = ({}, {})", p.x, p.y);
+        }
     }
 }
 
 /// Show the popover under the tray on the right monitor, then focus it.
+///
+/// On macOS, calling `set_position` on a hidden NSWindow can be silently
+/// ignored or overridden when the window is shown. Calling it BOTH before
+/// and after `show()` is the safest way to make the new position stick.
 fn show_popover_under_tray(win: &WebviewWindow) {
     position_popover_under_tray(win);
     let _ = win.show();
+    position_popover_under_tray(win);
     let _ = win.set_focus();
 }
 

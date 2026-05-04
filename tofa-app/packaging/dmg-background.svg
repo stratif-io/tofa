@@ -16,6 +16,15 @@
     <pattern id="dotgrid" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
       <circle cx="12" cy="12" r="1" fill="#FFFFFF" fill-opacity="0.03"/>
     </pattern>
+    <filter id="violet-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blur"/>
+      <feFlood flood-color="#7C5CFF" flood-opacity="0.6"/>
+      <feComposite in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
 
   <!-- LAYER: background gradient -->
@@ -48,4 +57,14 @@
       <text x="0" y="168">4</text>
     </g>
   </g>
+
+  <!-- LAYER: wordmark -->
+  <text x="660" y="180"
+        font-family="Helvetica Neue, Helvetica, sans-serif"
+        font-size="120"
+        font-weight="600"
+        fill="#FFFFFF"
+        text-anchor="middle"
+        letter-spacing="-2"
+        filter="url(#violet-glow)">tofa</text>
 </svg>

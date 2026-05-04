@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1320" height="800"
+     viewBox="0 0 1320 800">
+
+  <defs>
+    <radialGradient id="bg" cx="660" cy="400" r="700" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#1E1538"/>
+      <stop offset="1"   stop-color="#08080C"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="660" cy="400" r="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#7C5CFF" stop-opacity="0.35"/>
+      <stop offset="0.6" stop-color="#7C5CFF" stop-opacity="0.10"/>
+      <stop offset="1"   stop-color="#7C5CFF" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dotgrid" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="1" fill="#FFFFFF" fill-opacity="0.03"/>
+    </pattern>
+    <filter id="violet-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blur"/>
+      <feFlood flood-color="#7C5CFF" flood-opacity="0.6"/>
+      <feComposite in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <linearGradient id="arrow-stroke" x1="460" y1="400" x2="820" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#7C5CFF" stop-opacity="0.55"/>
+      <stop offset="1"   stop-color="#B8A4F0" stop-opacity="1.00"/>
+    </linearGradient>
+
+    <filter id="arrow-glow" x="-20%" y="-200%" width="140%" height="500%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
+      <feFlood flood-color="#7C5CFF" flood-opacity="0.5"/>
+      <feComposite in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- LAYER: background gradient -->
+  <rect width="1320" height="800" fill="url(#bg)"/>
+
+  <!-- LAYER: halo -->
+  <ellipse cx="660" cy="400" rx="600" ry="320" fill="url(#halo)"/>
+
+  <!-- LAYER: dot grid -->
+  <rect width="1320" height="800" fill="url(#dotgrid)"/>
+
+  <!-- LAYER: icon platforms -->
+  <!-- Subtle pads at each icon position. Lifts the area enough that the icon -->
+  <!-- label text rendered by Finder remains legible regardless of macOS -->
+  <!-- appearance mode (light mode → dark text, dark mode → light text). -->
+  <!-- Sized to cover icon (240x240) + label band (~40px below), with breathing room. -->
+  <g>
+    <rect x="190"  y="270" width="260" height="320" rx="24"
+          fill="#FFFFFF" fill-opacity="0.05"
+          stroke="#7C5CFF" stroke-opacity="0.18" stroke-width="1"/>
+    <rect x="870" y="270" width="260" height="320" rx="24"
+          fill="#FFFFFF" fill-opacity="0.05"
+          stroke="#7C5CFF" stroke-opacity="0.18" stroke-width="1"/>
+  </g>
+
+  <!-- LAYER: OTP digit motif -->
+  <g font-family="Menlo, monospace" font-size="44" fill="#7C5CFF" fill-opacity="0.06" text-anchor="middle">
+    <g transform="translate(580, 130)">
+      <text x="0" y="0">3</text>
+      <text x="0" y="56">4</text>
+      <text x="0" y="112">5</text>
+      <text x="0" y="168">6</text>
+    </g>
+    <g transform="translate(660, 102)">
+      <text x="0" y="0">7</text>
+      <text x="0" y="56">8</text>
+      <text x="0" y="112">9</text>
+      <text x="0" y="168">0</text>
+    </g>
+    <g transform="translate(740, 158)">
+      <text x="0" y="0">1</text>
+      <text x="0" y="56">2</text>
+      <text x="0" y="112">3</text>
+      <text x="0" y="168">4</text>
+    </g>
+  </g>
+
+  <!-- LAYER: wordmark -->
+  <text x="660" y="180"
+        font-family="Helvetica Neue, Helvetica, sans-serif"
+        font-size="120"
+        font-weight="600"
+        fill="#FFFFFF"
+        text-anchor="middle"
+        letter-spacing="-2"
+        filter="url(#violet-glow)">tofa</text>
+
+  <!-- LAYER: tagline -->
+  <text x="660" y="225"
+        font-family="Helvetica Neue, Helvetica, sans-serif"
+        font-size="16"
+        font-weight="500"
+        fill="#B8A4F0"
+        fill-opacity="0.8"
+        text-anchor="middle"
+        letter-spacing="6">OFFLINE · ENCRYPTED · 2FA</text>
+
+  <!-- LAYER: drag arrow -->
+  <!-- DMG window is 660x400 with icons centred at (160,200) and (500,200), -->
+  <!-- icon-size 120. PNG is rendered @2x: clear corridor between icons is x=440-880. -->
+  <g filter="url(#arrow-glow)">
+    <line x1="460" y1="400" x2="820" y2="400"
+          stroke="url(#arrow-stroke)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="828" cy="400" r="2.0" fill="#B8A4F0" fill-opacity="0.40"/>
+    <circle cx="836" cy="400" r="2.4" fill="#B8A4F0" fill-opacity="0.55"/>
+    <circle cx="844" cy="400" r="2.8" fill="#B8A4F0" fill-opacity="0.70"/>
+    <circle cx="852" cy="400" r="3.2" fill="#B8A4F0" fill-opacity="0.85"/>
+    <circle cx="860" cy="400" r="3.6" fill="#B8A4F0" fill-opacity="1.00"/>
+    <polygon points="860,392 876,400 860,408" fill="#D4C5FF"/>
+  </g>
+
+  <!-- LAYER: footer -->
+  <text x="660" y="700"
+        font-family="Helvetica Neue, Helvetica, sans-serif"
+        font-size="13"
+        font-weight="400"
+        fill="#FFFFFF"
+        fill-opacity="0.4"
+        text-anchor="middle"
+        letter-spacing="0.5">Drag tofa to Applications to install</text>
+</svg>

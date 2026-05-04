@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT"
 description = "Eye-candy terminal OTP manager"
 repository = "https://github.com/cabichahine/tofa"
+homepage = "https://github.com/cabichahine/tofa"
 keywords = ["otp", "totp", "tui", "security", "terminal"]
 categories = ["command-line-utilities"]
 

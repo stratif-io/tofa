@@ -2,6 +2,12 @@
 name = "tofa-theme"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Design system for tofa — palette, ANSI helpers, ratatui widgets"
+repository = "https://github.com/cabichahine/tofa"
+homepage = "https://github.com/cabichahine/tofa"
+keywords = ["totp", "otp", "tui", "theme", "ratatui"]
+categories = ["command-line-interface"]
 
 [dependencies]
 ratatui = "0.28"

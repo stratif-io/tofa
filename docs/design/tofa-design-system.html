@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TOFA — Design System</title>
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<!-- SVG sprite — loaded inline so <use href="#..."> works without a server -->
+<div style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <object type="image/svg+xml" data="assets/svg/sprite.svg" style="display:none"></object>
+  <!-- Inline fallback for same-page <use> references -->
+  <svg width="0" height="0">
+    <defs>
+      <symbol id="tofa-wink" viewBox="0 0 128 128">
+        <path d="M 64 14 C 78 14 92 18 102 22 C 104 23 106 25 106 28 V 60 C 106 86 90 104 66 114 C 65 114 63 114 62 114 C 38 104 22 86 22 60 V 28 C 22 25 24 23 26 22 C 36 18 50 14 64 14 Z" fill="currentColor"/>
+        <rect x="40" y="46" width="18" height="18" rx="3" fill="var(--bg)"/>
+        <rect x="46" y="52" width="6"  height="6"  rx="1" fill="currentColor"/>
+        <path d="M 70 56 Q 79 50 88 56" stroke="var(--bg)" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M 48 82 Q 64 94 80 82" stroke="var(--bg)" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="tofa-wink-mono" viewBox="0 0 128 128">
+        <path d="M 64 14 C 78 14 92 18 102 22 C 104 23 106 25 106 28 V 60 C 106 86 90 104 66 114 C 65 114 63 114 62 114 C 38 104 22 86 22 60 V 28 C 22 25 24 23 26 22 C 36 18 50 14 64 14 Z" fill="currentColor"/>
+      </symbol>
+    </defs>
+  </svg>
+</div>
+
+<!-- ====== TOPBAR ====== -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-logo">
+      <svg width="28" height="28" style="color: var(--brand)"><use href="#tofa-wink"/></svg>
+      TOFA
+    </div>
+    <nav class="topbar-nav">
+      <a href="#identity">01 Identity</a>
+      <a href="#color">02 Color</a>
+      <a href="#type">03 Type</a>
+      <a href="#tokens">04 Tokens</a>
+      <a href="#components">05 UI</a>
+      <a href="#cli">06 CLI</a>
+      <a href="#voice">07 Voice</a>
+    </nav>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">◐ light</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ====== HERO ====== -->
+  <section class="hero">
+    <svg class="hero-logo" style="color: var(--brand)"><use href="#tofa-wink"/></svg>
+    <h1>TOFA <em>design system</em></h1>
+    <div class="hero-tag">v1.0 · Terminal OTP For Authentication · Sir Wink</div>
+  </section>
+
+  <!-- ====== 01 IDENTITY ====== -->
+  <section class="section" id="identity">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2 class="section-title">Identity</h2>
+      <span class="section-sub">Logo · Lockups · Construction</span>
+    </div>
+    <p class="section-body">Sir Wink is the TOFA mascot — a chubby shield with a QR-code eye, a wink, and a smile. He's the face of a security tool that doesn't take itself too seriously. The logo always reads at a glance, even at 16px.</p>
+
+    <!-- Logo on 3 backgrounds -->
+    <div class="grid grid-3" style="margin-bottom: var(--s-5);">
+      <div class="logo-display dark-bg">
+        <img src="assets/svg/tofa-wink-dark.svg" width="120" height="120" alt="Sir Wink — dark">
+      </div>
+      <div class="logo-display light-bg">
+        <img src="assets/svg/tofa-wink-light.svg" width="120" height="120" alt="Sir Wink — light">
+      </div>
+      <div class="logo-display brand-bg">
+        <img src="assets/svg/tofa-wink-white.svg" width="120" height="120" alt="Sir Wink — on brand">
+      </div>
+    </div>
+
+    <!-- Lockups -->
+    <div class="grid grid-2">
+      <div class="logo-display dark-bg" style="min-height: 140px;">
+        <div class="lockup">
+          <img src="assets/svg/tofa-wink-dark.svg" width="64" height="64" alt="Sir Wink">
+          <div class="lockup-text" style="color: white">
+            TOFA
+            <small style="color: rgba(255,255,255,0.6)">2FA · in your tray</small>
+          </div>
+        </div>
+      </div>
+      <div class="logo-display light-bg" style="min-height: 140px;">
+        <div class="lockup">
+          <img src="assets/svg/tofa-wink-light.svg" width="64" height="64" alt="Sir Wink">
+          <div class="lockup-text" style="color: var(--ink-900)">
+            TOFA
+            <small style="color: var(--ink-500)">2FA · in your tray</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Size palette -->
+    <div class="card" style="margin-top: var(--s-5);">
+      <div class="card-label">Logo sizes</div>
+      <div class="row" style="align-items: flex-end; gap: var(--s-5); margin-top: var(--s-3);">
+        <div style="text-align: center;">
+          <img src="assets/svg/tofa-wink-120.svg" width="120" height="120" alt="120px" style="display:block;">
+          <span class="token-val" style="display:block; margin-top: 4px;">120px</span>
+        </div>
+        <div style="text-align: center;">
+          <img src="assets/svg/tofa-wink-64.svg" width="64" height="64" alt="64px" style="display:block;">
+          <span class="token-val" style="display:block; margin-top: 4px;">64px</span>
+        </div>
+        <div style="text-align: center;">
+          <img src="assets/svg/tofa-wink-28.svg" width="28" height="28" alt="28px" style="display:block;">
+          <span class="token-val" style="display:block; margin-top: 4px;">28px</span>
+        </div>
+        <div style="text-align: center;">
+          <img src="assets/svg/tofa-wink-22.svg" width="22" height="22" alt="22px" style="display:block;">
+          <span class="token-val" style="display:block; margin-top: 4px;">22px</span>
+        </div>
+        <div style="text-align: center;">
+          <img src="assets/svg/tofa-wink-16.svg" width="16" height="16" alt="16px" style="display:block;">
+          <span class="token-val" style="display:block; margin-top: 4px;">16px · min</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top: var(--s-5);">
+      <span class="badge badge-brand"><span class="badge-dot"></span> ALWAYS keep clear-space ≥ logo height ÷ 4</span>
+      <span class="badge badge-success"><span class="badge-dot"></span> Min legible size: 16px</span>
+      <span class="badge badge-warning"><span class="badge-dot"></span> Don't recolor the face — keep contrast</span>
+    </div>
+  </section>
+
+  <!-- ====== 02 COLOR ====== -->
+  <section class="section" id="color">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2 class="section-title">Color</h2>
+      <span class="section-sub">Primitives · Semantics · States</span>
+    </div>
+    <p class="section-body">A purple-led palette with a full neutral scale and four semantic accents. Click any swatch to copy the token.</p>
+
+    <!-- Semantic swatches -->
+    <h3 style="font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-muted); margin-bottom: var(--s-3);">Semantic</h3>
+    <div class="grid grid-4" style="margin-bottom: var(--s-6);">
+      <div class="swatch" onclick="copy('--brand')">
+        <div class="swatch-color" style="background: var(--brand)"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">brand</div>
+          <div class="swatch-val">--brand</div>
+        </div>
+      </div>
+      <div class="swatch" onclick="copy('--success')">
+        <div class="swatch-color" style="background: var(--success)"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">success</div>
+          <div class="swatch-val">--success</div>
+        </div>
+      </div>
+      <div class="swatch" onclick="copy('--warning')">
+        <div class="swatch-color" style="background: var(--warning)"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">warning</div>
+          <div class="swatch-val">--warning</div>
+        </div>
+      </div>
+      <div class="swatch" onclick="copy('--danger')">
+        <div class="swatch-color" style="background: var(--danger)"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">danger</div>
+          <div class="swatch-val">--danger</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Purple scale -->
+    <div class="scale-label">Purple scale</div>
+    <div class="scale-row" style="margin-bottom: var(--s-5);">
+      <div class="scale-cell" style="background: var(--purple-50)"  onclick="copy('--purple-50')"><span class="scale-cell-label" style="color:#000">50</span></div>
+      <div class="scale-cell" style="background: var(--purple-100)" onclick="copy('--purple-100')"><span class="scale-cell-label" style="color:#000">100</span></div>
+      <div class="scale-cell" style="background: var(--purple-200)" onclick="copy('--purple-200')"><span class="scale-cell-label" style="color:#000">200</span></div>
+      <div class="scale-cell" style="background: var(--purple-300)" onclick="copy('--purple-300')"><span class="scale-cell-label" style="color:#000">300</span></div>
+      <div class="scale-cell" style="background: var(--purple-400)" onclick="copy('--purple-400')"><span class="scale-cell-label">400</span></div>
+      <div class="scale-cell" style="background: var(--purple-500)" onclick="copy('--purple-500')"><span class="scale-cell-label">500</span></div>
+      <div class="scale-cell" style="background: var(--purple-600)" onclick="copy('--purple-600')"><span class="scale-cell-label">600</span></div>
+      <div class="scale-cell" style="background: var(--purple-700)" onclick="copy('--purple-700')"><span class="scale-cell-label">700</span></div>
+      <div class="scale-cell" style="background: var(--purple-800)" onclick="copy('--purple-800')"><span class="scale-cell-label">800</span></div>
+      <div class="scale-cell" style="background: var(--purple-900)" onclick="copy('--purple-900')"><span class="scale-cell-label">900</span></div>
+    </div>
+
+    <!-- Ink scale -->
+    <div class="scale-label">Ink (neutral) scale</div>
+    <div class="scale-row">
+      <div class="scale-cell light" style="background: var(--ink-50)"  onclick="copy('--ink-50')"><span class="scale-cell-label">50</span></div>
+      <div class="scale-cell light" style="background: var(--ink-100)" onclick="copy('--ink-100')"><span class="scale-cell-label">100</span></div>
+      <div class="scale-cell light" style="background: var(--ink-200)" onclick="copy('--ink-200')"><span class="scale-cell-label">200</span></div>
+      <div class="scale-cell light" style="background: var(--ink-300)" onclick="copy('--ink-300')"><span class="scale-cell-label">300</span></div>
+      <div class="scale-cell" style="background: var(--ink-400)" onclick="copy('--ink-400')"><span class="scale-cell-label">400</span></div>
+      <div class="scale-cell" style="background: var(--ink-500)" onclick="copy('--ink-500')"><span class="scale-cell-label">500</span></div>
+      <div class="scale-cell" style="background: var(--ink-600)" onclick="copy('--ink-600')"><span class="scale-cell-label">600</span></div>
+      <div class="scale-cell" style="background: var(--ink-700)" onclick="copy('--ink-700')"><span class="scale-cell-label">700</span></div>
+      <div class="scale-cell" style="background: var(--ink-800)" onclick="copy('--ink-800')"><span class="scale-cell-label">800</span></div>
+      <div class="scale-cell" style="background: var(--ink-900)" onclick="copy('--ink-900')"><span class="scale-cell-label">900</span></div>
+    </div>
+  </section>
+
+  <!-- ====== 03 TYPOGRAPHY ====== -->
+  <section class="section" id="type">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2 class="section-title">Typography</h2>
+      <span class="section-sub">Fraunces · Inter · JetBrains Mono</span>
+    </div>
+    <p class="section-body">Fraunces (display) provides personality and warmth. Inter handles body copy and UI. JetBrains Mono is for everything technical: codes, terminals, labels.</p>
+
+    <div class="card" style="padding: 0;">
+      <div class="type-row" style="padding: var(--s-5);">
+        <div class="type-meta">
+          <strong>Display</strong>
+          Fraunces 900<br>−4% tracking
+        </div>
+        <div class="type-display">Sir Wink</div>
+      </div>
+      <div class="type-row" style="padding: var(--s-5);">
+        <div class="type-meta">
+          <strong>Display Italic</strong>
+          Fraunces 500i
+        </div>
+        <div class="type-display-it">your auth, in your tray</div>
+      </div>
+      <div class="type-row" style="padding: var(--s-5);">
+        <div class="type-meta">
+          <strong>H1</strong>
+          Fraunces 700
+        </div>
+        <div class="type-h1">Scan a QR code, get a code.</div>
+      </div>
+      <div class="type-row" style="padding: var(--s-5);">
+        <div class="type-meta">
+          <strong>H2</strong>
+          Inter 700
+        </div>
+        <div class="type-h2">No phone required.</div>
+      </div>
+      <div class="type-row" style="padding: var(--s-5);">
+        <div class="type-meta">
+          <strong>Body</strong>
+          Inter 400 / 16px
+        </div>
+        <div class="type-body">TOFA replaces the dance of unlocking your phone, opening Google Authenticator, and squinting at six digits. It lives in your menu bar, holds your secrets, and gives you a code in one click.</div>
+      </div>
+      <div class="type-row" style="padding: var(--s-5);">
+        <div class="type-meta">
+          <strong>Mono</strong>
+          JetBrains Mono 400 / 14px
+        </div>
+        <div class="type-mono">$ tofa add github &amp;&amp; tofa get github<br>→ <span style="color: var(--brand)">847 392</span></div>
+      </div>
+      <div class="type-row" style="padding: var(--s-5);">
+        <div class="type-meta">
+          <strong>Label / Caption</strong>
+          JetBrains Mono 400 / 11px
+        </div>
+        <div class="type-label" style="color: var(--text-muted);">VALID FOR · 23s · ⌘ TO COPY</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 04 TOKENS ====== -->
+  <section class="section" id="tokens">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2 class="section-title">Tokens</h2>
+      <span class="section-sub">Spacing · Radius · Motion</span>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-label">Spacing — 4px base</div>
+        <div class="token-row">
+          <span class="token-name">--s-1</span>
+          <div class="token-visual"><div class="token-bar" style="width: 4px;"></div></div>
+          <span class="token-val">4px</span>
+        </div>
+        <div class="token-row">
+          <span class="token-name">--s-2</span>
+          <div class="token-visual"><div class="token-bar" style="width: 8px;"></div></div>
+          <span class="token-val">8px</span>
+        </div>
+        <div class="token-row">
+          <span class="token-name">--s-3</span>
+          <div class="token-visual"><div class="token-bar" style="width: 12px;"></div></div>
+          <span class="token-val">12px</span>
+        </div>
+        <div class="token-row">
+          <span class="token-name">--s-4</span>
+          <div class="token-visual"><div class="token-bar" style="width: 16px;"></div></div>
+          <span class="token-val">16px</span>
+        </div>
+        <div class="token-row">
+          <span class="token-name">--s-5</span>
+          <div class="token-visual"><div class="token-bar" style="width: 24px;"></div></div>
+          <span class="token-val">24px</span>
+        </div>
+        <div class="token-row">
+          <span class="token-name">--s-6</span>
+          <div class="token-visual"><div class="token-bar" style="width: 32px;"></div></div>
+          <span class="token-val">32px</span>
+        </div>
+        <div class="token-row">
+          <span class="token-name">--s-7</span>
+          <div class="token-visual"><div class="token-bar" style="width: 48px;"></div></div>
+          <span class="token-val">48px</span>
+        </div>
+        <div class="token-row">
+          <span class="token-name">--s-8</span>
+          <div class="token-visual"><div class="token-bar" style="width: 64px;"></div></div>
+          <span class="token-val">64px</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Radius</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); margin-top: var(--s-3);">
+          <div style="text-align: center;">
+            <div class="token-radius-demo" style="border-radius: var(--r-sm); margin: 0 auto var(--s-2);"></div>
+            <div class="token-name">--r-sm · 4px</div>
+          </div>
+          <div style="text-align: center;">
+            <div class="token-radius-demo" style="border-radius: var(--r-md); margin: 0 auto var(--s-2);"></div>
+            <div class="token-name">--r-md · 8px</div>
+          </div>
+          <div style="text-align: center;">
+            <div class="token-radius-demo" style="border-radius: var(--r-lg); margin: 0 auto var(--s-2);"></div>
+            <div class="token-name">--r-lg · 12px</div>
+          </div>
+          <div style="text-align: center;">
+            <div class="token-radius-demo" style="border-radius: var(--r-xl); margin: 0 auto var(--s-2);"></div>
+            <div class="token-name">--r-xl · 20px</div>
+          </div>
+        </div>
+
+        <div class="card-label" style="margin-top: var(--s-5);">Motion (hover the cards)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); margin-top: var(--s-3);">
+          <div class="motion-card">
+            <div class="motion-demo"><div class="motion-ball"></div></div>
+            <div class="token-name">ease-out · 1s</div>
+          </div>
+          <div class="motion-card">
+            <div class="motion-demo"><div class="motion-ball"></div></div>
+            <div class="token-name">spring · 1s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 05 COMPONENTS ====== -->
+  <section class="section" id="components">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <h2 class="section-title">UI Components</h2>
+      <span class="section-sub">For the macOS tray app</span>
+    </div>
+    <p class="section-body">All components inherit semantic tokens, so they flip cleanly between light and dark mode. Built for native macOS feel — restrained, fast, keyboard-first.</p>
+
+    <div class="grid grid-2" style="align-items: start;">
+
+      <!-- Buttons & inputs column -->
+      <div class="stack">
+        <div class="card">
+          <div class="card-label">Buttons</div>
+          <div class="row">
+            <button class="btn btn-primary">Add account</button>
+            <button class="btn btn-secondary">Cancel</button>
+            <button class="btn btn-ghost">Skip</button>
+            <button class="btn btn-danger">Delete</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Inputs</div>
+          <div class="stack">
+            <div>
+              <label class="input-label">Account name</label>
+              <input class="input" value="github.com" />
+            </div>
+            <div>
+              <label class="input-label">Issuer</label>
+              <input class="input" placeholder="GitHub" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Badges &amp; status</div>
+          <div class="row">
+            <span class="badge badge-success"><span class="badge-dot"></span> Synced</span>
+            <span class="badge badge-warning"><span class="badge-dot"></span> Expires in 7s</span>
+            <span class="badge badge-danger"><span class="badge-dot"></span> Out of sync</span>
+            <span class="badge badge-brand"><span class="badge-dot"></span> 12 accounts</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Keyboard shortcuts</div>
+          <div class="stack">
+            <div class="row" style="justify-content: space-between;">
+              <span class="muted mono" style="font-size: 12px;">Open tray</span>
+              <span><kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>T</kbd></span>
+            </div>
+            <div class="row" style="justify-content: space-between;">
+              <span class="muted mono" style="font-size: 12px;">Copy current code</span>
+              <span><kbd>⌘</kbd> <kbd>C</kbd></span>
+            </div>
+            <div class="row" style="justify-content: space-between;">
+              <span class="muted mono" style="font-size: 12px;">Add via QR scan</span>
+              <span><kbd>⌘</kbd> <kbd>N</kbd></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Icon set</div>
+          <div class="icon-grid" style="margin-top: var(--s-3);">
+            <div class="icon-cell"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+            <div class="icon-cell"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L4 6v6c0 5 4 9 8 10 4-1 8-5 8-10V6l-8-4z"/></svg></div>
+            <div class="icon-cell"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+            <div class="icon-cell"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg></div>
+            <div class="icon-cell"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg></div>
+            <div class="icon-cell"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+            <div class="icon-cell"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
+            <div class="icon-cell"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 01-14 0M12 5v2M12 17v2"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tray window mockup -->
+      <div>
+        <div class="card-label" style="text-align: center; margin-bottom: var(--s-4);">macOS tray window</div>
+        <div class="tray-window">
+          <div class="tray-header">
+            <svg width="22" height="22" style="color: var(--brand)"><use href="#tofa-wink"/></svg>
+            <span class="tray-header-title">TOFA</span>
+            <span class="badge badge-success" style="margin-left: auto;"><span class="badge-dot"></span> Locked</span>
+          </div>
+          <div class="tray-search">
+            <input class="input" placeholder="Search accounts… ⌘K" />
+          </div>
+          <div class="tray-progress"><div class="tray-progress-bar"></div></div>
+          <div class="tray-list">
+            <div class="tray-item">
+              <div class="tray-item-icon">G</div>
+              <div>
+                <div class="tray-item-name">GitHub</div>
+                <div class="tray-item-acc">user@example.com</div>
+              </div>
+              <div class="tray-otp">847 392</div>
+            </div>
+            <div class="tray-item">
+              <div class="tray-item-icon">A</div>
+              <div>
+                <div class="tray-item-name">AWS</div>
+                <div class="tray-item-acc">root</div>
+              </div>
+              <div class="tray-otp">128 045</div>
+            </div>
+            <div class="tray-item">
+              <div class="tray-item-icon">D</div>
+              <div>
+                <div class="tray-item-name">Discord</div>
+                <div class="tray-item-acc">@user</div>
+              </div>
+              <div class="tray-otp">593 711</div>
+            </div>
+            <div class="tray-item">
+              <div class="tray-item-icon">N</div>
+              <div>
+                <div class="tray-item-name">Notion</div>
+                <div class="tray-item-acc">work</div>
+              </div>
+              <div class="tray-otp">204 668</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====== 06 CLI ====== -->
+  <section class="section" id="cli">
+    <div class="section-head">
+      <span class="section-num">06</span>
+      <h2 class="section-title">CLI</h2>
+      <span class="section-sub">Terminal styling · ASCII · Colors</span>
+    </div>
+    <p class="section-body">The terminal experience mirrors the GUI but lighter. Output uses the same brand purple for highlights, green for success, red for errors. Always concise; one line per fact.</p>
+
+    <!-- Terminal: getting a code -->
+    <div class="terminal" style="margin-bottom: var(--s-5);">
+      <div class="terminal-bar">
+        <div class="terminal-dot r"></div>
+        <div class="terminal-dot y"></div>
+        <div class="terminal-dot g"></div>
+        <div class="terminal-title">~ tofa</div>
+      </div>
+      <div class="terminal-body">
+<span class="term-prompt">$</span> <span class="term-cmd">tofa</span> <span class="term-arg">get</span> github<br>
+<span class="term-otp">847 392</span> <span class="term-comment">// copied to clipboard · 23s remaining</span><br>
+<br>
+<span class="term-prompt">$</span> <span class="term-cmd">tofa</span> <span class="term-arg">list</span><br>
+<span class="term-box">┌──────────────┬─────────────────┬──────────┐</span><br>
+<span class="term-box">│</span> <span style="color:#fbbf24">issuer</span>       <span class="term-box">│</span> <span style="color:#fbbf24">account</span>         <span class="term-box">│</span> <span style="color:#fbbf24">code</span>     <span class="term-box">│</span><br>
+<span class="term-box">├──────────────┼─────────────────┼──────────┤</span><br>
+<span class="term-box">│</span> github       <span class="term-box">│</span> user@ex.com     <span class="term-box">│</span> <span class="term-success">●●●●●●</span>   <span class="term-box">│</span><br>
+<span class="term-box">│</span> aws          <span class="term-box">│</span> root            <span class="term-box">│</span> <span class="term-success">●●●●●●</span>   <span class="term-box">│</span><br>
+<span class="term-box">│</span> discord      <span class="term-box">│</span> @user           <span class="term-box">│</span> <span class="term-success">●●●●●●</span>   <span class="term-box">│</span><br>
+<span class="term-box">└──────────────┴─────────────────┴──────────┘</span><br>
+<span class="term-output">3 accounts · synced 2 min ago</span>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Add via QR -->
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="terminal-dot r"></div>
+          <div class="terminal-dot y"></div>
+          <div class="terminal-dot g"></div>
+          <div class="terminal-title">tofa add</div>
+        </div>
+        <div class="terminal-body">
+<span class="term-prompt">$</span> <span class="term-cmd">tofa</span> <span class="term-arg">add</span> <span class="term-flag">--scan</span><br>
+<span class="term-output">Point your screen at a QR code…</span><br>
+<span class="term-success">✓</span> Found <span style="color:#b89eff">github.com</span><br>
+<span class="term-success">✓</span> Stored in keychain<br>
+<br>
+Sir Wink's got it. <span class="term-comment">😉</span>
+        </div>
+      </div>
+
+      <!-- Error state -->
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="terminal-dot r"></div>
+          <div class="terminal-dot y"></div>
+          <div class="terminal-dot g"></div>
+          <div class="terminal-title">error</div>
+        </div>
+        <div class="terminal-body">
+<span class="term-prompt">$</span> <span class="term-cmd">tofa</span> <span class="term-arg">get</span> notion<br>
+<span class="term-error">✗ no account named "notion"</span><br>
+<br>
+<span class="term-output">did you mean:</span><br>
+&nbsp;&nbsp;<span style="color:#b89eff">notion-work</span><br>
+&nbsp;&nbsp;<span style="color:#b89eff">notion-personal</span><br>
+<br>
+<span class="term-comment">try: tofa list | grep notion</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASCII banner -->
+    <div class="terminal" style="margin-top: var(--s-5);">
+      <div class="terminal-bar">
+        <div class="terminal-dot r"></div>
+        <div class="terminal-dot y"></div>
+        <div class="terminal-dot g"></div>
+        <div class="terminal-title">tofa --version</div>
+      </div>
+      <div class="terminal-body">
+<pre style="color: #b89eff; font-family: var(--font-mono); line-height: 1.2; margin: 0;">
+   ████████╗ ██████╗ ███████╗ █████╗
+   ╚══██╔══╝██╔═══██╗██╔════╝██╔══██╗
+      ██║   ██║   ██║█████╗  ███████║
+      ██║   ██║   ██║██╔══╝  ██╔══██║
+      ██║   ╚██████╔╝██║     ██║  ██║
+      ╚═╝    ╚═════╝ ╚═╝     ╚═╝  ╚═╝</pre>
+<span class="term-output">tofa 1.0.0 · Sir Wink edition · type</span> <span style="color:#b89eff">tofa help</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 07 VOICE ====== -->
+  <section class="section" id="voice">
+    <div class="section-head">
+      <span class="section-num">07</span>
+      <h2 class="section-title">Voice</h2>
+      <span class="section-sub">How TOFA speaks</span>
+    </div>
+    <p class="section-body">Sir Wink is a serious tool with a light personality. He's competent, never bumbling — but he doesn't lecture. Three principles:</p>
+
+    <div class="grid grid-3" style="margin-bottom: var(--s-5);">
+      <div class="card">
+        <div class="card-label" style="color: var(--brand)">01 · Brief</div>
+        <p>One screen, one line, one fact. If it can be a glance, don't make it a paragraph.</p>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color: var(--brand)">02 · Warm</div>
+        <p>Security tools are cold. We're not. Small jokes, occasional emoji, never sterile.</p>
+      </div>
+      <div class="card">
+        <div class="card-label" style="color: var(--brand)">03 · Honest</div>
+        <p>Errors say what broke and how to fix it. Never blame the user. Never hand-wave.</p>
+      </div>
+    </div>
+
+    <div class="voice-grid">
+      <div class="voice-do">
+        <div class="voice-label">Do</div>
+        <div class="voice-quote">"Sir Wink's got it. 😉"</div>
+        <div class="muted mono" style="font-size: 11px; margin-top: 8px;">After successful add</div>
+      </div>
+      <div class="voice-dont">
+        <div class="voice-label">Don't</div>
+        <div class="voice-quote">"Operation completed successfully. Account credentials have been stored in the system keychain."</div>
+        <div class="muted mono" style="font-size: 11px; margin-top: 8px;">Sterile, twice the words, half the warmth</div>
+      </div>
+
+      <div class="voice-do">
+        <div class="voice-label">Do</div>
+        <div class="voice-quote">"no account named 'notion' — did you mean notion-work?"</div>
+        <div class="muted mono" style="font-size: 11px; margin-top: 8px;">Error with a fix</div>
+      </div>
+      <div class="voice-dont">
+        <div class="voice-label">Don't</div>
+        <div class="voice-quote">"ERROR: AccountNotFoundException — please verify the identifier and try again."</div>
+        <div class="muted mono" style="font-size: 11px; margin-top: 8px;">Stack-trace energy, no help</div>
+      </div>
+
+      <div class="voice-do">
+        <div class="voice-label">Do</div>
+        <div class="voice-quote">"2FA, in your tray."</div>
+        <div class="muted mono" style="font-size: 11px; margin-top: 8px;">Tagline: 4 words, says it all</div>
+      </div>
+      <div class="voice-dont">
+        <div class="voice-label">Don't</div>
+        <div class="voice-quote">"The premier macOS solution for time-based one-time password management."</div>
+        <div class="muted mono" style="font-size: 11px; margin-top: 8px;">Marketing soup</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>TOFA · v1.0.0 · Sir Wink edition</span>
+    <span>made with 💜 + ⌨</span>
+  </footer>
+
+</div>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const btn  = document.getElementById('theme-btn');
+    if (html.getAttribute('data-theme') === 'light') {
+      html.removeAttribute('data-theme');
+      btn.textContent = '◐ light';
+    } else {
+      html.setAttribute('data-theme', 'light');
+      btn.textContent = '◑ dark';
+    }
+  }
+
+  function copy(token) {
+    navigator.clipboard?.writeText(`var(${token})`);
+    const t = document.createElement('div');
+    t.textContent = `var(${token}) copied`;
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--brand);color:var(--on-brand);padding:8px 16px;border-radius:8px;font-family:var(--font-mono);font-size:12px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.3)';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 1500);
+  }
+</script>
+</body>
+</html>

@@ -17,15 +17,14 @@ use tauri::{
 /// mid-action.
 static POPOVER_PINNED: AtomicBool = AtomicBool::new(false);
 
-/// Latest tray-icon screen rectangle, captured on every tray event. Used
-/// to position the popover under the tray on the correct monitor, even
-/// when the menu bar is on a secondary display. Stored as four atomics
-/// (x, y, w, h) plus a "set" flag to avoid a Mutex on the focus-loss path.
-static TRAY_RECT_X: AtomicI32 = AtomicI32::new(0);
-static TRAY_RECT_Y: AtomicI32 = AtomicI32::new(0);
-static TRAY_RECT_W: AtomicI32 = AtomicI32::new(0);
-static TRAY_RECT_H: AtomicI32 = AtomicI32::new(0);
-static TRAY_RECT_SET: AtomicBool = AtomicBool::new(false);
+/// Latest tray click position in PHYSICAL screen pixels. Captured on
+/// every tray event so the popover can open on whichever display the
+/// user clicked, with no scale-factor conversion needed: Tauri reports
+/// `TrayIconEvent::Click { position: PhysicalPosition<f64>, .. }` already
+/// in absolute physical screen coordinates.
+static TRAY_CLICK_X: AtomicI32 = AtomicI32::new(0);
+static TRAY_CLICK_Y: AtomicI32 = AtomicI32::new(0);
+static TRAY_CLICK_SET: AtomicBool = AtomicBool::new(false);
 
 /// Toggle whether the popover stays open during focus-stealing operations.
 /// Called from JS via `invoke('set_popover_pinned', { pinned: true|false })`.
@@ -34,50 +33,53 @@ fn set_popover_pinned(pinned: bool) {
     POPOVER_PINNED.store(pinned, Ordering::Relaxed);
 }
 
-fn store_tray_rect(x: f64, y: f64, w: f64, h: f64) {
-    TRAY_RECT_X.store(x as i32, Ordering::Relaxed);
-    TRAY_RECT_Y.store(y as i32, Ordering::Relaxed);
-    TRAY_RECT_W.store(w as i32, Ordering::Relaxed);
-    TRAY_RECT_H.store(h as i32, Ordering::Relaxed);
-    TRAY_RECT_SET.store(true, Ordering::Relaxed);
+fn store_tray_click(x: f64, y: f64) {
+    TRAY_CLICK_X.store(x as i32, Ordering::Relaxed);
+    TRAY_CLICK_Y.store(y as i32, Ordering::Relaxed);
+    TRAY_CLICK_SET.store(true, Ordering::Relaxed);
 }
 
-/// Position the popover horizontally centred under the tray icon, on the
-/// monitor that contains the tray. Falls back to centring on the primary
-/// monitor if no tray rect has been captured yet.
+/// Position the popover horizontally centred under the last tray click,
+/// on the monitor that contains that click. Falls back to centring on
+/// the primary monitor if no click has been captured yet.
 fn position_popover_under_tray(window: &WebviewWindow) {
     let win_size = window.outer_size().unwrap_or(PhysicalSize::new(320, 480));
 
-    if !TRAY_RECT_SET.load(Ordering::Relaxed) {
+    if !TRAY_CLICK_SET.load(Ordering::Relaxed) {
         if let Ok(Some(m)) = window.primary_monitor() {
             let mp = m.position();
             let ms = m.size();
+            let scale = m.scale_factor();
             let x = mp.x + (ms.width as i32 - win_size.width as i32) / 2;
-            let y = mp.y + 30;
+            let y = mp.y + (28.0 * scale) as i32;
             let _ = window.set_position(PhysicalPosition::new(x, y));
         }
         return;
     }
 
-    let tx = TRAY_RECT_X.load(Ordering::Relaxed);
-    let ty = TRAY_RECT_Y.load(Ordering::Relaxed);
-    let tw = TRAY_RECT_W.load(Ordering::Relaxed);
-    let tray_centre_x = tx + tw / 2;
+    let cx = TRAY_CLICK_X.load(Ordering::Relaxed);
+    let cy = TRAY_CLICK_Y.load(Ordering::Relaxed);
 
-    // Find the monitor containing the tray icon (multi-display support).
+    // Find the monitor containing the click. All values here are in physical
+    // screen pixels (Tauri reports both monitor.position()/size() and
+    // TrayIconEvent::Click.position in physical coords), so no scaling is
+    // needed for the bounds check.
     let monitors = window.available_monitors().unwrap_or_default();
     let monitor = monitors.iter().find(|m| {
         let p = m.position();
         let s = m.size();
-        tx >= p.x && tx < p.x + s.width as i32 && ty >= p.y && ty < p.y + s.height as i32
+        cx >= p.x && cx < p.x + s.width as i32 && cy >= p.y && cy < p.y + s.height as i32
     });
 
     if let Some(m) = monitor {
         let mp = m.position();
         let ms = m.size();
-        // Below the menu bar — 30 px is a safe value across recent macOS.
-        let y = mp.y + 30;
-        let mut x = tray_centre_x - win_size.width as i32 / 2;
+        let scale = m.scale_factor();
+        // Just below the menu bar. macOS menu bar height is ~28 logical
+        // points; multiply by the monitor's scale factor for physical px.
+        let y = mp.y + (28.0 * scale) as i32;
+        // Centre horizontally on the click x, clamped to monitor bounds.
+        let mut x = cx - win_size.width as i32 / 2;
         let max_x = mp.x + ms.width as i32 - win_size.width as i32;
         x = x.clamp(mp.x, max_x);
         let _ = window.set_position(PhysicalPosition::new(x, y));
@@ -213,20 +215,12 @@ pub fn run() {
                 .build(app)?;
 
             tray.on_tray_icon_event(|tray, event| {
-                // Capture the tray rect on every event so positioning stays
-                // correct even after the user moves the menu bar between
-                // displays in System Settings.
-                if let TrayIconEvent::Click { rect, .. } = &event {
-                    // tauri::Rect contains Position/Size enums (Physical or
-                    // Logical). Normalise to physical pixels using the
-                    // popover window's scale factor so positioning math works
-                    // consistently regardless of the variant Tauri reports.
-                    if let Some(win) = tray.app_handle().get_webview_window("popover") {
-                        let scale = win.scale_factor().unwrap_or(1.0);
-                        let pp: tauri::PhysicalPosition<f64> = rect.position.to_physical(scale);
-                        let ps: tauri::PhysicalSize<f64> = rect.size.to_physical(scale);
-                        store_tray_rect(pp.x, pp.y, ps.width, ps.height);
-                    }
+                // Capture the click position on every tray event. `position`
+                // is already PhysicalPosition<f64> in absolute screen pixels,
+                // so we don't need to know which monitor the click was on
+                // (or its scale factor) to record it.
+                if let TrayIconEvent::Click { position, .. } = &event {
+                    store_tray_click(position.x, position.y);
                 }
                 if let TrayIconEvent::Click {
                     button: MouseButton::Left,

@@ -30,10 +30,14 @@ pub fn render_help_block(cmd: &Command) -> String {
 pub fn replace_block(content: &str, new_inner: &str) -> String {
     const BEGIN: &str = "<!-- BEGIN auto:help -->";
     const END: &str = "<!-- END auto:help -->";
-    if let (Some(b), Some(e)) = (content.find(BEGIN), content.find(END)) {
-        let before = &content[..b + BEGIN.len()];
-        let after = &content[e..];
-        return format!("{before}\n{new_inner}\n{after}");
+    if let Some(b) = content.find(BEGIN) {
+        let begin_end = b + BEGIN.len();
+        if let Some(rel) = content[begin_end..].find(END) {
+            let e = begin_end + rel;
+            let before = &content[..begin_end];
+            let after = &content[e..];
+            return format!("{before}\n{new_inner}\n{after}");
+        }
     }
     // Markers missing: append after first H1, or at end.
     let mut out = String::new();
@@ -121,5 +125,20 @@ mod tests {
         assert!(after.contains("INNER"));
         assert!(after.contains("<!-- END auto:help -->"));
         assert!(after.contains("Some prose."));
+    }
+
+    #[test]
+    fn replace_block_anchors_end_search_after_begin() {
+        // A literal mention of the END marker in prose appears before the real block.
+        let before = "# tofa add\n\n<!-- END auto:help --> (mentioned in prose)\n\n<!-- BEGIN auto:help -->\nold\n<!-- END auto:help -->\n\nTrailing.\n";
+        let after = replace_block(before, "NEW");
+        // The block is correctly replaced
+        assert!(after.contains("<!-- BEGIN auto:help -->\nNEW\n<!-- END auto:help -->"));
+        // The prose mentioning END is preserved (not slurped into the slice)
+        assert!(after.contains("(mentioned in prose)"));
+        // Trailing content survives
+        assert!(after.contains("Trailing."));
+        // Old inner content is gone
+        assert!(!after.contains("\nold\n"));
     }
 }

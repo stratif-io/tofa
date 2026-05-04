@@ -6,6 +6,7 @@ tofa.app/
 tofa.icns
 tofa.iconset/
 tofa-app/src-tauri/target/
+tofa-app/src-tauri/gen/
 .DS_Store
 *.json
 !release-please-config.json

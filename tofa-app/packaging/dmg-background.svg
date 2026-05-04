@@ -104,4 +104,14 @@
     <circle cx="900" cy="400" r="3.6" fill="#B8A4F0" fill-opacity="1.00"/>
     <polygon points="910,392 926,400 910,408" fill="#D4C5FF"/>
   </g>
+
+  <!-- LAYER: footer -->
+  <text x="660" y="700"
+        font-family="Helvetica Neue, Helvetica, sans-serif"
+        font-size="13"
+        font-weight="400"
+        fill="#FFFFFF"
+        fill-opacity="0.4"
+        text-anchor="middle"
+        letter-spacing="0.5">Drag tofa to Applications to install</text>
 </svg>

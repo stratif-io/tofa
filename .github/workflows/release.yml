@@ -5,6 +5,11 @@ on:
     tags:
       - 'v[0-9]*'          # CLI release:  v1.2.3
       - 'tofa-macos-v[0-9]*' # App release: tofa-macos-v1.2.3
+  # Manual escape hatch: dispatch on an existing tag to re-run the build,
+  # e.g. `gh workflow run release.yml --ref tofa-macos-v0.4.0`. github.ref_name
+  # is set from the chosen ref, so the per-job startsWith() conditions still
+  # route CLI vs macOS-app builds correctly.
+  workflow_dispatch:
 
 permissions:
   contents: write

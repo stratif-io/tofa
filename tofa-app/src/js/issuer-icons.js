@@ -51,6 +51,8 @@ const ICONS = {
   protonmail:       { id: 'issuer-protonmail',      color: '#6D4AFF' },
   mailchimp:        { id: 'issuer-mailchimp',       color: '#FFE01B' },
   adobe:            { id: 'issuer-adobe',           color: '#FF0000' },
+  authelia:         { id: 'issuer-authelia',        color: '#FD4B2D' },
+  ovh:              { id: 'issuer-ovh',             color: '#4BA3E3' }, // brand #123F6D too dark
 };
 
 // Common alternative names users may enter. Mapped to the canonical slug

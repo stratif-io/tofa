@@ -67,4 +67,14 @@
         text-anchor="middle"
         letter-spacing="-2"
         filter="url(#violet-glow)">tofa</text>
+
+  <!-- LAYER: tagline -->
+  <text x="660" y="225"
+        font-family="Helvetica Neue, Helvetica, sans-serif"
+        font-size="16"
+        font-weight="500"
+        fill="#B8A4F0"
+        fill-opacity="0.8"
+        text-anchor="middle"
+        letter-spacing="6">OFFLINE · ENCRYPTED · 2FA</text>
 </svg>

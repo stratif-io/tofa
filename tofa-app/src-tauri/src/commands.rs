@@ -156,6 +156,81 @@ pub fn get_settings() -> Result<Settings, String> {
 }
 
 #[tauri::command]
+pub async fn pick_and_import_file(
+    window: tauri::Window,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<String>, String> {
+    let handle = window.app_handle().clone();
+    let path = tokio::task::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        Ok::<_, String>(
+            handle
+                .dialog()
+                .file()
+                .set_title("Open QR image or import file")
+                .add_filter(
+                    "Supported files",
+                    &[
+                        "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "json", "txt", "zip",
+                    ],
+                )
+                .blocking_pick_file(),
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let path = match path {
+        None => return Ok(vec![]),
+        Some(p) => p,
+    };
+
+    let path = path.into_path().map_err(|e| e.to_string())?;
+    let filename = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("")
+        .to_string();
+    let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+
+    tokio::task::spawn_blocking(move || {
+        let otps = extract_otps_from_bytes(&filename, &bytes)?;
+        let mut vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let mut added = Vec::new();
+        for otp in otps {
+            let name = otp.meta.derive_name();
+            vault.add_entry(tofa_core::store::VaultEntry {
+                id: String::new(),
+                name: name.clone(),
+                secret: otp.secret,
+                created_at: today.clone(),
+                period: otp.meta.period.unwrap_or(30),
+                digits: otp.meta.digits.unwrap_or(6),
+                algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
+            });
+            added.push(name);
+        }
+        vault
+            .save(&vault_path, &passphrase)
+            .map_err(|e| e.to_string())?;
+        Ok(added)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 pub async fn pick_vault_folder(window: tauri::Window) -> Result<Option<String>, String> {
     let handle = window.app_handle().clone();
     tokio::task::spawn_blocking(move || {

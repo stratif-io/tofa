@@ -1,5 +1,19 @@
-/* global OTP */
+/* global OTP, IssuerIcons */
 'use strict';
+
+// Render the icon HTML for an entry: brand SVG when we have one, otherwise
+// the legacy initial-letter circle. Returns a string (innerHTML-friendly).
+function entryIconHTML(entry) {
+  const issuer = entry.issuer || entry.account || '';
+  const icon = (window.IssuerIcons && window.IssuerIcons.iconForIssuer)
+    ? window.IssuerIcons.iconForIssuer(issuer)
+    : null;
+  if (icon) {
+    return `<svg class="account-icon-svg" viewBox="0 0 24 24" style="color:${icon.color}" aria-hidden="true"><use href="#${icon.id}"/></svg>`;
+  }
+  const initial = (issuer || '?')[0].toUpperCase();
+  return `<div class="account-icon">${initial}</div>`;
+}
 
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
@@ -112,11 +126,10 @@ function applyFilter(query) {
     const item = document.createElement('div');
     item.className = 'account-item';
     item.dataset.name = entry.name;
-    const initial = (entry.issuer || entry.account || '?')[0].toUpperCase();
     const secs = entry.seconds_left ?? OTP.secondsRemaining(entry.period);
     const timerColor = secs < 5 ? 'var(--danger)' : secs < 10 ? 'var(--warning)' : 'var(--brand)';
     item.innerHTML = `
-      <div class="account-icon">${initial}</div>
+      ${entryIconHTML(entry)}
       <div style="flex:1;min-width:0;overflow:hidden;">
         <div class="account-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${entry.issuer || entry.name}</div>
         <div class="account-login" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${entry.account}</div>
@@ -213,9 +226,10 @@ function openDetail(name) {
   const entry = entries.find(e => e.name === name);
   if (!entry) return;
   selectedName = name;
-  const initial = (entry.issuer || entry.account || '?')[0].toUpperCase();
   $('detail-title').textContent = entry.issuer || entry.name;
-  $('detail-icon').textContent = initial;
+  // Replace the detail icon container with our themed icon (SVG or initial).
+  $('detail-icon').outerHTML =
+    `<div id="detail-icon" class="account-icon-detail">${entryIconHTML(entry)}</div>`;
   updateDetailCode(entry);
   renderDetailMeta(entry);
   $('reveal-overlay').style.display = 'none';

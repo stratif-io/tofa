@@ -26,9 +26,9 @@
       </feMerge>
     </filter>
 
-    <linearGradient id="arrow-stroke" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0"   stop-color="#7C5CFF" stop-opacity="0.30"/>
-      <stop offset="1"   stop-color="#B8A4F0" stop-opacity="0.90"/>
+    <linearGradient id="arrow-stroke" x1="410" y1="400" x2="860" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0"   stop-color="#7C5CFF" stop-opacity="0.55"/>
+      <stop offset="1"   stop-color="#B8A4F0" stop-opacity="1.00"/>
     </linearGradient>
 
     <filter id="arrow-glow" x="-20%" y="-200%" width="140%" height="500%">

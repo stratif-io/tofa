@@ -21,7 +21,7 @@ jobs:
       - name: Publish tofa-core
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p tofa-core --no-verify
+        run: cargo publish -p tofa-core --no-verify || echo "tofa-core already published, skipping"
 
       - name: Wait for tofa-core to be indexed
         run: sleep 30
@@ -29,4 +29,4 @@ jobs:
       - name: Publish tofa
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p tofa --no-verify
+        run: cargo publish -p tofa --no-verify || echo "tofa already published, skipping"

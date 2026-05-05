@@ -223,7 +223,7 @@ fn render_footer(f: &mut Frame, area: Rect) {
     );
 
     let key = |k: &'static str| Span::styled(k, Style::default().fg(theme::BRAND));
-    let desc = |d: &'static str| Span::styled(d, Style::default().fg(theme::TEXT_MUTED));
+    let desc = |d: &'static str| Span::styled(d, Style::default().fg(theme::TEXT));
     let sep = || Span::styled("  ", Style::default());
 
     let hints = Line::from(vec![

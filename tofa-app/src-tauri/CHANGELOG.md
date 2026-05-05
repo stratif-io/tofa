@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.5.0...tofa-macos-v0.5.1) (2026-05-05)
+
+
+### Bug Fixes
+
+* **app:** add NSScreenCaptureUsageDescription to enable screen recording permission ([64c9ab6](https://github.com/stratif-io/tofa/commit/64c9ab6fe9bbe6a195b0222ec5e8b8e509bcab73))
+* **app:** add NSScreenCaptureUsageDescription to enable screen recording permission ([368a537](https://github.com/stratif-io/tofa/commit/368a53701b4dc87f9686f9657b82721284422597))
+
 ## [0.5.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.4.2...tofa-macos-v0.5.0) (2026-05-05)
 
 

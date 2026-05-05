@@ -77,9 +77,6 @@
   <div style="padding:var(--s-2) var(--s-3) 0;">
     <input id="search-input" class="input" placeholder="Search accounts… ⌘K" style="font-size:12px;padding:7px 12px;">
   </div>
-  <div class="otp-progress" style="margin:var(--s-2) var(--s-3) 0;">
-    <div class="otp-progress-bar" id="global-progress-bar"></div>
-  </div>
   <div class="account-list" id="account-list"></div>
 </div>
 
@@ -92,11 +89,7 @@
   <div style="flex:1;overflow-y:auto;padding:var(--s-4);display:flex;flex-direction:column;align-items:center;">
     <div id="detail-icon" class="account-icon" style="width:52px;height:52px;font-size:22px;margin-bottom:var(--s-3);"></div>
     <div class="detail-code" id="detail-code"></div>
-    <div style="text-align:right;width:100%;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);padding:var(--s-1) 0;" id="detail-seconds"></div>
-    <div class="otp-progress" style="width:100%;margin-bottom:var(--s-4);">
-      <div class="otp-progress-bar" id="detail-progress-bar"></div>
-    </div>
-    <div class="row" style="gap:var(--s-2);margin-bottom:var(--s-5);">
+    <div class="row" style="gap:var(--s-2);margin-bottom:var(--s-5);margin-top:var(--s-4);">
       <button id="btn-detail-copy" class="btn btn-primary">Copy</button>
       <button id="btn-detail-qr"   class="btn btn-secondary">QR</button>
       <button id="btn-detail-del"  class="btn btn-danger">Delete</button>

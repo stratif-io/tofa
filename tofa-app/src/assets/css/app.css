@@ -186,19 +186,6 @@ html, body {
 }
 
 /* Progress bar with CSS variable */
-.otp-progress {
-  height: 2px;
-  background: var(--border);
-  position: relative;
-  overflow: hidden;
-}
-.otp-progress-bar {
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: var(--progress, 100%);
-  background: var(--brand);
-  transition: width 1s linear, background 0.5s;
-}
 
 
 

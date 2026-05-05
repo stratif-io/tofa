@@ -211,12 +211,7 @@ function stopTick() {
 
 function tick() {
   const secs = OTP.secondsRemaining();
-  const globalBar = $('global-progress-bar');
-  const pct = (secs / 30) * 100;
-  globalBar.style.setProperty('--progress', `${pct}%`);
-  globalBar.style.background = secs < 5 ? 'var(--danger)' : secs < 10 ? 'var(--warning)' : 'var(--brand)';
 
-  // Update per-item timers in the list
   document.querySelectorAll('[data-timer]').forEach(el => {
     const s = OTP.secondsRemaining();
     const color = s < 5 ? 'var(--danger)' : s < 10 ? 'var(--warning)' : 'var(--brand)';
@@ -233,10 +228,6 @@ function tick() {
     if (entry) {
       const period = entry.period || 30;
       const s = OTP.secondsRemaining(period);
-      $('detail-seconds').textContent = `${s}s remaining`;
-      const bar = $('detail-progress-bar');
-      bar.style.setProperty('--progress', `${(s / period) * 100}%`);
-      bar.style.background = s < 5 ? 'var(--danger)' : s < 10 ? 'var(--warning)' : 'var(--brand)';
       $('detail-code').style.color = s < 5 ? 'var(--danger)' : s < 10 ? 'var(--warning)' : 'var(--brand)';
     }
   }
@@ -301,11 +292,6 @@ function renderDetailMeta(entry) {
 
 function updateDetailCode(entry) {
   $('detail-code').textContent = entry.code;
-  const period = entry.period || 30;
-  const secs = OTP.secondsRemaining(period);
-  $('detail-seconds').textContent = `${secs}s remaining`;
-  const bar = $('detail-progress-bar');
-  bar.style.setProperty('--progress', `${(secs / period) * 100}%`);
 }
 
 // ── Settings view ──────────────────────────────────────────────────────────

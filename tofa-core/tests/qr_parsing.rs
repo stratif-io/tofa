@@ -11,6 +11,12 @@ fn fixture(name: &str) -> PathBuf {
         .join(name)
 }
 
+fn ga_fixture(name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/google_authenticator")
+        .join(name)
+}
+
 fn entry_from_otp(otp: &tofa_core::qr::OtpSecret) -> VaultEntry {
     VaultEntry {
         id: String::new(),
@@ -111,7 +117,7 @@ fn migration_and_standard_qr_same_secret() {
 }
 
 fn scan_migration_uri() -> String {
-    let path = fixture("demo_migration.png");
+    let path = ga_fixture("demo_migration.png");
     scan_qr_uri(&path).expect("should decode migration QR image")
 }
 

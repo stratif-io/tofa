@@ -1,0 +1,5 @@
+Group,Title,Username,Password,URL,Notes,TOTP,Icon,Modified Time,Created
+General,Shopify,henry@example.com,secret,https://shopify.com,,otpauth://totp/Shopify:henry@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Shopify&algorithm=SHA1&digits=6&period=30,0,2024-01-01T00:00:00,2024-01-01T00:00:00
+General,Fly.io,henry@acme.io,secret,https://fly.io,,otpauth://totp/Fly.io:henry@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=Fly.io&algorithm=SHA256&digits=8&period=60,0,2024-01-01T00:00:00,2024-01-01T00:00:00
+General,DigitalOcean,henry@example.com,secret,,,JBSWY3DPEHPK3PXP,0,2024-01-01T00:00:00,2024-01-01T00:00:00
+General,NoTotp,henry@example.com,secret,https://example.com,,,0,2024-01-01T00:00:00,2024-01-01T00:00:00

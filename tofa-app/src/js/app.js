@@ -21,8 +21,9 @@ const { listen } = window.__TAURI__.event;
 // ── State ──────────────────────────────────────────────────────────────────
 let entries = [];
 let filteredEntries = [];
-let selectedName = null;
+let selectedId = null;
 let tickInterval = null;
+let fromView = 'view-list'; // view to return to when pressing Back
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -70,6 +71,11 @@ function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   $(id).classList.add('active');
   if (id === 'view-locked') setLogoEye(false);
+}
+
+function currentView() {
+  const el = document.querySelector('.view.active');
+  return el ? el.id : 'view-list';
 }
 
 // ── Loader ─────────────────────────────────────────────────────────────────
@@ -148,10 +154,33 @@ function applyFilter(query) {
 
   const list = $('account-list');
   list.innerHTML = '';
+
+  if (filteredEntries.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    if (q) {
+      empty.innerHTML = `<p class="empty-state-title">No results</p><p class="empty-state-sub">No accounts match "<em>${q}</em>"</p>`;
+    } else {
+      empty.innerHTML = `
+        <svg width="40" height="40" style="color:var(--text-muted);margin-bottom:var(--s-3)" viewBox="0 0 128 128"><use href="#tofa-wink"/></svg>
+        <p class="empty-state-title">No accounts yet</p>
+        <p class="empty-state-sub">Add your first TOTP account to get started</p>
+        <button class="btn btn-primary empty-state-btn" id="empty-state-add">Add account</button>`;
+    }
+    list.appendChild(empty);
+    if (!q) {
+      empty.querySelector('#empty-state-add').addEventListener('click', () => {
+        fromView = 'view-list';
+        showView('view-add');
+      });
+    }
+    return;
+  }
+
   filteredEntries.forEach(entry => {
     const item = document.createElement('div');
     item.className = 'account-item';
-    item.dataset.name = entry.name;
+    item.dataset.id = entry.id;
     const secs = entry.seconds_left ?? OTP.secondsRemaining(entry.period);
     const timerColor = secs < 5 ? 'var(--danger)' : secs < 10 ? 'var(--warning)' : 'var(--brand)';
     item.innerHTML = `
@@ -163,33 +192,31 @@ function applyFilter(query) {
       <div style="display:flex;align-items:center;gap:var(--s-2);flex-shrink:0;padding-left:var(--s-2);">
         <div class="item-code-col" style="text-align:right;cursor:pointer;" title="Click to copy">
           <div style="font-family:var(--font-mono);font-weight:700;font-size:14px;letter-spacing:0.08em;color:${timerColor}">${entry.code}</div>
-          <div style="font-family:var(--font-mono);font-size:10px;color:${timerColor}" data-timer="${entry.name}">${secs}s</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:${timerColor}" data-timer="${entry.id}">${secs}s</div>
         </div>
-        <button class="btn btn-ghost btn-copy-item" data-name="${entry.name}" style="padding:4px 6px;font-size:14px;flex-shrink:0;" title="Copy code">⎘</button>
+        <button class="btn btn-ghost btn-copy-item" data-id="${entry.id}" style="padding:4px 6px;font-size:14px;flex-shrink:0;" title="Copy code">⎘</button>
       </div>`;
     item.addEventListener('click', e => {
       if (e.target.closest('.btn-copy-item') || e.target.closest('.item-code-col')) return;
-      openDetail(entry.name);
+      openDetail(entry.id);
     });
     item.querySelector('.btn-copy-item').addEventListener('click', async e => {
       e.stopPropagation();
       try {
-        await invoke('copy_code', { name: entry.name });
+        await invoke('copy_code', { id: entry.id });
         toast('Copied!');
       } catch (err) { toast(String(err), true); }
     });
     item.querySelector('.item-code-col').addEventListener('click', async e => {
       e.stopPropagation();
       try {
-        await invoke('copy_code', { name: entry.name });
+        await invoke('copy_code', { id: entry.id });
         toast('Copied!');
       } catch (err) { toast(String(err), true); }
     });
     list.appendChild(item);
   });
 
-  const badge = $('list-badge');
-  badge.textContent = filteredEntries.length ? `${filteredEntries.length}` : '';
 }
 
 // ── Tick (countdown) ───────────────────────────────────────────────────────
@@ -222,8 +249,8 @@ function tick() {
 
   if (secs <= 1) { refreshEntries(); return; }
 
-  if (selectedName) {
-    const entry = entries.find(e => e.name === selectedName);
+  if (selectedId) {
+    const entry = entries.find(e => e.id === selectedId);
     if (entry) {
       const period = entry.period || 30;
       const s = OTP.secondsRemaining(period);
@@ -240,18 +267,18 @@ async function refreshEntries() {
   try {
     const data = await invoke('get_entries');
     renderList(data);
-    if (selectedName) {
-      const entry = data.find(e => e.name === selectedName);
+    if (selectedId) {
+      const entry = data.find(e => e.id === selectedId);
       if (entry) updateDetailCode(entry);
     }
   } catch (_) {}
 }
 
 // ── Detail view ────────────────────────────────────────────────────────────
-function openDetail(name) {
-  const entry = entries.find(e => e.name === name);
+function openDetail(id) {
+  const entry = entries.find(e => e.id === id);
   if (!entry) return;
-  selectedName = name;
+  selectedId = id;
   $('detail-title').textContent = entry.issuer || entry.name;
   // Replace the detail icon container with our themed icon (SVG or initial).
   $('detail-icon').outerHTML =
@@ -314,7 +341,8 @@ function restoreAddView() {
   bindAddListeners();
 }
 
-async function openSettings() {
+async function openSettings(from) {
+  fromView = from ?? currentView();
   let settings;
   try { settings = await invoke('get_settings'); } catch (_) { settings = { vault_path: '', theme: 'system' }; }
   const theme = settings.theme || 'system';
@@ -322,40 +350,38 @@ async function openSettings() {
   const wrap = $('view-add-content');
   if (!wrap) return;
   wrap.innerHTML = `
-    <h3 style="font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:var(--s-4);">Settings</h3>
-    <label class="input-label" for="settings-vault-path">Vault path</label>
-    <div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-3);">
-      <input id="settings-vault-path" class="input" style="flex:1;font-size:12px;">
-      <button id="btn-browse-vault" class="btn btn-secondary" style="white-space:nowrap;font-size:12px;">Browse…</button>
+    <div class="settings-section">
+      <span class="settings-section-label">Vault path</span>
+      <div class="settings-row">
+        <input id="settings-vault-path" class="input settings-path-input" placeholder="~/path/to/vault">
+        <button id="btn-browse-vault" class="btn btn-secondary settings-browse-btn">Browse…</button>
+      </div>
     </div>
-    <label class="input-label" style="margin-bottom:var(--s-3);">Appearance</label>
-    <div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-4);">
-      <button data-theme-btn="light" style="flex:1;border:2px solid ${theme==='light'?'var(--brand)':'var(--border)'};border-radius:var(--r-md);padding:var(--s-2);cursor:pointer;background:#f5f5f7;transition:border-color 0.2s;">
-        <div style="height:28px;background:#ffffff;border-radius:4px;margin-bottom:4px;border:1px solid #e0e0e0;"></div>
-        <span style="font-family:var(--font-mono);font-size:10px;color:#333;display:block;text-align:center;">Light</span>
-      </button>
-      <button data-theme-btn="dark" style="flex:1;border:2px solid ${theme==='dark'?'var(--brand)':'var(--border)'};border-radius:var(--r-md);padding:var(--s-2);cursor:pointer;background:#1a1a2e;transition:border-color 0.2s;">
-        <div style="height:28px;background:#0d0d1a;border-radius:4px;margin-bottom:4px;border:1px solid #333;"></div>
-        <span style="font-family:var(--font-mono);font-size:10px;color:#aaa;display:block;text-align:center;">Dark</span>
-      </button>
-      <button data-theme-btn="system" style="flex:1;border:2px solid ${theme==='system'?'var(--brand)':'var(--border)'};border-radius:var(--r-md);padding:var(--s-2);cursor:pointer;background:linear-gradient(135deg,#f5f5f7 50%,#1a1a2e 50%);transition:border-color 0.2s;">
-        <div style="height:28px;border-radius:4px;margin-bottom:4px;background:linear-gradient(135deg,#ffffff 50%,#0d0d1a 50%);border:1px solid #888;"></div>
-        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);display:block;text-align:center;">Auto</span>
-      </button>
+    <div class="settings-section">
+      <span class="settings-section-label">Appearance</span>
+      <div class="settings-segmented">
+        <button class="settings-seg-btn${theme==='light'?' active':''}" data-theme-btn="light">
+          <svg class="seg-icon" width="12" height="12" viewBox="0 0 24 24"><use href="#icon-sun"/></svg>Light
+        </button>
+        <button class="settings-seg-btn${theme==='dark'?' active':''}" data-theme-btn="dark">
+          <svg class="seg-icon" width="12" height="12" viewBox="0 0 24 24"><use href="#icon-moon"/></svg>Dark
+        </button>
+        <button class="settings-seg-btn${theme==='system'?' active':''}" data-theme-btn="system">
+          <svg class="seg-icon" width="12" height="12" viewBox="0 0 24 24"><use href="#icon-monitor"/></svg>Auto
+        </button>
+      </div>
     </div>
-    <button id="btn-settings-save" class="btn btn-primary" style="width:100%;margin-bottom:var(--s-2);">Save</button>
-    <p id="settings-error" style="font-family:var(--font-mono);font-size:11px;color:var(--danger);display:none;"></p>`;
+    <button id="btn-settings-save" class="btn btn-primary settings-save-btn">Save</button>
+    <p id="settings-error" class="settings-error"></p>`;
 
   $('settings-vault-path').value = settings.vault_path;
 
-  // Theme card toggle
+  // Theme segmented control
   let selectedTheme = theme;
   wrap.querySelectorAll('[data-theme-btn]').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedTheme = btn.dataset.themeBtn;
-      wrap.querySelectorAll('[data-theme-btn]').forEach(b => {
-        b.style.borderColor = b === btn ? 'var(--brand)' : 'var(--border)';
-      });
+      wrap.querySelectorAll('[data-theme-btn]').forEach(b => b.classList.toggle('active', b === btn));
       applyTheme(selectedTheme);
     });
   });
@@ -378,7 +404,7 @@ async function openSettings() {
     } catch (err) {
       const errEl = $('settings-error');
       errEl.textContent = String(err);
-      errEl.style.display = '';
+      errEl.style.display = 'block';
     }
   });
 
@@ -451,6 +477,8 @@ function bindAddListeners() {
   const btnFile = $('btn-open-file');
   if (btnFile) {
     btnFile.addEventListener('click', async () => {
+      loaderStart();
+      showBlocking('Importing file…');
       try {
         const added = await withPopoverPinned(() => invoke('pick_and_import_file'));
         if (added.length === 0) return;
@@ -459,6 +487,7 @@ function bindAddListeners() {
         showView('view-list');
         toast(`Added: ${added.join(', ')}`);
       } catch (err) { toast(String(err), true); }
+      finally { loaderDone(); hideBlocking(); }
     });
   }
 
@@ -472,9 +501,12 @@ $('form-unlock').addEventListener('submit', async e => {
   const errEl = $('unlock-error');
   errEl.style.visibility = 'hidden';
   errEl.textContent = '';
+  const btn = $('btn-unlock-submit');
+  btn.classList.add('active');
+  setTimeout(() => btn.classList.remove('active'), 200);
+  loaderStart();
   setLogoEye(true);
   await new Promise(r => setTimeout(r, 1000));
-  loaderStart();
   const closeEyeAfterDelay = () => setLogoEye(false);
 
   let vaultExists;
@@ -515,12 +547,15 @@ $('form-unlock').addEventListener('submit', async e => {
 $('btn-lock').addEventListener('click', async () => {
   stopTick();
   entries = [];
-  selectedName = null;
+  filteredEntries = [];
+  selectedId = null;
+  fromView = 'view-list';
   try { await invoke('lock'); } catch (_) {}
   init();
 });
 
 $('btn-add').addEventListener('click', () => {
+  fromView = 'view-list';
   restoreAddView();
   showView('view-add');
 });
@@ -529,30 +564,30 @@ $('btn-settings').addEventListener('click', () => openSettings());
 $('btn-settings-locked').addEventListener('click', () => openSettings());
 
 $('btn-detail-back').addEventListener('click', () => {
-  selectedName = null;
+  selectedId = null;
   showView('view-list');
 });
 
 $('btn-add-back').addEventListener('click', () => {
   restoreAddView();
-  showView('view-list');
+  showView(fromView);
 });
 
 $('btn-detail-copy').addEventListener('click', async () => {
-  if (!selectedName) return;
+  if (!selectedId) return;
   try {
-    await invoke('copy_code', { name: selectedName });
+    await invoke('copy_code', { id: selectedId });
     toast('Copied!');
   } catch (err) { toast(String(err), true); }
 });
 
 $('btn-detail-del').addEventListener('click', async () => {
-  if (!selectedName) return;
+  if (!selectedId) return;
   showBlocking('Deleting…');
   loaderStart();
   try {
-    await invoke('delete_entry', { name: selectedName });
-    selectedName = null;
+    await invoke('delete_entry', { id: selectedId });
+    selectedId = null;
     const data = await invoke('get_entries');
     renderList(data);
     showView('view-list');
@@ -576,7 +611,7 @@ $('btn-reveal-confirm').addEventListener('click', async () => {
   const errEl = $('reveal-error');
   errEl.style.display = 'none';
   try {
-    const secret = await invoke('get_secret', { name: selectedName, passphrase });
+    const secret = await invoke('get_secret', { id: selectedId, passphrase });
     $('reveal-overlay').style.display = 'none';
     $('reveal-passphrase').value = '';
     // Show secret in cell, truncate after 30s
@@ -607,7 +642,9 @@ listen('tray-action', ({ payload }) => {
   if (payload === 'lock') {
     stopTick();
     entries = [];
-    selectedName = null;
+    filteredEntries = [];
+    selectedId = null;
+    fromView = 'view-list';
     invoke('lock').catch(() => {});
     init();
   } else if (payload === 'settings') {
@@ -626,7 +663,7 @@ listen('tray-action', ({ payload }) => {
 document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'n') { e.preventDefault(); $('btn-add').click(); }
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); $('search-input').focus(); }
-  if (e.key === 'Escape' && selectedName) { $('btn-detail-back').click(); }
+  if (e.key === 'Escape' && selectedId) { $('btn-detail-back').click(); }
 });
 
 

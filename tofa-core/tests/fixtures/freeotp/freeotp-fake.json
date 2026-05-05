@@ -1,0 +1,41 @@
+{
+  "tokens": [
+    {
+      "type": "TOTP",
+      "issuerExt": "npm",
+      "issuerInt": "npm",
+      "label": "frank@example.com",
+      "digits": 6,
+      "period": 30,
+      "algo": "SHA1",
+      "counter": 0,
+      "secret": [72, 101, 108, 108, 111, 33, -34, -83, -66, -17]
+    },
+    {
+      "type": "TOTP",
+      "issuerExt": "Heroku",
+      "issuerInt": "Heroku",
+      "label": "frank@acme.io",
+      "digits": 8,
+      "period": 60,
+      "algo": "SHA256",
+      "counter": 0,
+      "secret": [72, 101, 108, 108, 111, 33, -34, -83, -66, -17]
+    },
+    {
+      "type": "HOTP",
+      "issuerExt": "ShouldBeIgnored",
+      "issuerInt": "ShouldBeIgnored",
+      "label": "frank@example.com",
+      "digits": 6,
+      "period": 30,
+      "algo": "SHA1",
+      "counter": 0,
+      "secret": [72, 101, 108, 108, 111, 33, -34, -83, -66, -17]
+    }
+  ],
+  "tokenOrder": [
+    "npm:frank@example.com",
+    "Heroku:frank@acme.io"
+  ]
+}

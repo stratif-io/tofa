@@ -1,4 +1,5 @@
 pub mod crypto;
+pub mod import;
 pub mod qr;
 pub mod store;
 pub mod totp;

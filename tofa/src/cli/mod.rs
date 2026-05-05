@@ -149,6 +149,14 @@ pub fn find_entry<'a>(
 
 pub fn dispatch(cmd: Commands, vault_flag: Option<PathBuf>) -> CliResult {
     let vault_path = resolve_vault_path(vault_flag);
+    let needs_vault = !matches!(cmd, Commands::Init(_) | Commands::Completions(_));
+    if needs_vault && !vault_path.exists() {
+        return Err(format!(
+            "no vault at {}. Run 'tofa init' to create one.",
+            vault_path.display()
+        )
+        .into());
+    }
     match cmd {
         Commands::Init(args) => commands::init::run(args, vault_path),
         Commands::Destroy => commands::destroy::run(vault_path),

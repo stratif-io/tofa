@@ -1,0 +1,50 @@
+[
+  {
+    "type": "TOTP",
+    "label": "alice@example.com",
+    "issuer": "Dropbox",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "period": 30,
+    "thumbnail": "Default",
+    "last_used": 1746000000,
+    "tags": []
+  },
+  {
+    "type": "TOTP",
+    "label": "alice@example.com",
+    "issuer": "Slack",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "period": 30,
+    "thumbnail": "Default",
+    "last_used": 1746000000,
+    "tags": []
+  },
+  {
+    "type": "TOTP",
+    "label": "ops@acme.io",
+    "issuer": "Cloudflare",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA256",
+    "digits": 8,
+    "period": 60,
+    "thumbnail": "Default",
+    "last_used": 1746000000,
+    "tags": []
+  },
+  {
+    "type": "HOTP",
+    "label": "alice@example.com",
+    "issuer": "ShouldBeIgnored",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 0,
+    "thumbnail": "Default",
+    "last_used": 1746000000,
+    "tags": []
+  }
+]

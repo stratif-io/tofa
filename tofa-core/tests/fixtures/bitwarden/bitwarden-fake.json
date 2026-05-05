@@ -1,0 +1,41 @@
+{
+  "folders": [],
+  "items": [
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000001",
+      "type": 1,
+      "name": "Twitter",
+      "login": {
+        "username": "dave@example.com",
+        "password": "secret",
+        "totp": "otpauth://totp/Twitter:dave@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Twitter&algorithm=SHA1&digits=6&period=30"
+      }
+    },
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000002",
+      "type": 1,
+      "name": "Linear",
+      "login": {
+        "username": "dave@acme.io",
+        "password": "secret",
+        "totp": "otpauth://totp/Linear:dave@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=Linear&algorithm=SHA256&digits=8&period=60"
+      }
+    },
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000003",
+      "type": 1,
+      "name": "Fastmail",
+      "login": {
+        "username": "dave@fastmail.com",
+        "password": "secret",
+        "totp": "JBSWY3DPEHPK3PXP"
+      }
+    },
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000004",
+      "type": 2,
+      "name": "ShouldBeIgnored (not a login)",
+      "login": null
+    }
+  ]
+}

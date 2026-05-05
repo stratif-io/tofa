@@ -287,7 +287,7 @@ pub fn parse_input(input: &str) -> Result<OtpSecret, QrError> {
     Err(QrError::UnrecognizedInput)
 }
 
-fn parse_uri(uri: &str) -> Result<OtpSecret, QrError> {
+pub(crate) fn parse_uri(uri: &str) -> Result<OtpSecret, QrError> {
     // Format: otpauth://totp/LABEL?secret=SECRET&issuer=ISSUER&...
     // LABEL may be "issuer:account" or just "account"
     let after_scheme = uri.strip_prefix("otpauth://totp/").unwrap_or("");
@@ -639,6 +639,8 @@ fn is_valid_base32(s: &str) -> bool {
         && s.chars()
             .all(|c| matches!(c, 'A'..='Z' | 'a'..='z' | '2'..='7' | '='))
 }
+
+pub use crate::import::parse_json_bytes;
 
 pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> {
     use image::Luma;

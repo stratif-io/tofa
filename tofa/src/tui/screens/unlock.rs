@@ -97,10 +97,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     let mut idx = 0;
 
     // Title
-    let name = env!("CARGO_PKG_NAME");
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            name,
+            "TOFA",
             Style::default()
                 .fg(theme::BRAND)
                 .add_modifier(Modifier::BOLD),
@@ -124,7 +123,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault_path: &Path) {
     // Separator
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "─".repeat(name.len() + 4),
+            "─".repeat("TOFA".len() + 4),
             Style::default().fg(theme::BRAND),
         )))
         .alignment(Alignment::Center),

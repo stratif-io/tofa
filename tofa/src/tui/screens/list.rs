@@ -41,7 +41,7 @@ fn render_header(f: &mut Frame, area: Rect, vault: &Vault, secs: u64) {
 
     let left = Line::from(vec![
         Span::styled(
-            "tofa",
+            "TOFA",
             Style::default()
                 .fg(theme::BRAND)
                 .add_modifier(Modifier::BOLD),
@@ -221,12 +221,50 @@ fn render_footer(f: &mut Frame, area: Rect) {
             .style(Style::default().bg(theme::BG)),
         area,
     );
+
+    let key = |k: &'static str| Span::styled(k, Style::default().fg(theme::BRAND));
+    let desc = |d: &'static str| Span::styled(d, Style::default().fg(theme::TEXT));
+    let sep = || Span::styled("  ", Style::default());
+
+    let hints = Line::from(vec![
+        key("↑↓"),
+        desc(" nav"),
+        sep(),
+        key("spc"),
+        desc(" fullscreen"),
+        sep(),
+        key("i"),
+        desc(" detail"),
+        sep(),
+        key("h"),
+        desc(" codes"),
+        sep(),
+        key("a"),
+        desc(" add"),
+        sep(),
+        key("d"),
+        desc(" del"),
+        sep(),
+        key("y"),
+        desc(" copy"),
+        sep(),
+        key("e"),
+        desc(" export"),
+        sep(),
+        key("l"),
+        desc(" lock"),
+        sep(),
+        key("q"),
+        desc(" quit"),
+    ]);
+
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            "↑↓ nav  spc fullscreen  i detail  h codes  a add  d del  y copy  e export  l lock  q quit",
-            Style::default().fg(theme::SURFACE),
-        )))
-        .style(Style::default().bg(theme::BG)),
-        Rect { x: area.x, y: area.y + 1, width: area.width, height: 1 },
+        Paragraph::new(hints).style(Style::default().bg(theme::BG)),
+        Rect {
+            x: area.x,
+            y: area.y + 1,
+            width: area.width,
+            height: 1,
+        },
     );
 }

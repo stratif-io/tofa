@@ -1,0 +1,52 @@
+{
+  "services": [
+    {
+      "name": "Discord",
+      "secret": "JBSWY3DPEHPK3PXP",
+      "updatedAt": 1746000000000,
+      "otp": {
+        "label": "Discord",
+        "account": "bob#1234",
+        "issuer": "Discord",
+        "digits": 6,
+        "period": 30,
+        "algorithm": "SHA1",
+        "tokenType": "TOTP",
+        "source": "Link"
+      },
+      "order": { "position": 0 }
+    },
+    {
+      "name": "Netlify",
+      "secret": "JBSWY3DPEHPK3PXP",
+      "updatedAt": 1746000000000,
+      "otp": {
+        "label": "Netlify",
+        "account": "bob@example.com",
+        "issuer": "Netlify",
+        "digits": 8,
+        "period": 60,
+        "algorithm": "SHA256",
+        "tokenType": "TOTP",
+        "source": "Link"
+      },
+      "order": { "position": 1 }
+    },
+    {
+      "name": "ShouldBeIgnored",
+      "secret": "JBSWY3DPEHPK3PXP",
+      "updatedAt": 1746000000000,
+      "otp": {
+        "label": "ShouldBeIgnored",
+        "account": "bob@example.com",
+        "issuer": "ShouldBeIgnored",
+        "digits": 6,
+        "period": 30,
+        "algorithm": "SHA1",
+        "tokenType": "HOTP",
+        "source": "Link"
+      },
+      "order": { "position": 2 }
+    }
+  ]
+}

@@ -37,11 +37,22 @@ fn import_json(
     path: &std::path::Path,
     vault: &mut tofa_core::Vault,
 ) -> Result<(usize, usize), Box<dyn std::error::Error>> {
-    let content = std::fs::read_to_string(path)?;
-    let entries: Vec<VaultEntry> = serde_json::from_str(&content)?;
+    let bytes = std::fs::read(path)?;
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let otps = tofa_core::qr::parse_json_bytes(&bytes)?;
     let mut imported = 0;
     let mut skipped = 0;
-    for entry in entries {
+    for otp in otps {
+        let name = otp.meta.derive_name();
+        let entry = VaultEntry {
+            id: String::new(),
+            name,
+            secret: otp.secret,
+            created_at: today.clone(),
+            period: otp.meta.period.unwrap_or(30),
+            digits: otp.meta.digits.unwrap_or(6),
+            algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
+        };
         let dup = vault
             .entries()
             .iter()

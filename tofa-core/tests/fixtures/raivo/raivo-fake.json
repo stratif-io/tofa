@@ -1,0 +1,38 @@
+[
+  {
+    "kind": "TOTP",
+    "issuer": "Notion",
+    "account": "eve@example.com",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": "6",
+    "timer": "30",
+    "counter": "0",
+    "iconType": "Default",
+    "iconValue": ""
+  },
+  {
+    "kind": "TOTP",
+    "issuer": "Vercel",
+    "account": "eve@acme.io",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA256",
+    "digits": "8",
+    "timer": "60",
+    "counter": "0",
+    "iconType": "Default",
+    "iconValue": ""
+  },
+  {
+    "kind": "HOTP",
+    "issuer": "ShouldBeIgnored",
+    "account": "eve@example.com",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": "6",
+    "timer": "30",
+    "counter": "0",
+    "iconType": "Default",
+    "iconValue": ""
+  }
+]

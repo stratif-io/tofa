@@ -352,6 +352,7 @@ body {
 
 .btn-primary { background: var(--brand); color: var(--on-brand); }
 .btn-primary:hover { background: var(--brand-hover); transform: translateY(-1px); }
+.btn-primary:active, .btn-primary.active { background: var(--brand-hover); transform: translateY(1px); opacity: 0.85; }
 
 .btn-secondary { background: transparent; color: var(--text); border-color: var(--border-strong); }
 .btn-secondary:hover { border-color: var(--brand); color: var(--brand); }
@@ -424,7 +425,64 @@ body {
 
 .tray-header-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; }
 
+.tray-footer {
+  display: flex;
+  align-items: center;
+  padding: var(--s-1) var(--s-2);
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.tray-footer .tray-footer-btn:last-child { margin-left: auto; }
+.tray-footer-btn { padding: 6px 8px !important; }
+
 .tray-search { margin: var(--s-3) var(--s-4); }
+
+/* ── Settings page ─────────────────────────────────────────────────────────── */
+.settings-section { margin-bottom: var(--s-5); }
+.settings-section-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subtle);
+  margin-bottom: var(--s-2);
+}
+.settings-row { display: flex; gap: var(--s-2); }
+.settings-path-input { flex: 1; font-size: 12px; min-width: 0; }
+.settings-browse-btn { white-space: nowrap; font-size: 12px; flex-shrink: 0; }
+.settings-segmented {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 3px;
+  gap: 2px;
+}
+.settings-seg-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 6px 4px;
+  border: none;
+  border-radius: calc(var(--r-md) - 2px);
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.settings-seg-btn:hover:not(.active) { color: var(--text); }
+.settings-seg-btn.active { background: var(--brand); color: #fff; font-weight: 600; }
+.seg-icon { vertical-align: -2px; margin-right: 4px; stroke: currentColor; fill: none; stroke-width: 2; }
+.settings-save-btn { width: 100%; margin-bottom: var(--s-2); }
+.settings-error {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--danger);
+  display: none;
+  margin-top: var(--s-1);
+}
 
 .tray-list { max-height: 320px; overflow-y: auto; }
 

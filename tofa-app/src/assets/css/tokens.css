@@ -40,9 +40,9 @@
   --surface-2:    var(--ink-700);
   --border:       #2a2a3a;
   --border-strong:#3d3d52;
-  --text:         var(--ink-50);
-  --text-muted:   var(--ink-300);
-  --text-subtle:  var(--ink-400);
+  --text:         #ffffff;
+  --text-muted:   #c8c5d8;
+  --text-subtle:  var(--ink-300);
 
   --brand:        var(--purple-300);
   --brand-bg:     rgba(184, 158, 255, 0.12);

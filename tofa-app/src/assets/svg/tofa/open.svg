@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" style="color:#7C5CFF;--bg:#0a0a12">
   <defs>
     <symbol id="tofa-open" viewBox="0 0 128 128">
       <path d="M 64 14 C 78 14 92 18 102 22 C 104 23 106 25 106 28 V 60 C 106 86 90 104 66 114 C 65 114 63 114 62 114 C 38 104 22 86 22 60 V 28 C 22 25 24 23 26 22 C 36 18 50 14 64 14 Z" fill="currentColor"/>

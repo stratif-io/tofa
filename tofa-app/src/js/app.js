@@ -194,8 +194,6 @@ function applyFilter(query) {
     list.appendChild(item);
   });
 
-  const badge = $('list-badge');
-  badge.textContent = filteredEntries.length ? `${filteredEntries.length}` : '';
 }
 
 // ── Tick (countdown) ───────────────────────────────────────────────────────

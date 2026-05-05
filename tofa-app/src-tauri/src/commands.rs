@@ -904,3 +904,38 @@ pub async fn generate_selection_qr(
     .await
     .map_err(|e| e.to_string())?
 }
+
+/// Save a base64-encoded PNG to a user-chosen location via native save dialog.
+#[tauri::command]
+pub async fn save_qr_png(
+    window: tauri::Window,
+    data_uri: String,
+    filename: String,
+) -> Result<(), String> {
+    let bytes = data_uri
+        .strip_prefix("data:image/png;base64,")
+        .ok_or("invalid data URI")?;
+    let bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, bytes)
+        .map_err(|e| e.to_string())?;
+
+    let handle = window.app_handle().clone();
+    let path = tokio::task::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        handle
+            .dialog()
+            .file()
+            .set_title("Save QR Code")
+            .set_file_name(&filename)
+            .add_filter("PNG image", &["png"])
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let path = match path {
+        None => return Ok(()), // user cancelled
+        Some(p) => p.into_path().map_err(|e| e.to_string())?,
+    };
+
+    std::fs::write(&path, &bytes).map_err(|e| e.to_string())
+}

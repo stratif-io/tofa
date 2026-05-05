@@ -616,13 +616,13 @@ $('btn-qr-close').addEventListener('click', () => {
   $('qr-overlay-img').src = '';
 });
 
-$('btn-qr-save').addEventListener('click', () => {
+$('btn-qr-save').addEventListener('click', async () => {
   const img = $('qr-overlay-img');
   if (!img.src) return;
-  const a = document.createElement('a');
-  a.href = img.src;
-  a.download = `${$('qr-overlay-title').textContent || 'tofa-qr'}.png`;
-  a.click();
+  const filename = `${$('qr-overlay-title').textContent || 'tofa-qr'}.png`;
+  try {
+    await invoke('save_qr_png', { dataUri: img.src, filename });
+  } catch (err) { toast(String(err), true); }
 });
 
 // ── Export QR (multi-select) ────────────────────────────────────────────────

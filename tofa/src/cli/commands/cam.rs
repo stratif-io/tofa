@@ -203,7 +203,7 @@ fn build_html() -> String {
 </style>
 </head>
 <body>
-<h1>tofa</h1>
+<h1>TOFA</h1>
 <div id="wrap">
   <video id="video" autoplay playsinline muted></video>
   <div id="overlay">

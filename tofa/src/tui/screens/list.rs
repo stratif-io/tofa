@@ -41,7 +41,7 @@ fn render_header(f: &mut Frame, area: Rect, vault: &Vault, secs: u64) {
 
     let left = Line::from(vec![
         Span::styled(
-            "tofa",
+            "TOFA",
             Style::default()
                 .fg(theme::BRAND)
                 .add_modifier(Modifier::BOLD),

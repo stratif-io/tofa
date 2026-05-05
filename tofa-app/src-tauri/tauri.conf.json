@@ -1,6 +1,6 @@
 {
   "productName": "Tofa",
-  "version": "0.2.1",
+  "version": "0.5.0",
   "identifier": "com.cabichahine.tofa",
   "build": {
     "frontendDist": "../src"
@@ -14,16 +14,33 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "app"],
-    "icon": ["icons/icon.png", "icons/icon.icns"],
-    "resources": ["icons/tray_icon.png"],
+    "targets": [
+      "dmg",
+      "app"
+    ],
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.icns"
+    ],
+    "resources": [
+      "icons/tray_icon.png"
+    ],
     "macOS": {
       "infoPlist": "Info.plist",
       "dmg": {
         "background": "../../packaging/dmg-background.png",
-        "windowSize": { "width": 528, "height": 320 },
-        "appPosition": { "x": 144, "y": 136 },
-        "applicationFolderPosition": { "x": 384, "y": 136 }
+        "windowSize": {
+          "width": 528,
+          "height": 320
+        },
+        "appPosition": {
+          "x": 144,
+          "y": 136
+        },
+        "applicationFolderPosition": {
+          "x": 384,
+          "y": 136
+        }
       }
     }
   }

@@ -13,7 +13,14 @@
       "component": "tofa-macos",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": true,
-      "include-v-in-tag": true
+      "include-v-in-tag": true,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "tofa-app/src-tauri/tauri.conf.json",
+          "jsonpath": "$.version"
+        }
+      ]
     }
   },
   "tag-separator": "-"

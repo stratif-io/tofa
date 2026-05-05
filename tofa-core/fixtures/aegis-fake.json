@@ -31,7 +31,7 @@
         "favorite": false,
         "icon": null,
         "info": {
-          "secret": "KRUGKIDROVUWG2ZAMJZG653OEBTG66BANJ2W24DTEBXXMZLSEB2GQZJANRQXU6JAMRXWOLQ=",
+          "secret": "JBSWY3DPEHPK3PXP",
           "algo": "SHA1",
           "digits": 6,
           "period": 30
@@ -46,7 +46,7 @@
         "favorite": true,
         "icon": null,
         "info": {
-          "secret": "BASE32SECRETSTRIPE234567",
+          "secret": "JBSWY3DPEHPK3PXP",
           "algo": "SHA1",
           "digits": 6,
           "period": 30
@@ -61,7 +61,7 @@
         "favorite": false,
         "icon": null,
         "info": {
-          "secret": "MFRA2YTBMJQXI2LPNY======",
+          "secret": "JBSWY3DPEHPK3PXP",
           "algo": "SHA256",
           "digits": 8,
           "period": 60

@@ -16,6 +16,11 @@ for SIZE in "${SIZES[@]}"; do
   rsvg-convert -w "$SIZE" -h "$SIZE" "$SVG" -o "$ICONS_DIR/${SIZE}x${SIZE}.png"
 done
 
+# Ensure all PNGs are RGBA (Tauri requires alpha channel)
+for f in "$ICONS_DIR"/*.png; do
+  sips -s format png "$f" --out "$f" >/dev/null 2>&1
+done
+
 # 128x128@2x = 256px
 cp "$ICONS_DIR/256x256.png" "$ICONS_DIR/128x128@2x.png"
 

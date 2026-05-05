@@ -154,6 +154,29 @@ function applyFilter(query) {
 
   const list = $('account-list');
   list.innerHTML = '';
+
+  if (filteredEntries.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    if (q) {
+      empty.innerHTML = `<p class="empty-state-title">No results</p><p class="empty-state-sub">No accounts match "<em>${q}</em>"</p>`;
+    } else {
+      empty.innerHTML = `
+        <svg width="40" height="40" style="color:var(--text-muted);margin-bottom:var(--s-3)" viewBox="0 0 128 128"><use href="#tofa-wink"/></svg>
+        <p class="empty-state-title">No accounts yet</p>
+        <p class="empty-state-sub">Add your first TOTP account to get started</p>
+        <button class="btn btn-primary empty-state-btn" id="empty-state-add">Add account</button>`;
+    }
+    list.appendChild(empty);
+    if (!q) {
+      empty.querySelector('#empty-state-add').addEventListener('click', () => {
+        fromView = 'view-list';
+        showView('view-add');
+      });
+    }
+    return;
+  }
+
   filteredEntries.forEach(entry => {
     const item = document.createElement('div');
     item.className = 'account-item';

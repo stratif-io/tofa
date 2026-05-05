@@ -13,7 +13,7 @@ tofa-app/src-tauri/gen/
 !.release-please-manifest.json
 !tofa-app/src-tauri/tauri.conf.json
 !tofa-app/src-tauri/capabilities/*.json
-!tofa-core/fixtures/*.json
+!tofa-core/tests/fixtures/aegis/*.json
 
 # Superpowers AI tooling — not part of the project
 docs/superpowers/

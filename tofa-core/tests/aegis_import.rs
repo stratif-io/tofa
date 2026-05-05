@@ -2,7 +2,7 @@ use tofa_core::qr::parse_json_bytes;
 
 fn fixture_bytes(name: &str) -> Vec<u8> {
     let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("fixtures")
+        .join("tests/fixtures/aegis")
         .join(name);
     std::fs::read(path).expect("fixture file not found")
 }

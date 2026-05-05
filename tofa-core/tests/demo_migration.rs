@@ -8,7 +8,8 @@ fn generate_demo_qr() {
     let uri = generate_demo_migration_uri().expect("generate demo URI");
     assert!(uri.starts_with("otpauth-migration://"));
 
-    let out = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/demo_migration.png");
+    let out =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/qr/demo_migration.png");
 
     use image::Luma;
     use qrcode::QrCode;

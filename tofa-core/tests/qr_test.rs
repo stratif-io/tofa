@@ -26,7 +26,8 @@ fn invalid_input_returns_error() {
 
 #[test]
 fn parse_qr_image_file() {
-    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/test_qr.png");
+    let fixture =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/qr/test_qr.png");
 
     if fixture.exists() {
         let result = parse_input(fixture.to_str().unwrap()).unwrap();

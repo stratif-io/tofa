@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.5.3...tofa-macos-v0.6.0) (2026-05-05)
+
+
+### Features
+
+* **app:** disable scan screen (coming soon), add QR export for single and multiple accounts ([ea17dba](https://github.com/stratif-io/tofa/commit/ea17dbad0b54645678f1a71cd375f94b5a7b0aff))
+* **app:** QR export for single/multiple accounts + disable scan screen ([7ae2229](https://github.com/stratif-io/tofa/commit/7ae2229e830e170318f694e50d3752ae305262d6))
+* **app:** save QR PNG via native save dialog instead of browser download ([5e6a28c](https://github.com/stratif-io/tofa/commit/5e6a28c4361452ac677e26973c3769221d96d035))
+
+
+### Bug Fixes
+
+* **app:** sync tauri.conf.json version to 0.5.3 ([767650a](https://github.com/stratif-io/tofa/commit/767650a34abaaa63c22ec253ea623c97353f6223))
+
 ## [0.5.3](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.5.2...tofa-macos-v0.5.3) (2026-05-05)
 
 

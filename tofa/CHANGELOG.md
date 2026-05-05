@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.0](https://github.com/stratif-io/tofa/compare/v0.3.0...v0.4.0) (2026-05-05)
+
+
+### Features
+
+* **app:** redesign UI — settings page, nav bar, TOFA branding, icon regen ([aa7edf9](https://github.com/stratif-io/tofa/commit/aa7edf9900bfb568c393b4f85d80499c26db4436))
+* **cli:** display entry id in list output ([ac7d16d](https://github.com/stratif-io/tofa/commit/ac7d16d59b50a18d1c63f330c95abc9ef6702c50))
+* multi-format import, UI redesign, Homebrew tap, TOFA branding ([30b7fd9](https://github.com/stratif-io/tofa/commit/30b7fd99276ead2450ee02e59304598b67fd1bfb))
+
+
+### Bug Fixes
+
+* **cli:** check vault exists before prompting for passphrase ([bb13511](https://github.com/stratif-io/tofa/commit/bb135115dfa7dabf6d8f8a323577b191c728e290))
+* **cli:** use format_code for list --codes, fixing 8-digit split to 4+4 ([61effe0](https://github.com/stratif-io/tofa/commit/61effe06fc34288c3d03800a321baf9b358ab834))
+* **cli:** use tofa_core::qr::parse_json_bytes for import command ([21413fd](https://github.com/stratif-io/tofa/commit/21413fde6bc5fb6a314a5a852315bea033b008fc))
+* **tui:** increase shortcut hint contrast in list footer ([d9f69e0](https://github.com/stratif-io/tofa/commit/d9f69e098607924051f12c4e7b4789e71c584a4a))
+* **tui:** make shortcut hints visible in list footer ([1a8973b](https://github.com/stratif-io/tofa/commit/1a8973b62b164e2b7d2a0e10e84fbe419c0d2d9d))
+* **tui:** use TEXT color for shortcut descriptions in footer ([9edd64d](https://github.com/stratif-io/tofa/commit/9edd64d569c275a1d007d15a715971453fb89668))
+
 ## [0.3.0](https://github.com/stratif-io/tofa/compare/v0.2.1...v0.3.0) (2026-05-04)
 
 

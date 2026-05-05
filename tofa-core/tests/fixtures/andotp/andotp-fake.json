@@ -1,0 +1,50 @@
+[
+  {
+    "type": "TOTP",
+    "label": "carlo@example.com",
+    "issuer": "GitHub",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "period": 30,
+    "thumbnail": "Default",
+    "last_used": 1746000000,
+    "tags": []
+  },
+  {
+    "type": "TOTP",
+    "label": "carlo@example.com",
+    "issuer": "Google",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "period": 30,
+    "thumbnail": "Default",
+    "last_used": 1746000000,
+    "tags": []
+  },
+  {
+    "type": "TOTP",
+    "label": "admin@acme.io",
+    "issuer": "AWS",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA256",
+    "digits": 8,
+    "period": 60,
+    "thumbnail": "Default",
+    "last_used": 1746000000,
+    "tags": []
+  },
+  {
+    "type": "HOTP",
+    "label": "carlo@example.com",
+    "issuer": "ShouldBeIgnored",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 0,
+    "thumbnail": "Default",
+    "last_used": 1746000000,
+    "tags": []
+  }
+]

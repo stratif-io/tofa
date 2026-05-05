@@ -799,3 +799,143 @@ fn entries_from_vault(vault: &tofa_core::store::Vault) -> Result<Vec<OtpEntry>, 
         })
         .collect()
 }
+
+/// Generate a QR code PNG for a single vault entry and return it as a base64 data URI.
+/// Encodes the entry as an otpauth:// URI so any authenticator can scan it.
+#[tauri::command]
+pub async fn generate_entry_qr(
+    id: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<String, String> {
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+
+    tokio::task::spawn_blocking(move || {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let entry = vault
+            .entry_by_id(&id)
+            .ok_or_else(|| format!("entry '{}' not found", id))?;
+
+        let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&entry.name);
+        let label = if issuer.is_empty() {
+            account.clone()
+        } else {
+            format!("{}:{}", issuer, account)
+        };
+        let uri = format!(
+            "otpauth://totp/{}?secret={}&issuer={}&algorithm={}&digits={}&period={}",
+            urlencoding::encode(&label),
+            entry.secret,
+            urlencoding::encode(&issuer),
+            entry.algorithm,
+            entry.digits,
+            entry.period,
+        );
+
+        let tmp = std::env::temp_dir().join(format!("tofa_qr_{}.png", entry.id));
+        tofa_core::qr::uri_to_qr_png(&uri, &tmp).map_err(|e| e.to_string())?;
+        let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
+        let _ = std::fs::remove_file(&tmp);
+        Ok(format!(
+            "data:image/png;base64,{}",
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)
+        ))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Generate a QR code PNG for a selection of vault entries using the Google
+/// Authenticator migration format, returned as a base64 data URI.
+#[tauri::command]
+pub async fn generate_selection_qr(
+    ids: Vec<String>,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<String, String> {
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+
+    tokio::task::spawn_blocking(move || {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+
+        let accounts: Vec<(String, String, String)> = ids
+            .iter()
+            .filter_map(|id| vault.entry_by_id(id))
+            .map(|e| {
+                let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&e.name);
+                (account, issuer, e.secret.clone())
+            })
+            .collect();
+
+        if accounts.is_empty() {
+            return Err("No matching entries found.".to_string());
+        }
+
+        let refs: Vec<(&str, &str, &str)> = accounts
+            .iter()
+            .map(|(n, i, s)| (n.as_str(), i.as_str(), s.as_str()))
+            .collect();
+
+        let uri = tofa_core::qr::generate_migration_uri(&refs).map_err(|e| e.to_string())?;
+
+        let tmp = std::env::temp_dir().join("tofa_qr_export.png");
+        tofa_core::qr::uri_to_qr_png(&uri, &tmp).map_err(|e| e.to_string())?;
+        let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
+        let _ = std::fs::remove_file(&tmp);
+        Ok(format!(
+            "data:image/png;base64,{}",
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)
+        ))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Save a base64-encoded PNG to a user-chosen location via native save dialog.
+#[tauri::command]
+pub async fn save_qr_png(
+    window: tauri::Window,
+    data_uri: String,
+    filename: String,
+) -> Result<(), String> {
+    let bytes = data_uri
+        .strip_prefix("data:image/png;base64,")
+        .ok_or("invalid data URI")?;
+    let bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, bytes)
+        .map_err(|e| e.to_string())?;
+
+    let handle = window.app_handle().clone();
+    let path = tokio::task::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        handle
+            .dialog()
+            .file()
+            .set_title("Save QR Code")
+            .set_file_name(&filename)
+            .add_filter("PNG image", &["png"])
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let path = match path {
+        None => return Ok(()), // user cancelled
+        Some(p) => p.into_path().map_err(|e| e.to_string())?,
+    };
+
+    std::fs::write(&path, &bytes).map_err(|e| e.to_string())
+}

@@ -18,13 +18,13 @@
     "icon": ["icons/icon.png", "icons/icon.icns"],
     "resources": ["icons/tray_icon.png"],
     "macOS": {
-      "infoPlist": "Info.plist"
-    },
-    "dmg": {
-      "background": "../../packaging/dmg-background.png",
-      "windowSize": { "width": 528, "height": 320 },
-      "appPosition": { "x": 144, "y": 136 },
-      "applicationFolderPosition": { "x": 384, "y": 136 }
+      "infoPlist": "Info.plist",
+      "dmg": {
+        "background": "../../packaging/dmg-background.png",
+        "windowSize": { "width": 528, "height": 320 },
+        "appPosition": { "x": 144, "y": 136 },
+        "applicationFolderPosition": { "x": 384, "y": 136 }
+      }
     }
   }
 }

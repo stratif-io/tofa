@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SVG="$(dirname "$0")/../docs/design/assets/svg/dmg_icon.svg"
+SVG="$(dirname "$0")/../docs/design/assets/svg/app_icon.svg"
 SVG_TRAY="$(dirname "$0")/../docs/design/assets/svg/tofa-wink-dark.svg"
 ICONS_DIR="$(dirname "$0")/../tofa-app/src-tauri/icons"
 ICONSET="$ICONS_DIR/AppIcon.iconset"

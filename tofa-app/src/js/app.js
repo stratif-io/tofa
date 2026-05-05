@@ -480,15 +480,16 @@ function bindAddListeners() {
   if (btnFile) {
     btnFile.addEventListener('click', async () => {
       loaderStart();
+      showBlocking('Importing QR image…');
       try {
         const added = await withPopoverPinned(() => invoke('pick_and_import_file'));
-        if (added.length === 0) { loaderDone(); return; }
+        if (added.length === 0) return;
         const data = await invoke('get_entries');
         renderList(data);
         showView('view-list');
         toast(`Added: ${added.join(', ')}`);
       } catch (err) { toast(String(err), true); }
-      finally { loaderDone(); }
+      finally { loaderDone(); hideBlocking(); }
     });
   }
 

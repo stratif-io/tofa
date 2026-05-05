@@ -134,16 +134,6 @@
     </table>
   </div>
 
-  <!-- QR export overlay -->
-  <div id="qr-overlay" style="display:none;position:absolute;inset:0;background:var(--bg);z-index:10;flex-direction:column;align-items:center;justify-content:center;padding:var(--s-5);">
-    <p id="qr-overlay-title" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:var(--s-4);text-align:center;"></p>
-    <img id="qr-overlay-img" src="" alt="QR code" style="width:200px;height:200px;image-rendering:pixelated;border-radius:var(--r-md);margin-bottom:var(--s-4);">
-    <div style="display:flex;gap:var(--s-2);width:100%;">
-      <button id="btn-qr-save" class="btn btn-primary" style="flex:1;">Save PNG</button>
-      <button id="btn-qr-close" class="btn btn-secondary" style="flex:1;">Close</button>
-    </div>
-  </div>
-
   <!-- Reveal secret overlay -->
   <div id="reveal-overlay" style="display:none;position:absolute;inset:0;background:var(--bg);z-index:10;display:none;flex-direction:column;align-items:center;justify-content:center;padding:var(--s-5);">
     <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:var(--s-4);text-align:center;">Enter your passphrase to reveal the secret</p>
@@ -182,6 +172,16 @@
     <input id="input-uri" class="input" placeholder="otpauth://totp/…" style="margin-bottom:var(--s-3);font-size:12px;">
     <button id="btn-add-submit" class="btn btn-primary" style="width:100%;">Add account</button>
     <p id="add-error" style="font-family:var(--font-mono);font-size:11px;color:var(--danger);margin-top:var(--s-2);display:none;" role="alert"></p>
+  </div>
+</div>
+
+<!-- QR overlay — root level so it appears over any view -->
+<div id="qr-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:100;flex-direction:column;align-items:center;justify-content:center;padding:var(--s-5);">
+  <p id="qr-overlay-title" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:var(--s-4);text-align:center;"></p>
+  <img id="qr-overlay-img" src="" alt="QR code" style="width:200px;height:200px;image-rendering:pixelated;border-radius:var(--r-md);margin-bottom:var(--s-4);">
+  <div style="display:flex;gap:var(--s-2);width:100%;">
+    <button id="btn-qr-save" class="btn btn-primary" style="flex:1;">Save PNG</button>
+    <button id="btn-qr-close" class="btn btn-secondary" style="flex:1;">Close</button>
   </div>
 </div>
 

@@ -599,7 +599,64 @@ $('btn-detail-del').addEventListener('click', async () => {
   }
 });
 
-$('btn-detail-qr').addEventListener('click', () => { toast('QR export coming soon'); });
+$('btn-detail-qr').addEventListener('click', async () => {
+  if (!selectedId) return;
+  loaderStart();
+  try {
+    const dataUri = await invoke('generate_entry_qr', { id: selectedId });
+    $('qr-overlay-title').textContent = $('detail-title').textContent;
+    $('qr-overlay-img').src = dataUri;
+    $('qr-overlay').style.display = 'flex';
+  } catch (err) { toast(String(err), true); }
+  finally { loaderDone(); }
+});
+
+$('btn-qr-close').addEventListener('click', () => {
+  $('qr-overlay').style.display = 'none';
+  $('qr-overlay-img').src = '';
+});
+
+$('btn-qr-save').addEventListener('click', () => {
+  const img = $('qr-overlay-img');
+  if (!img.src) return;
+  const a = document.createElement('a');
+  a.href = img.src;
+  a.download = `${$('qr-overlay-title').textContent || 'tofa-qr'}.png`;
+  a.click();
+});
+
+// ── Export QR (multi-select) ────────────────────────────────────────────────
+
+$('btn-export-qr').addEventListener('click', () => {
+  const list = $('export-qr-list');
+  list.innerHTML = entries.map(e => `
+    <label style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-2) var(--s-2);border-radius:var(--r-md);cursor:pointer;">
+      <input type="checkbox" data-id="${e.id}" checked style="width:14px;height:14px;accent-color:var(--brand);">
+      <span style="font-size:13px;">${e.issuer || e.name}</span>
+      ${e.issuer ? `<span style="font-size:11px;color:var(--text-muted);margin-left:auto;">${e.account}</span>` : ''}
+    </label>
+  `).join('');
+  $('export-qr-overlay').style.display = 'flex';
+});
+
+$('btn-export-qr-back').addEventListener('click', () => {
+  $('export-qr-overlay').style.display = 'none';
+});
+
+$('btn-export-qr-generate').addEventListener('click', async () => {
+  const ids = [...$('export-qr-list').querySelectorAll('input[type=checkbox]:checked')]
+    .map(cb => cb.dataset.id);
+  if (ids.length === 0) { toast('Select at least one account', true); return; }
+  loaderStart();
+  try {
+    const dataUri = await invoke('generate_selection_qr', { ids });
+    $('export-qr-overlay').style.display = 'none';
+    $('qr-overlay-title').textContent = `${ids.length} account${ids.length > 1 ? 's' : ''}`;
+    $('qr-overlay-img').src = dataUri;
+    $('qr-overlay').style.display = 'flex';
+  } catch (err) { toast(String(err), true); }
+  finally { loaderDone(); }
+});
 
 $('btn-reveal-cancel').addEventListener('click', () => {
   $('reveal-overlay').style.display = 'none';

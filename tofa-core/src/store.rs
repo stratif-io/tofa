@@ -151,6 +151,19 @@ impl Vault {
         }
     }
 
+    pub fn remove_by_id(&mut self, id: &str) -> bool {
+        if let Some(idx) = self.data.entries.iter().position(|e| e.id == id) {
+            self.data.entries.remove(idx);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn entry_by_id(&self, id: &str) -> Option<&VaultEntry> {
+        self.data.entries.iter().find(|e| e.id == id)
+    }
+
     pub fn rename_entry(&mut self, index: usize, new_name: String) {
         if let Some(entry) = self.data.entries.get_mut(index) {
             entry.name = new_name;

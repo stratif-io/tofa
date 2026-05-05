@@ -108,7 +108,7 @@ pub async fn get_entries(state: State<'_, Mutex<AppState>>) -> Result<Vec<OtpEnt
 
 #[tauri::command]
 pub async fn copy_code(
-    name: String,
+    id: String,
     state: State<'_, Mutex<AppState>>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
@@ -124,10 +124,8 @@ pub async fn copy_code(
         let vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
         let entry = vault
-            .entries()
-            .iter()
-            .find(|e| e.name == name)
-            .ok_or_else(|| format!("entry '{}' not found", name))?
+            .entry_by_id(&id)
+            .ok_or_else(|| format!("entry '{}' not found", id))?
             .clone();
         let raw = tofa_core::totp::generate_code_now(&entry).map_err(|e| e.to_string())?;
         Ok::<String, String>(tofa_core::totp::format_code(&raw))
@@ -263,7 +261,7 @@ pub fn save_settings(settings: Settings, state: State<Mutex<AppState>>) -> Resul
 
 #[tauri::command]
 pub fn get_secret(
-    name: String,
+    id: String,
     passphrase: String,
     state: State<Mutex<AppState>>,
 ) -> Result<String, String> {
@@ -271,10 +269,8 @@ pub fn get_secret(
     let vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
         .map_err(|_| "Wrong passphrase.".to_string())?;
     let entry = vault
-        .entries()
-        .iter()
-        .find(|e| e.name == name)
-        .ok_or_else(|| format!("Entry '{}' not found.", name))?;
+        .entry_by_id(&id)
+        .ok_or_else(|| format!("Entry '{}' not found.", id))?;
     Ok(entry.secret.clone())
 }
 
@@ -287,7 +283,7 @@ pub fn lock(state: State<Mutex<AppState>>, app: tauri::AppHandle) -> Result<(), 
 }
 
 #[tauri::command]
-pub async fn delete_entry(name: String, state: State<'_, Mutex<AppState>>) -> Result<(), String> {
+pub async fn delete_entry(id: String, state: State<'_, Mutex<AppState>>) -> Result<(), String> {
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
         let p = s
@@ -299,12 +295,9 @@ pub async fn delete_entry(name: String, state: State<'_, Mutex<AppState>>) -> Re
     tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let idx = vault
-            .entries()
-            .iter()
-            .position(|e| e.name == name)
-            .ok_or_else(|| format!("entry '{}' not found", name))?;
-        vault.remove_entry(idx);
+        if !vault.remove_by_id(&id) {
+            return Err(format!("entry '{}' not found", id));
+        }
         vault
             .save(&vault_path, &passphrase)
             .map_err(|e| e.to_string())

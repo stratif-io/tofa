@@ -21,7 +21,7 @@ const { listen } = window.__TAURI__.event;
 // ── State ──────────────────────────────────────────────────────────────────
 let entries = [];
 let filteredEntries = [];
-let selectedName = null;
+let selectedId = null;
 let tickInterval = null;
 let fromView = 'view-list'; // view to return to when pressing Back
 
@@ -180,7 +180,7 @@ function applyFilter(query) {
   filteredEntries.forEach(entry => {
     const item = document.createElement('div');
     item.className = 'account-item';
-    item.dataset.name = entry.name;
+    item.dataset.id = entry.id;
     const secs = entry.seconds_left ?? OTP.secondsRemaining(entry.period);
     const timerColor = secs < 5 ? 'var(--danger)' : secs < 10 ? 'var(--warning)' : 'var(--brand)';
     item.innerHTML = `
@@ -192,25 +192,25 @@ function applyFilter(query) {
       <div style="display:flex;align-items:center;gap:var(--s-2);flex-shrink:0;padding-left:var(--s-2);">
         <div class="item-code-col" style="text-align:right;cursor:pointer;" title="Click to copy">
           <div style="font-family:var(--font-mono);font-weight:700;font-size:14px;letter-spacing:0.08em;color:${timerColor}">${entry.code}</div>
-          <div style="font-family:var(--font-mono);font-size:10px;color:${timerColor}" data-timer="${entry.name}">${secs}s</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:${timerColor}" data-timer="${entry.id}">${secs}s</div>
         </div>
-        <button class="btn btn-ghost btn-copy-item" data-name="${entry.name}" style="padding:4px 6px;font-size:14px;flex-shrink:0;" title="Copy code">⎘</button>
+        <button class="btn btn-ghost btn-copy-item" data-id="${entry.id}" style="padding:4px 6px;font-size:14px;flex-shrink:0;" title="Copy code">⎘</button>
       </div>`;
     item.addEventListener('click', e => {
       if (e.target.closest('.btn-copy-item') || e.target.closest('.item-code-col')) return;
-      openDetail(entry.name);
+      openDetail(entry.id);
     });
     item.querySelector('.btn-copy-item').addEventListener('click', async e => {
       e.stopPropagation();
       try {
-        await invoke('copy_code', { name: entry.name });
+        await invoke('copy_code', { id: entry.id });
         toast('Copied!');
       } catch (err) { toast(String(err), true); }
     });
     item.querySelector('.item-code-col').addEventListener('click', async e => {
       e.stopPropagation();
       try {
-        await invoke('copy_code', { name: entry.name });
+        await invoke('copy_code', { id: entry.id });
         toast('Copied!');
       } catch (err) { toast(String(err), true); }
     });
@@ -249,8 +249,8 @@ function tick() {
 
   if (secs <= 1) { refreshEntries(); return; }
 
-  if (selectedName) {
-    const entry = entries.find(e => e.name === selectedName);
+  if (selectedId) {
+    const entry = entries.find(e => e.id === selectedId);
     if (entry) {
       const period = entry.period || 30;
       const s = OTP.secondsRemaining(period);
@@ -267,18 +267,18 @@ async function refreshEntries() {
   try {
     const data = await invoke('get_entries');
     renderList(data);
-    if (selectedName) {
-      const entry = data.find(e => e.name === selectedName);
+    if (selectedId) {
+      const entry = data.find(e => e.id === selectedId);
       if (entry) updateDetailCode(entry);
     }
   } catch (_) {}
 }
 
 // ── Detail view ────────────────────────────────────────────────────────────
-function openDetail(name) {
-  const entry = entries.find(e => e.name === name);
+function openDetail(id) {
+  const entry = entries.find(e => e.id === id);
   if (!entry) return;
-  selectedName = name;
+  selectedId = id;
   $('detail-title').textContent = entry.issuer || entry.name;
   // Replace the detail icon container with our themed icon (SVG or initial).
   $('detail-icon').outerHTML =
@@ -550,7 +550,7 @@ $('btn-lock').addEventListener('click', async () => {
   stopTick();
   entries = [];
   filteredEntries = [];
-  selectedName = null;
+  selectedId = null;
   fromView = 'view-list';
   try { await invoke('lock'); } catch (_) {}
   init();
@@ -566,7 +566,7 @@ $('btn-settings').addEventListener('click', () => openSettings());
 $('btn-settings-locked').addEventListener('click', () => openSettings());
 
 $('btn-detail-back').addEventListener('click', () => {
-  selectedName = null;
+  selectedId = null;
   showView('view-list');
 });
 
@@ -576,20 +576,20 @@ $('btn-add-back').addEventListener('click', () => {
 });
 
 $('btn-detail-copy').addEventListener('click', async () => {
-  if (!selectedName) return;
+  if (!selectedId) return;
   try {
-    await invoke('copy_code', { name: selectedName });
+    await invoke('copy_code', { id: selectedId });
     toast('Copied!');
   } catch (err) { toast(String(err), true); }
 });
 
 $('btn-detail-del').addEventListener('click', async () => {
-  if (!selectedName) return;
+  if (!selectedId) return;
   showBlocking('Deleting…');
   loaderStart();
   try {
-    await invoke('delete_entry', { name: selectedName });
-    selectedName = null;
+    await invoke('delete_entry', { id: selectedId });
+    selectedId = null;
     const data = await invoke('get_entries');
     renderList(data);
     showView('view-list');
@@ -613,7 +613,7 @@ $('btn-reveal-confirm').addEventListener('click', async () => {
   const errEl = $('reveal-error');
   errEl.style.display = 'none';
   try {
-    const secret = await invoke('get_secret', { name: selectedName, passphrase });
+    const secret = await invoke('get_secret', { id: selectedId, passphrase });
     $('reveal-overlay').style.display = 'none';
     $('reveal-passphrase').value = '';
     // Show secret in cell, truncate after 30s
@@ -645,7 +645,7 @@ listen('tray-action', ({ payload }) => {
     stopTick();
     entries = [];
     filteredEntries = [];
-    selectedName = null;
+    selectedId = null;
     fromView = 'view-list';
     invoke('lock').catch(() => {});
     init();
@@ -665,7 +665,7 @@ listen('tray-action', ({ payload }) => {
 document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'n') { e.preventDefault(); $('btn-add').click(); }
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); $('search-input').focus(); }
-  if (e.key === 'Escape' && selectedName) { $('btn-detail-back').click(); }
+  if (e.key === 'Escape' && selectedId) { $('btn-detail-back').click(); }
 });
 
 

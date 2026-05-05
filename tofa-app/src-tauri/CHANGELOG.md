@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.3](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.5.2...tofa-macos-v0.5.3) (2026-05-05)
+
+
+### Bug Fixes
+
+* **app:** set bundle identifier to io.stratif.tofa ([a21344d](https://github.com/stratif-io/tofa/commit/a21344d66a13284be2f5c46bbe1e664c269fb9a8))
+* **app:** set bundle identifier to io.stratif.tofa ([2002c45](https://github.com/stratif-io/tofa/commit/2002c456cfc0f70dfb133d30eba19869dc93671b))
+
 ## [0.5.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.5.1...tofa-macos-v0.5.2) (2026-05-05)
 
 

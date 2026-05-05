@@ -2,7 +2,7 @@ use crate::cli::{open_vault, read_passphrase, CliResult};
 use crate::theme::ansi;
 use clap::Args;
 use std::path::PathBuf;
-use tofa_core::totp::{generate_code_now, seconds_remaining_now};
+use tofa_core::totp::{format_code, generate_code_now, seconds_remaining_now};
 
 #[derive(Args)]
 pub struct ListArgs {
@@ -34,7 +34,7 @@ pub fn run(args: ListArgs, vault_path: PathBuf) -> CliResult {
         for entry in vault.entries() {
             let secs = seconds_remaining_now(entry);
             let code = generate_code_now(entry).unwrap_or_else(|_| "------".into());
-            let formatted = format!("{} {}", &code[..3], &code[3..]);
+            let formatted = format_code(&code);
             println!(
                 "{bc}│ {rs}{:<35}{bc}│ {}{formatted:<9}{bc}│ {}{:<8}{bc}│{rs}",
                 entry.name,

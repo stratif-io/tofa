@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SVG="$(dirname "$0")/../docs/design/assets/svg/tofa-wink-dark.svg"
+SVG="$(dirname "$0")/../docs/design/assets/svg/dmg_icon.svg"
+SVG_TRAY="$(dirname "$0")/../docs/design/assets/svg/tofa-wink-dark.svg"
 ICONS_DIR="$(dirname "$0")/../tofa-app/src-tauri/icons"
 ICONSET="$ICONS_DIR/AppIcon.iconset"
 
@@ -39,8 +40,8 @@ rm -rf "$ICONSET"
 
 # Tray icons
 SVG_DIR="$(dirname "$0")/../docs/design/assets/svg"
-rsvg-convert -w 22 -h 22 "$SVG" -o "$ICONS_DIR/tray_icon.png"
-rsvg-convert -w 44 -h 44 "$SVG" -o "$ICONS_DIR/tray_icon@2x.png"
+rsvg-convert -w 22 -h 22 "$SVG_TRAY" -o "$ICONS_DIR/tray_icon.png"
+rsvg-convert -w 44 -h 44 "$SVG_TRAY" -o "$ICONS_DIR/tray_icon@2x.png"
 rsvg-convert -w 22 -h 22 "$SVG_DIR/tray_icon_locked.svg" -o "$ICONS_DIR/tray_icon_locked.png"
 rsvg-convert -w 22 -h 22 "$SVG_DIR/tray_icon_open.svg"   -o "$ICONS_DIR/tray_icon_open.png"
 echo "  → tray icons generated"

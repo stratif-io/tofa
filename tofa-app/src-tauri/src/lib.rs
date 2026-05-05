@@ -193,6 +193,11 @@ pub fn run() {
             let tray = TrayIconBuilder::new()
                 .icon(tray_icon)
                 .menu(&menu)
+                .tooltip(if cfg!(debug_assertions) {
+                    "Tofa DEV"
+                } else {
+                    "Tofa"
+                })
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {
                     let action = match event.id.as_ref() {

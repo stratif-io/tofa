@@ -23,6 +23,7 @@ let entries = [];
 let filteredEntries = [];
 let selectedName = null;
 let tickInterval = null;
+let fromView = 'view-list'; // view to return to when pressing Back
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -70,6 +71,11 @@ function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   $(id).classList.add('active');
   if (id === 'view-locked') setLogoEye(false);
+}
+
+function currentView() {
+  const el = document.querySelector('.view.active');
+  return el ? el.id : 'view-list';
 }
 
 // ── Loader ─────────────────────────────────────────────────────────────────
@@ -314,7 +320,8 @@ function restoreAddView() {
   bindAddListeners();
 }
 
-async function openSettings() {
+async function openSettings(from) {
+  fromView = from ?? currentView();
   let settings;
   try { settings = await invoke('get_settings'); } catch (_) { settings = { vault_path: '', theme: 'system' }; }
   const theme = settings.theme || 'system';
@@ -515,12 +522,15 @@ $('form-unlock').addEventListener('submit', async e => {
 $('btn-lock').addEventListener('click', async () => {
   stopTick();
   entries = [];
+  filteredEntries = [];
   selectedName = null;
+  fromView = 'view-list';
   try { await invoke('lock'); } catch (_) {}
   init();
 });
 
 $('btn-add').addEventListener('click', () => {
+  fromView = 'view-list';
   restoreAddView();
   showView('view-add');
 });
@@ -535,7 +545,7 @@ $('btn-detail-back').addEventListener('click', () => {
 
 $('btn-add-back').addEventListener('click', () => {
   restoreAddView();
-  showView('view-list');
+  showView(fromView);
 });
 
 $('btn-detail-copy').addEventListener('click', async () => {
@@ -607,7 +617,9 @@ listen('tray-action', ({ payload }) => {
   if (payload === 'lock') {
     stopTick();
     entries = [];
+    filteredEntries = [];
     selectedName = null;
+    fromView = 'view-list';
     invoke('lock').catch(() => {});
     init();
   } else if (payload === 'settings') {

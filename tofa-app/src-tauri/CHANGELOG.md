@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.5.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.4.2...tofa-macos-v0.5.0) (2026-05-05)
+
+
+### Features
+
+* **app:** accept all import formats via Open File button ([f30efd0](https://github.com/stratif-io/tofa/commit/f30efd08f519203d529f98e0b8d0cd5d0c47cbb8))
+* **app:** redesign UI — settings page, nav bar, TOFA branding, icon regen ([aa7edf9](https://github.com/stratif-io/tofa/commit/aa7edf9900bfb568c393b4f85d80499c26db4436))
+* multi-format import, UI redesign, Homebrew tap, TOFA branding ([30b7fd9](https://github.com/stratif-io/tofa/commit/30b7fd99276ead2450ee02e59304598b67fd1bfb))
+* **tray:** show 'Tofa DEV' tooltip in debug builds ([e2b17fc](https://github.com/stratif-io/tofa/commit/e2b17fc0f404c5ed7669f47ea99cd686f03c4c47))
+* **tray:** switch icon between locked/open states and fix multi-display positioning ([d09b54e](https://github.com/stratif-io/tofa/commit/d09b54ed972a2b630093db2e580dc25a3d499998))
+* **tray:** use colored purple shield icon instead of black template ([6eee419](https://github.com/stratif-io/tofa/commit/6eee4190dadb12207ef5fb949fc9aa25c8de9dec))
+
+
+### Bug Fixes
+
+* **app:** show '------' instead of erroring when TOTP secret is invalid ([7bd4cf0](https://github.com/stratif-io/tofa/commit/7bd4cf072e3c52c3a803c3334c0d11580597d66f))
+* **dmg:** move dmg config under macOS key ([dceee44](https://github.com/stratif-io/tofa/commit/dceee447d99cc3480362355a8a598266bb6b297e))
+* **dmg:** reduce window to 528x320 and wire background image ([abaac2a](https://github.com/stratif-io/tofa/commit/abaac2ae3aa5f573fa39cc38417053bd7229a454))
+* **tray:** remove transparent padding from tray icons ([e5c1f86](https://github.com/stratif-io/tofa/commit/e5c1f86102667b216daa3d79d13760e3fe98b78a))
+
 ## [0.4.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.4.1...tofa-macos-v0.4.2) (2026-05-04)
 
 

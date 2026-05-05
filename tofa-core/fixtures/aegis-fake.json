@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "header": {
+    "slots": null,
+    "params": null
+  },
+  "db": {
+    "version": 2,
+    "entries": [
+      {
+        "type": "totp",
+        "uuid": "11111111-0000-0000-0000-000000000001",
+        "name": "carlo@example.com",
+        "issuer": "GitHub",
+        "note": "",
+        "favorite": false,
+        "icon": null,
+        "info": {
+          "secret": "JBSWY3DPEHPK3PXP",
+          "algo": "SHA1",
+          "digits": 6,
+          "period": 30
+        }
+      },
+      {
+        "type": "totp",
+        "uuid": "11111111-0000-0000-0000-000000000002",
+        "name": "carlo@example.com",
+        "issuer": "Google",
+        "note": "",
+        "favorite": false,
+        "icon": null,
+        "info": {
+          "secret": "KRUGKIDROVUWG2ZAMJZG653OEBTG66BANJ2W24DTEBXXMZLSEB2GQZJANRQXU6JAMRXWOLQ=",
+          "algo": "SHA1",
+          "digits": 6,
+          "period": 30
+        }
+      },
+      {
+        "type": "totp",
+        "uuid": "11111111-0000-0000-0000-000000000003",
+        "name": "carlo",
+        "issuer": "Stripe",
+        "note": "",
+        "favorite": true,
+        "icon": null,
+        "info": {
+          "secret": "BASE32SECRETSTRIPE234567",
+          "algo": "SHA1",
+          "digits": 6,
+          "period": 30
+        }
+      },
+      {
+        "type": "totp",
+        "uuid": "11111111-0000-0000-0000-000000000004",
+        "name": "admin@acme.io",
+        "issuer": "AWS",
+        "note": "",
+        "favorite": false,
+        "icon": null,
+        "info": {
+          "secret": "MFRA2YTBMJQXI2LPNY======",
+          "algo": "SHA256",
+          "digits": 8,
+          "period": 60
+        }
+      },
+      {
+        "type": "hotp",
+        "uuid": "11111111-0000-0000-0000-000000000005",
+        "name": "carlo@example.com",
+        "issuer": "ShouldBeIgnored",
+        "note": "this entry is HOTP and should be skipped",
+        "favorite": false,
+        "icon": null,
+        "info": {
+          "secret": "JBSWY3DPEHPK3PXP",
+          "algo": "SHA1",
+          "digits": 6,
+          "counter": 0
+        }
+      }
+    ]
+  }
+}

@@ -10,5 +10,7 @@
   <true/>
   <key>NSCameraUsageDescription</key>
   <string>TOFA uses the camera to scan QR codes for adding OTP accounts.</string>
+  <key>NSScreenCaptureUsageDescription</key>
+  <string>TOFA scans the screen to detect QR codes for adding OTP accounts.</string>
 </dict>
 </plist>

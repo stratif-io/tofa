@@ -1,8 +1,8 @@
 [
   {
     "type": "TOTP",
-    "label": "carlo@example.com",
-    "issuer": "GitHub",
+    "label": "alice@example.com",
+    "issuer": "Dropbox",
     "secret": "JBSWY3DPEHPK3PXP",
     "algorithm": "SHA1",
     "digits": 6,
@@ -13,8 +13,8 @@
   },
   {
     "type": "TOTP",
-    "label": "carlo@example.com",
-    "issuer": "Google",
+    "label": "alice@example.com",
+    "issuer": "Slack",
     "secret": "JBSWY3DPEHPK3PXP",
     "algorithm": "SHA1",
     "digits": 6,
@@ -25,8 +25,8 @@
   },
   {
     "type": "TOTP",
-    "label": "admin@acme.io",
-    "issuer": "AWS",
+    "label": "ops@acme.io",
+    "issuer": "Cloudflare",
     "secret": "JBSWY3DPEHPK3PXP",
     "algorithm": "SHA256",
     "digits": 8,
@@ -37,7 +37,7 @@
   },
   {
     "type": "HOTP",
-    "label": "carlo@example.com",
+    "label": "alice@example.com",
     "issuer": "ShouldBeIgnored",
     "secret": "JBSWY3DPEHPK3PXP",
     "algorithm": "SHA1",

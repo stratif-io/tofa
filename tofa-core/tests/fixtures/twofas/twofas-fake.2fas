@@ -1,13 +1,13 @@
 {
   "services": [
     {
-      "name": "GitHub",
+      "name": "Discord",
       "secret": "JBSWY3DPEHPK3PXP",
       "updatedAt": 1746000000000,
       "otp": {
-        "label": "GitHub",
-        "account": "carlo@example.com",
-        "issuer": "GitHub",
+        "label": "Discord",
+        "account": "bob#1234",
+        "issuer": "Discord",
         "digits": 6,
         "period": 30,
         "algorithm": "SHA1",
@@ -17,13 +17,13 @@
       "order": { "position": 0 }
     },
     {
-      "name": "AWS",
+      "name": "Netlify",
       "secret": "JBSWY3DPEHPK3PXP",
       "updatedAt": 1746000000000,
       "otp": {
-        "label": "AWS",
-        "account": "admin@acme.io",
-        "issuer": "AWS",
+        "label": "Netlify",
+        "account": "bob@example.com",
+        "issuer": "Netlify",
         "digits": 8,
         "period": 60,
         "algorithm": "SHA256",
@@ -38,7 +38,7 @@
       "updatedAt": 1746000000000,
       "otp": {
         "label": "ShouldBeIgnored",
-        "account": "carlo@example.com",
+        "account": "bob@example.com",
         "issuer": "ShouldBeIgnored",
         "digits": 6,
         "period": 30,

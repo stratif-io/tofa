@@ -4,29 +4,29 @@
     {
       "id": "aaaaaaaa-0000-0000-0000-000000000001",
       "type": 1,
-      "name": "GitHub",
+      "name": "Twitter",
       "login": {
-        "username": "carlo@example.com",
+        "username": "dave@example.com",
         "password": "secret",
-        "totp": "otpauth://totp/GitHub:carlo@example.com?secret=JBSWY3DPEHPK3PXP&issuer=GitHub&algorithm=SHA1&digits=6&period=30"
+        "totp": "otpauth://totp/Twitter:dave@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Twitter&algorithm=SHA1&digits=6&period=30"
       }
     },
     {
       "id": "aaaaaaaa-0000-0000-0000-000000000002",
       "type": 1,
-      "name": "AWS",
+      "name": "Linear",
       "login": {
-        "username": "admin@acme.io",
+        "username": "dave@acme.io",
         "password": "secret",
-        "totp": "otpauth://totp/AWS:admin@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=AWS&algorithm=SHA256&digits=8&period=60"
+        "totp": "otpauth://totp/Linear:dave@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=Linear&algorithm=SHA256&digits=8&period=60"
       }
     },
     {
       "id": "aaaaaaaa-0000-0000-0000-000000000003",
       "type": 1,
-      "name": "BareSecret",
+      "name": "Fastmail",
       "login": {
-        "username": "user@example.com",
+        "username": "dave@fastmail.com",
         "password": "secret",
         "totp": "JBSWY3DPEHPK3PXP"
       }

@@ -1,5 +1,5 @@
 Group,Title,Username,Password,URL,Notes,TOTP,Icon,Modified Time,Created
-General,GitHub,carlo@example.com,secret,https://github.com,,otpauth://totp/GitHub:carlo@example.com?secret=JBSWY3DPEHPK3PXP&issuer=GitHub&algorithm=SHA1&digits=6&period=30,0,2024-01-01T00:00:00,2024-01-01T00:00:00
-General,AWS,admin@acme.io,secret,https://aws.amazon.com,,otpauth://totp/AWS:admin@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=AWS&algorithm=SHA256&digits=8&period=60,0,2024-01-01T00:00:00,2024-01-01T00:00:00
-General,NoBare,user@example.com,secret,,,JBSWY3DPEHPK3PXP,0,2024-01-01T00:00:00,2024-01-01T00:00:00
-General,NoTotp,user@example.com,secret,https://example.com,,,0,2024-01-01T00:00:00,2024-01-01T00:00:00
+General,Shopify,henry@example.com,secret,https://shopify.com,,otpauth://totp/Shopify:henry@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Shopify&algorithm=SHA1&digits=6&period=30,0,2024-01-01T00:00:00,2024-01-01T00:00:00
+General,Fly.io,henry@acme.io,secret,https://fly.io,,otpauth://totp/Fly.io:henry@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=Fly.io&algorithm=SHA256&digits=8&period=60,0,2024-01-01T00:00:00,2024-01-01T00:00:00
+General,DigitalOcean,henry@example.com,secret,,,JBSWY3DPEHPK3PXP,0,2024-01-01T00:00:00,2024-01-01T00:00:00
+General,NoTotp,henry@example.com,secret,https://example.com,,,0,2024-01-01T00:00:00,2024-01-01T00:00:00

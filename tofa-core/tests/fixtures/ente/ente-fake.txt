@@ -1,2 +1,2 @@
-otpauth://totp/GitHub:carlo@example.com?secret=JBSWY3DPEHPK3PXP&issuer=GitHub&algorithm=SHA1&digits=6&period=30
-otpauth://totp/AWS:admin@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=AWS&algorithm=SHA256&digits=8&period=60
+otpauth://totp/Figma:grace@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Figma&algorithm=SHA1&digits=6&period=30
+otpauth://totp/GitLab:grace@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=GitLab&algorithm=SHA256&digits=8&period=60

@@ -15,27 +15,27 @@ fn bitwarden_parses_three_entries() {
 }
 
 #[test]
-fn bitwarden_github_entry() {
+fn bitwarden_twitter_entry() {
     let bytes = fixture_bytes("bitwarden-fake.json");
     let entries = parse_json_bytes(&bytes).unwrap();
     let e = entries
         .iter()
-        .find(|e| e.meta.issuer.as_deref() == Some("GitHub"))
-        .expect("GitHub entry should be present");
+        .find(|e| e.meta.issuer.as_deref() == Some("Twitter"))
+        .expect("Twitter entry should be present");
     assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
-    assert_eq!(e.meta.account.as_deref(), Some("carlo@example.com"));
+    assert_eq!(e.meta.account.as_deref(), Some("dave@example.com"));
     assert_eq!(e.meta.digits, Some(6));
     assert_eq!(e.meta.period, Some(30));
 }
 
 #[test]
-fn bitwarden_aws_entry_has_non_default_params() {
+fn bitwarden_linear_entry_has_non_default_params() {
     let bytes = fixture_bytes("bitwarden-fake.json");
     let entries = parse_json_bytes(&bytes).unwrap();
     let e = entries
         .iter()
-        .find(|e| e.meta.issuer.as_deref() == Some("AWS"))
-        .expect("AWS entry should be present");
+        .find(|e| e.meta.issuer.as_deref() == Some("Linear"))
+        .expect("Linear entry should be present");
     assert_eq!(e.meta.algorithm.as_deref(), Some("SHA256"));
     assert_eq!(e.meta.digits, Some(8));
     assert_eq!(e.meta.period, Some(60));
@@ -47,7 +47,7 @@ fn bitwarden_bare_secret_entry() {
     let entries = parse_json_bytes(&bytes).unwrap();
     let e = entries
         .iter()
-        .find(|e| e.meta.issuer.as_deref() == Some("BareSecret"))
-        .expect("BareSecret entry should be present");
+        .find(|e| e.meta.issuer.as_deref() == Some("Fastmail"))
+        .expect("Fastmail entry should be present");
     assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
 }

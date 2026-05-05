@@ -15,27 +15,27 @@ fn ente_parses_two_entries() {
 }
 
 #[test]
-fn ente_github_entry() {
+fn ente_figma_entry() {
     let text = fixture_text("ente-fake.txt");
     let entries = parse_text_uris(&text).unwrap();
     let e = entries
         .iter()
-        .find(|e| e.meta.issuer.as_deref() == Some("GitHub"))
-        .expect("GitHub entry should be present");
+        .find(|e| e.meta.issuer.as_deref() == Some("Figma"))
+        .expect("Figma entry should be present");
     assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
-    assert_eq!(e.meta.account.as_deref(), Some("carlo@example.com"));
+    assert_eq!(e.meta.account.as_deref(), Some("grace@example.com"));
     assert_eq!(e.meta.digits, Some(6));
     assert_eq!(e.meta.period, Some(30));
 }
 
 #[test]
-fn ente_aws_entry_has_non_default_params() {
+fn ente_gitlab_entry_has_non_default_params() {
     let text = fixture_text("ente-fake.txt");
     let entries = parse_text_uris(&text).unwrap();
     let e = entries
         .iter()
-        .find(|e| e.meta.issuer.as_deref() == Some("AWS"))
-        .expect("AWS entry should be present");
+        .find(|e| e.meta.issuer.as_deref() == Some("GitLab"))
+        .expect("GitLab entry should be present");
     assert_eq!(e.meta.algorithm.as_deref(), Some("SHA256"));
     assert_eq!(e.meta.digits, Some(8));
     assert_eq!(e.meta.period, Some(60));

@@ -1,8 +1,8 @@
 [
   {
     "kind": "TOTP",
-    "issuer": "GitHub",
-    "account": "carlo@example.com",
+    "issuer": "Notion",
+    "account": "eve@example.com",
     "secret": "JBSWY3DPEHPK3PXP",
     "algorithm": "SHA1",
     "digits": "6",
@@ -13,8 +13,8 @@
   },
   {
     "kind": "TOTP",
-    "issuer": "AWS",
-    "account": "admin@acme.io",
+    "issuer": "Vercel",
+    "account": "eve@acme.io",
     "secret": "JBSWY3DPEHPK3PXP",
     "algorithm": "SHA256",
     "digits": "8",
@@ -26,7 +26,7 @@
   {
     "kind": "HOTP",
     "issuer": "ShouldBeIgnored",
-    "account": "carlo@example.com",
+    "account": "eve@example.com",
     "secret": "JBSWY3DPEHPK3PXP",
     "algorithm": "SHA1",
     "digits": "6",

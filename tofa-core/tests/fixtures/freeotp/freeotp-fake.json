@@ -2,9 +2,9 @@
   "tokens": [
     {
       "type": "TOTP",
-      "issuerExt": "GitHub",
-      "issuerInt": "GitHub",
-      "label": "carlo@example.com",
+      "issuerExt": "npm",
+      "issuerInt": "npm",
+      "label": "frank@example.com",
       "digits": 6,
       "period": 30,
       "algo": "SHA1",
@@ -13,9 +13,9 @@
     },
     {
       "type": "TOTP",
-      "issuerExt": "AWS",
-      "issuerInt": "AWS",
-      "label": "admin@acme.io",
+      "issuerExt": "Heroku",
+      "issuerInt": "Heroku",
+      "label": "frank@acme.io",
       "digits": 8,
       "period": 60,
       "algo": "SHA256",
@@ -26,7 +26,7 @@
       "type": "HOTP",
       "issuerExt": "ShouldBeIgnored",
       "issuerInt": "ShouldBeIgnored",
-      "label": "carlo@example.com",
+      "label": "frank@example.com",
       "digits": 6,
       "period": 30,
       "algo": "SHA1",
@@ -35,7 +35,7 @@
     }
   ],
   "tokenOrder": [
-    "GitHub:carlo@example.com",
-    "AWS:admin@acme.io"
+    "npm:frank@example.com",
+    "Heroku:frank@acme.io"
   ]
 }

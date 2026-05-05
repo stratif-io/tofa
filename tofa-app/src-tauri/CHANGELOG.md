@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.5.1...tofa-macos-v0.5.2) (2026-05-05)
+
+
+### Bug Fixes
+
+* **app:** call CGRequestScreenCaptureAccess before screencapture on macOS Sequoia ([b6e197c](https://github.com/stratif-io/tofa/commit/b6e197ccfe4e9c21a9ef4c957589e241e7e2281d))
+* **app:** ensure icon PNGs are RGBA for Tauri compatibility ([d402081](https://github.com/stratif-io/tofa/commit/d4020813f423b6c92a7d8ab4a1c85ec1e050022e))
+* **app:** use dmg_icon.svg (with black background) for app icon ([79d67ea](https://github.com/stratif-io/tofa/commit/79d67eaa1d965ee06cbe9b9bd2b0e63cd4613f91))
+* **app:** use full black square background for app icon ([02e4f37](https://github.com/stratif-io/tofa/commit/02e4f37148019f6561ac8edcd9cc2483166634af))
+* **ci:** sync tauri.conf.json version and add it to release-please extra-files ([775716f](https://github.com/stratif-io/tofa/commit/775716f43e5d42fcf7f6c1cddee49f20cc547ef1))
+
 ## [0.5.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.5.0...tofa-macos-v0.5.1) (2026-05-05)
 
 

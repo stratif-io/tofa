@@ -311,20 +311,32 @@ pub async fn scan_screen(
     app: tauri::AppHandle,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<Vec<String>, String> {
-    // 1. Hide window so it doesn't appear in the screenshot
+    // 1. Request screen recording permission (macOS Sequoia requires explicit API call)
+    #[cfg(target_os = "macos")]
+    {
+        extern "C" {
+            fn CGRequestScreenCaptureAccess() -> bool;
+        }
+        let granted = unsafe { CGRequestScreenCaptureAccess() };
+        if !granted {
+            return Err("Screen recording permission denied. Enable it in System Settings → Privacy & Security → Screen Recording.".to_string());
+        }
+    }
+
+    // 2. Hide window so it doesn't appear in the screenshot
     if let Some(win) = app.get_webview_window("popover") {
         let _ = win.hide();
     }
     std::thread::sleep(std::time::Duration::from_millis(250));
 
-    // 2. Take screenshot
+    // 3. Take screenshot
     let tmp = std::env::temp_dir().join(format!("tofa_scan_{}.png", std::process::id()));
     std::process::Command::new("screencapture")
         .args(["-x", "-t", "png", tmp.to_str().unwrap_or_default()])
         .status()
         .map_err(|e| e.to_string())?;
 
-    // 3. Window reappears immediately — user sees progress while we process
+    // 4. Window reappears immediately — user sees progress while we process
     if let Some(win) = app.get_webview_window("popover") {
         let _ = win.show();
         let _ = win.set_focus();

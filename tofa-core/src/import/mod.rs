@@ -3,6 +3,7 @@ pub mod andotp;
 pub mod bitwarden;
 pub mod ente;
 pub mod freeotp;
+pub mod google_authenticator;
 pub mod keepassxc;
 pub mod raivo;
 pub mod twofas;
@@ -60,6 +61,11 @@ pub fn parse_json_bytes(bytes: &[u8]) -> Result<Vec<OtpSecret>, String> {
         "Unrecognised JSON format. Supported: Aegis, andOTP, 2FAS, Raivo, Bitwarden, FreeOTP+."
             .to_string(),
     )
+}
+
+/// Parse a Google Authenticator `otpauth-migration://` URI (from an exported QR code).
+pub fn parse_migration_uri(uri: &str) -> Result<Vec<OtpSecret>, String> {
+    google_authenticator::parse(uri).map_err(|e| e.to_string())
 }
 
 /// Parse an Ente Auth plain-text export (newline-separated `otpauth://` URIs).

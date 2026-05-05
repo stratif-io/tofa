@@ -1,6 +1,6 @@
 <svg viewBox="0 0 1024 1024" width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
-  <!-- Disk: dark circle -->
-  <circle cx="512" cy="512" r="512" fill="#0D0D10"/>
+  <!-- Background: full black square (macOS clips to rounded corners) -->
+  <rect width="1024" height="1024" fill="#0D0D10"/>
 
   <!-- Tofa shield, centered (shield coords: 22..106 x 14..114 in 128x128) -->
   <!-- Scale ~5.5x, translated to center in 1024x1024 -->

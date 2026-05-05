@@ -171,7 +171,8 @@ pub async fn pick_and_import_file(
                 .add_filter(
                     "Supported files",
                     &[
-                        "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "json", "txt", "zip",
+                        "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "json", "2fas", "txt",
+                        "csv", "zip",
                     ],
                 )
                 .blocking_pick_file(),
@@ -655,7 +656,11 @@ fn extract_otps_from_bytes(
             let uris = uris.map_err(|_| "No QR code found in image.".to_string())?;
             collect_otps_from_uris(&uris)
         }
-        "json" => parse_json_import(bytes),
+        "json" | "2fas" => parse_json_import(bytes),
+        "csv" => {
+            let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
+            tofa_core::import::parse_csv(text)
+        }
         "txt" => {
             let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
             let uris: Vec<String> = text

@@ -480,7 +480,7 @@ function bindAddListeners() {
   if (btnFile) {
     btnFile.addEventListener('click', async () => {
       loaderStart();
-      showBlocking('Importing QR image…');
+      showBlocking('Importing file…');
       try {
         const added = await withPopoverPinned(() => invoke('pick_and_import_file'));
         if (added.length === 0) return;

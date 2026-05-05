@@ -1,0 +1,38 @@
+[
+  {
+    "kind": "TOTP",
+    "issuer": "GitHub",
+    "account": "carlo@example.com",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": "6",
+    "timer": "30",
+    "counter": "0",
+    "iconType": "Default",
+    "iconValue": ""
+  },
+  {
+    "kind": "TOTP",
+    "issuer": "AWS",
+    "account": "admin@acme.io",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA256",
+    "digits": "8",
+    "timer": "60",
+    "counter": "0",
+    "iconType": "Default",
+    "iconValue": ""
+  },
+  {
+    "kind": "HOTP",
+    "issuer": "ShouldBeIgnored",
+    "account": "carlo@example.com",
+    "secret": "JBSWY3DPEHPK3PXP",
+    "algorithm": "SHA1",
+    "digits": "6",
+    "timer": "30",
+    "counter": "0",
+    "iconType": "Default",
+    "iconValue": ""
+  }
+]

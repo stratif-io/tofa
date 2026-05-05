@@ -287,7 +287,7 @@ pub fn parse_input(input: &str) -> Result<OtpSecret, QrError> {
     Err(QrError::UnrecognizedInput)
 }
 
-fn parse_uri(uri: &str) -> Result<OtpSecret, QrError> {
+pub(crate) fn parse_uri(uri: &str) -> Result<OtpSecret, QrError> {
     // Format: otpauth://totp/LABEL?secret=SECRET&issuer=ISSUER&...
     // LABEL may be "issuer:account" or just "account"
     let after_scheme = uri.strip_prefix("otpauth://totp/").unwrap_or("");
@@ -640,135 +640,7 @@ fn is_valid_base32(s: &str) -> bool {
             .all(|c| matches!(c, 'A'..='Z' | 'a'..='z' | '2'..='7' | '='))
 }
 
-/// Parse a JSON import from raw bytes. Supports Aegis, andOTP and plain URI-list formats.
-pub fn parse_json_bytes(bytes: &[u8]) -> Result<Vec<OtpSecret>, String> {
-    let v: serde_json::Value = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
-
-    if v.get("version").is_some() || v.get("db").is_some() {
-        if v.pointer("/db/is_locked")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-        {
-            return Err(
-                "Aegis export is encrypted — re-export without encryption first.".to_string(),
-            );
-        }
-        if let Some(entries) = v.pointer("/db/entries").and_then(|e| e.as_array()) {
-            return parse_aegis_entries(entries);
-        }
-        return Err(
-            "Aegis export is encrypted or unsupported — re-export without encryption.".to_string(),
-        );
-    }
-
-    if let Some(entries) = v.as_array() {
-        return parse_andotp_entries(entries);
-    }
-
-    if let Some(accounts) = v["accounts"].as_array() {
-        let uris: Vec<String> = accounts
-            .iter()
-            .filter_map(|a| a["otpauth"].as_str().map(String::from))
-            .collect();
-        if !uris.is_empty() {
-            return uris
-                .iter()
-                .map(|u| parse_uri(u).map_err(|e| e.to_string()))
-                .collect();
-        }
-    }
-
-    Err("Unrecognised JSON format. Supported: Aegis, andOTP.".to_string())
-}
-
-fn parse_aegis_entries(entries: &[serde_json::Value]) -> Result<Vec<OtpSecret>, String> {
-    let mut otps = Vec::new();
-    for e in entries {
-        if e["type"].as_str().map(|t| t.to_lowercase()) != Some("totp".to_string()) {
-            continue;
-        }
-        let secret = e
-            .pointer("/info/secret")
-            .and_then(|s| s.as_str())
-            .unwrap_or("")
-            .to_string();
-        if secret.is_empty() {
-            continue;
-        }
-        let account = e["name"].as_str().unwrap_or("").to_string();
-        let issuer = e["issuer"].as_str().unwrap_or("").to_string();
-        otps.push(OtpSecret {
-            secret,
-            meta: OtpMeta {
-                account: if account.is_empty() {
-                    None
-                } else {
-                    Some(account)
-                },
-                issuer: if issuer.is_empty() {
-                    None
-                } else {
-                    Some(issuer)
-                },
-                algorithm: e
-                    .pointer("/info/algo")
-                    .and_then(|a| a.as_str())
-                    .map(String::from),
-                digits: e
-                    .pointer("/info/digits")
-                    .and_then(|d| d.as_u64())
-                    .map(|d| d as u8),
-                period: e
-                    .pointer("/info/period")
-                    .and_then(|p| p.as_u64())
-                    .map(|p| p as u32),
-            },
-        });
-    }
-    if otps.is_empty() {
-        Err("No TOTP entries found in Aegis export.".to_string())
-    } else {
-        Ok(otps)
-    }
-}
-
-fn parse_andotp_entries(entries: &[serde_json::Value]) -> Result<Vec<OtpSecret>, String> {
-    let mut otps = Vec::new();
-    for e in entries {
-        if e["type"].as_str().map(|t| t.to_uppercase()) != Some("TOTP".to_string()) {
-            continue;
-        }
-        let secret = e["secret"].as_str().unwrap_or("").to_string();
-        if secret.is_empty() {
-            continue;
-        }
-        let account = e["label"].as_str().unwrap_or("").to_string();
-        let issuer = e["issuer"].as_str().unwrap_or("").to_string();
-        otps.push(OtpSecret {
-            secret,
-            meta: OtpMeta {
-                account: if account.is_empty() {
-                    None
-                } else {
-                    Some(account)
-                },
-                issuer: if issuer.is_empty() {
-                    None
-                } else {
-                    Some(issuer)
-                },
-                algorithm: e["algorithm"].as_str().map(String::from),
-                digits: e["digits"].as_u64().map(|d| d as u8),
-                period: e["period"].as_u64().map(|p| p as u32),
-            },
-        });
-    }
-    if otps.is_empty() {
-        Err("No TOTP entries found in andOTP export.".to_string())
-    } else {
-        Ok(otps)
-    }
-}
+pub use crate::import::parse_json_bytes;
 
 pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> {
     use image::Luma;

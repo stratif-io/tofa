@@ -15,6 +15,10 @@ tofa-app/src-tauri/gen/
 !tofa-app/src-tauri/capabilities/*.json
 !tofa-core/tests/fixtures/aegis/*.json
 !tofa-core/tests/fixtures/andotp/*.json
+!tofa-core/tests/fixtures/twofas/*.2fas
+!tofa-core/tests/fixtures/raivo/*.json
+!tofa-core/tests/fixtures/bitwarden/*.json
+!tofa-core/tests/fixtures/freeotp/*.json
 
 # Superpowers AI tooling — not part of the project
 docs/superpowers/

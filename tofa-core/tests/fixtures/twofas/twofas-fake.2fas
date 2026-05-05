@@ -1,0 +1,52 @@
+{
+  "services": [
+    {
+      "name": "GitHub",
+      "secret": "JBSWY3DPEHPK3PXP",
+      "updatedAt": 1746000000000,
+      "otp": {
+        "label": "GitHub",
+        "account": "carlo@example.com",
+        "issuer": "GitHub",
+        "digits": 6,
+        "period": 30,
+        "algorithm": "SHA1",
+        "tokenType": "TOTP",
+        "source": "Link"
+      },
+      "order": { "position": 0 }
+    },
+    {
+      "name": "AWS",
+      "secret": "JBSWY3DPEHPK3PXP",
+      "updatedAt": 1746000000000,
+      "otp": {
+        "label": "AWS",
+        "account": "admin@acme.io",
+        "issuer": "AWS",
+        "digits": 8,
+        "period": 60,
+        "algorithm": "SHA256",
+        "tokenType": "TOTP",
+        "source": "Link"
+      },
+      "order": { "position": 1 }
+    },
+    {
+      "name": "ShouldBeIgnored",
+      "secret": "JBSWY3DPEHPK3PXP",
+      "updatedAt": 1746000000000,
+      "otp": {
+        "label": "ShouldBeIgnored",
+        "account": "carlo@example.com",
+        "issuer": "ShouldBeIgnored",
+        "digits": 6,
+        "period": 30,
+        "algorithm": "SHA1",
+        "tokenType": "HOTP",
+        "source": "Link"
+      },
+      "order": { "position": 2 }
+    }
+  ]
+}

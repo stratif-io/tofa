@@ -1,0 +1,41 @@
+{
+  "tokens": [
+    {
+      "type": "TOTP",
+      "issuerExt": "GitHub",
+      "issuerInt": "GitHub",
+      "label": "carlo@example.com",
+      "digits": 6,
+      "period": 30,
+      "algo": "SHA1",
+      "counter": 0,
+      "secret": [72, 101, 108, 108, 111, 33, -34, -83, -66, -17]
+    },
+    {
+      "type": "TOTP",
+      "issuerExt": "AWS",
+      "issuerInt": "AWS",
+      "label": "admin@acme.io",
+      "digits": 8,
+      "period": 60,
+      "algo": "SHA256",
+      "counter": 0,
+      "secret": [72, 101, 108, 108, 111, 33, -34, -83, -66, -17]
+    },
+    {
+      "type": "HOTP",
+      "issuerExt": "ShouldBeIgnored",
+      "issuerInt": "ShouldBeIgnored",
+      "label": "carlo@example.com",
+      "digits": 6,
+      "period": 30,
+      "algo": "SHA1",
+      "counter": 0,
+      "secret": [72, 101, 108, 108, 111, 33, -34, -83, -66, -17]
+    }
+  ],
+  "tokenOrder": [
+    "GitHub:carlo@example.com",
+    "AWS:admin@acme.io"
+  ]
+}

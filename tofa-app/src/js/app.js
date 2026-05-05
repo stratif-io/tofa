@@ -479,14 +479,16 @@ function bindAddListeners() {
   const btnFile = $('btn-open-file');
   if (btnFile) {
     btnFile.addEventListener('click', async () => {
+      loaderStart();
       try {
         const added = await withPopoverPinned(() => invoke('pick_and_import_file'));
-        if (added.length === 0) return;
+        if (added.length === 0) { loaderDone(); return; }
         const data = await invoke('get_entries');
         renderList(data);
         showView('view-list');
         toast(`Added: ${added.join(', ')}`);
       } catch (err) { toast(String(err), true); }
+      finally { loaderDone(); }
     });
   }
 

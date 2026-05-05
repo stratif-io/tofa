@@ -184,28 +184,11 @@ pub fn run() {
                 ],
             )?;
 
-            // Enable scan/lock items when unlocked, disable when locked
-            let ss = item_scan_screen.clone();
-            let sc = item_scan_camera.clone();
-            let lk = item_lock.clone();
-            app.listen("session-unlocked", move |_| {
-                let _ = ss.set_enabled(true);
-                let _ = sc.set_enabled(true);
-                let _ = lk.set_enabled(true);
-            });
+            static ICON_LOCKED: &[u8] = include_bytes!("../icons/tray_icon_locked.png");
+            static ICON_OPEN: &[u8] = include_bytes!("../icons/tray_icon_open.png");
 
-            let ss2 = item_scan_screen.clone();
-            let sc2 = item_scan_camera.clone();
-            let lk2 = item_lock.clone();
-            app.listen("session-locked", move |_| {
-                let _ = ss2.set_enabled(false);
-                let _ = sc2.set_enabled(false);
-                let _ = lk2.set_enabled(false);
-            });
-
-            let tray_icon =
-                tauri::image::Image::from_bytes(include_bytes!("../icons/tray_icon.png"))
-                    .unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
+            let tray_icon = tauri::image::Image::from_bytes(ICON_LOCKED)
+                .unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
 
             let tray = TrayIconBuilder::new()
                 .icon(tray_icon)
@@ -229,6 +212,41 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            let tray_id = tray.id().clone();
+
+            // Enable scan/lock items when unlocked, disable when locked
+            let ss = item_scan_screen.clone();
+            let sc = item_scan_camera.clone();
+            let lk = item_lock.clone();
+            let app_unlock = app.handle().clone();
+            let tray_id_unlock = tray_id.clone();
+            app.listen("session-unlocked", move |_| {
+                let _ = ss.set_enabled(true);
+                let _ = sc.set_enabled(true);
+                let _ = lk.set_enabled(true);
+                if let Some(tray) = app_unlock.tray_by_id(&tray_id_unlock) {
+                    if let Ok(icon) = tauri::image::Image::from_bytes(ICON_OPEN) {
+                        let _ = tray.set_icon(Some(icon));
+                    }
+                }
+            });
+
+            let ss2 = item_scan_screen.clone();
+            let sc2 = item_scan_camera.clone();
+            let lk2 = item_lock.clone();
+            let app_lock = app.handle().clone();
+            let tray_id_lock = tray_id.clone();
+            app.listen("session-locked", move |_| {
+                let _ = ss2.set_enabled(false);
+                let _ = sc2.set_enabled(false);
+                let _ = lk2.set_enabled(false);
+                if let Some(tray) = app_lock.tray_by_id(&tray_id_lock) {
+                    if let Ok(icon) = tauri::image::Image::from_bytes(ICON_LOCKED) {
+                        let _ = tray.set_icon(Some(icon));
+                    }
+                }
+            });
 
             tray.on_tray_icon_event(|tray, event| {
                 if let TrayIconEvent::Click {

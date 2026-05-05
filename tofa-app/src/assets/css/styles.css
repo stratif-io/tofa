@@ -352,6 +352,7 @@ body {
 
 .btn-primary { background: var(--brand); color: var(--on-brand); }
 .btn-primary:hover { background: var(--brand-hover); transform: translateY(-1px); }
+.btn-primary:active, .btn-primary.active { background: var(--brand-hover); transform: translateY(1px); opacity: 0.85; }
 
 .btn-secondary { background: transparent; color: var(--text); border-color: var(--border-strong); }
 .btn-secondary:hover { border-color: var(--brand); color: var(--brand); }

@@ -479,9 +479,12 @@ $('form-unlock').addEventListener('submit', async e => {
   const errEl = $('unlock-error');
   errEl.style.visibility = 'hidden';
   errEl.textContent = '';
+  const btn = $('btn-unlock-submit');
+  btn.classList.add('active');
+  setTimeout(() => btn.classList.remove('active'), 200);
+  loaderStart();
   setLogoEye(true);
   await new Promise(r => setTimeout(r, 1000));
-  loaderStart();
   const closeEyeAfterDelay = () => setLogoEye(false);
 
   let vaultExists;

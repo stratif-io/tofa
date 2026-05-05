@@ -1,7 +1,7 @@
 {
   "productName": "Tofa",
   "version": "0.5.0",
-  "identifier": "com.cabichahine.tofa",
+  "identifier": "io.stratif.tofa",
   "build": {
     "frontendDist": "../src"
   },

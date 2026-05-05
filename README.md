@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="tofa-app/src-tauri/icons/128x128@2x.png" width="96" alt="tofa" />
-  <h1>tofa</h1>
+  <img src="tofa-app/src-tauri/icons/128x128@2x.png" width="96" alt="TOFA" />
+  <h1>TOFA</h1>
   <p><strong>Offline, encrypted 2FA — CLI, TUI, and a macOS menu bar app.</strong></p>
 
   [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -12,19 +12,19 @@
 
 ---
 
-tofa is a command-line 2FA tool with a full-featured terminal TUI. Secrets stay encrypted on disk with AES-256-GCM — no cloud, no account, no telemetry. A macOS menu bar app is the first GUI built on top of it.
+TOFA is a command-line 2FA tool with a full-featured terminal TUI. Secrets stay encrypted on disk with AES-256-GCM — no cloud, no account, no telemetry. A macOS menu bar app is the first GUI built on top of it.
 
-## Why tofa
+## Why TOFA
 
 You're mid-flow at your desk and a site asks for a 6-digit OTP. You unlock your phone, open the authenticator app, wait for a code, squint at it, and type it in. That interruption is annoying and unnecessary when your Mac is right in front of you.
 
-tofa lives in your terminal — or in one click from the menu bar. No phone needed.
+TOFA lives in your terminal — or in one click from the menu bar. No phone needed.
 
 ## CLI & TUI
 
 <!-- demo-cli: replace with an actual GIF or video -->
 <div align="center">
-  <img src="docs/demo-cli.gif" alt="tofa TUI demo" width="640" />
+  <img src="docs/demo-cli.gif" alt="TOFA TUI demo" width="640" />
 </div>
 
 ```bash
@@ -59,10 +59,10 @@ The TUI shows all accounts with live countdown bars, violet accent, and mouse su
 
 <!-- demo-app: replace with an actual GIF or video -->
 <div align="center">
-  <img src="docs/demo-app.gif" alt="tofa menu bar app demo" width="320" />
+  <img src="docs/demo-app.gif" alt="TOFA menu bar app demo" width="320" />
 </div>
 
-The first GUI built on `tofa-core`. One click from the tray icon opens a compact popover with live codes — no phone, no alt-tab.
+The first GUI built on `tofa-core`. One click from the tray icon opens a compact popover with live codes — no phone, no alt-tab. Leave your phone in your pocket.
 
 ```bash
 git clone https://github.com/stratif-io/tofa

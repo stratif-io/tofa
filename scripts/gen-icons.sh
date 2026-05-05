@@ -37,8 +37,12 @@ iconutil -c icns "$ICONSET" -o "$ICONS_DIR/icon.icns"
 echo "  → icon.icns generated"
 rm -rf "$ICONSET"
 
-# Tray icon
+# Tray icons
+SVG_DIR="$(dirname "$0")/../docs/design/assets/svg"
 rsvg-convert -w 22 -h 22 "$SVG" -o "$ICONS_DIR/tray_icon.png"
 rsvg-convert -w 44 -h 44 "$SVG" -o "$ICONS_DIR/tray_icon@2x.png"
+rsvg-convert -w 22 -h 22 "$SVG_DIR/tray_icon_locked.svg" -o "$ICONS_DIR/tray_icon_locked.png"
+rsvg-convert -w 22 -h 22 "$SVG_DIR/tray_icon_open.svg"   -o "$ICONS_DIR/tray_icon_open.png"
+echo "  → tray icons generated"
 
 echo "Done. Icons written to $ICONS_DIR"

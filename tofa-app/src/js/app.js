@@ -350,40 +350,38 @@ async function openSettings(from) {
   const wrap = $('view-add-content');
   if (!wrap) return;
   wrap.innerHTML = `
-    <h3 style="font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:var(--s-4);">Settings</h3>
-    <label class="input-label" for="settings-vault-path">Vault path</label>
-    <div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-3);">
-      <input id="settings-vault-path" class="input" style="flex:1;font-size:12px;">
-      <button id="btn-browse-vault" class="btn btn-secondary" style="white-space:nowrap;font-size:12px;">Browse…</button>
+    <div class="settings-section">
+      <span class="settings-section-label">Vault path</span>
+      <div class="settings-row">
+        <input id="settings-vault-path" class="input settings-path-input" placeholder="~/path/to/vault">
+        <button id="btn-browse-vault" class="btn btn-secondary settings-browse-btn">Browse…</button>
+      </div>
     </div>
-    <label class="input-label" style="margin-bottom:var(--s-3);">Appearance</label>
-    <div style="display:flex;gap:var(--s-2);margin-bottom:var(--s-4);">
-      <button data-theme-btn="light" style="flex:1;border:2px solid ${theme==='light'?'var(--brand)':'var(--border)'};border-radius:var(--r-md);padding:var(--s-2);cursor:pointer;background:#f5f5f7;transition:border-color 0.2s;">
-        <div style="height:28px;background:#ffffff;border-radius:4px;margin-bottom:4px;border:1px solid #e0e0e0;"></div>
-        <span style="font-family:var(--font-mono);font-size:10px;color:#333;display:block;text-align:center;">Light</span>
-      </button>
-      <button data-theme-btn="dark" style="flex:1;border:2px solid ${theme==='dark'?'var(--brand)':'var(--border)'};border-radius:var(--r-md);padding:var(--s-2);cursor:pointer;background:#1a1a2e;transition:border-color 0.2s;">
-        <div style="height:28px;background:#0d0d1a;border-radius:4px;margin-bottom:4px;border:1px solid #333;"></div>
-        <span style="font-family:var(--font-mono);font-size:10px;color:#aaa;display:block;text-align:center;">Dark</span>
-      </button>
-      <button data-theme-btn="system" style="flex:1;border:2px solid ${theme==='system'?'var(--brand)':'var(--border)'};border-radius:var(--r-md);padding:var(--s-2);cursor:pointer;background:linear-gradient(135deg,#f5f5f7 50%,#1a1a2e 50%);transition:border-color 0.2s;">
-        <div style="height:28px;border-radius:4px;margin-bottom:4px;background:linear-gradient(135deg,#ffffff 50%,#0d0d1a 50%);border:1px solid #888;"></div>
-        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);display:block;text-align:center;">Auto</span>
-      </button>
+    <div class="settings-section">
+      <span class="settings-section-label">Appearance</span>
+      <div class="settings-segmented">
+        <button class="settings-seg-btn${theme==='light'?' active':''}" data-theme-btn="light">
+          <svg class="seg-icon" width="12" height="12" viewBox="0 0 24 24"><use href="#icon-sun"/></svg>Light
+        </button>
+        <button class="settings-seg-btn${theme==='dark'?' active':''}" data-theme-btn="dark">
+          <svg class="seg-icon" width="12" height="12" viewBox="0 0 24 24"><use href="#icon-moon"/></svg>Dark
+        </button>
+        <button class="settings-seg-btn${theme==='system'?' active':''}" data-theme-btn="system">
+          <svg class="seg-icon" width="12" height="12" viewBox="0 0 24 24"><use href="#icon-monitor"/></svg>Auto
+        </button>
+      </div>
     </div>
-    <button id="btn-settings-save" class="btn btn-primary" style="width:100%;margin-bottom:var(--s-2);">Save</button>
-    <p id="settings-error" style="font-family:var(--font-mono);font-size:11px;color:var(--danger);display:none;"></p>`;
+    <button id="btn-settings-save" class="btn btn-primary settings-save-btn">Save</button>
+    <p id="settings-error" class="settings-error"></p>`;
 
   $('settings-vault-path').value = settings.vault_path;
 
-  // Theme card toggle
+  // Theme segmented control
   let selectedTheme = theme;
   wrap.querySelectorAll('[data-theme-btn]').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedTheme = btn.dataset.themeBtn;
-      wrap.querySelectorAll('[data-theme-btn]').forEach(b => {
-        b.style.borderColor = b === btn ? 'var(--brand)' : 'var(--border)';
-      });
+      wrap.querySelectorAll('[data-theme-btn]').forEach(b => b.classList.toggle('active', b === btn));
       applyTheme(selectedTheme);
     });
   });
@@ -406,7 +404,7 @@ async function openSettings(from) {
     } catch (err) {
       const errEl = $('settings-error');
       errEl.textContent = String(err);
-      errEl.style.display = '';
+      errEl.style.display = 'block';
     }
   });
 

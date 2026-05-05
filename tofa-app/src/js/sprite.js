@@ -1,5 +1,8 @@
 [
   'assets/svg/tofa/wink.svg',
+  'assets/svg/ui/sun.svg',
+  'assets/svg/ui/moon.svg',
+  'assets/svg/ui/monitor.svg',
   'assets/svg/tofa/open.svg',
   'assets/svg/tofa/wink-mono.svg',
   'assets/svg/issuers/adobe.svg',

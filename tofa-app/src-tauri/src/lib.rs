@@ -169,7 +169,7 @@ pub fn run() {
             let item_scan_camera =
                 MenuItem::with_id(app, "scan-camera", "Scan Camera", false, None::<&str>)?;
             let item_lock = MenuItem::with_id(app, "lock", "Lock", false, None::<&str>)?;
-            let item_quit = MenuItem::with_id(app, "quit", "Quit Tofa", true, Some("CmdOrCtrl+Q"))?;
+            let item_quit = MenuItem::with_id(app, "quit", "Quit TOFA", true, Some("CmdOrCtrl+Q"))?;
 
             let menu = Menu::with_items(
                 app,
@@ -194,9 +194,9 @@ pub fn run() {
                 .icon(tray_icon)
                 .menu(&menu)
                 .tooltip(if cfg!(debug_assertions) {
-                    "Tofa DEV"
+                    "TOFA DEV"
                 } else {
-                    "Tofa"
+                    "TOFA"
                 })
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {

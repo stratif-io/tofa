@@ -621,7 +621,7 @@ $('btn-qr-save').addEventListener('click', async () => {
   if (!img.src) return;
   const filename = `${$('qr-overlay-title').textContent || 'tofa-qr'}.png`;
   try {
-    await invoke('save_qr_png', { dataUri: img.src, filename });
+    await withPopoverPinned(() => invoke('save_qr_png', { dataUri: img.src, filename }));
   } catch (err) { toast(String(err), true); }
 });
 

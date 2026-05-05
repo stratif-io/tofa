@@ -5,6 +5,7 @@ pub mod ente;
 pub mod freeotp;
 pub mod google_authenticator;
 pub mod keepassxc;
+pub mod native;
 pub mod raivo;
 pub mod twofas;
 
@@ -48,11 +49,18 @@ pub fn parse_json_bytes(bytes: &[u8]) -> Result<Vec<OtpSecret>, String> {
         return freeotp::parse(&v);
     }
 
-    // Root array: Raivo (has "kind") or andOTP (has "type")
+    // Root array: Raivo (has "kind"), native tofa export (has "name", no "type"), or andOTP
     if let Some(entries) = v.as_array() {
         let first = entries.first();
         if first.and_then(|e| e.get("kind")).is_some() {
             return raivo::parse(entries);
+        }
+        // Native tofa export: entries have "name" and "secret" but no "type" field
+        if first
+            .map(|e| e.get("name").is_some() && e.get("type").is_none())
+            .unwrap_or(false)
+        {
+            return native::parse(entries);
         }
         return andotp::parse(entries);
     }

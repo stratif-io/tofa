@@ -768,8 +768,9 @@ fn entries_from_vault(vault: &tofa_core::store::Vault) -> Result<Vec<OtpEntry>, 
         .entries()
         .iter()
         .map(|entry| {
-            let code_raw = tofa_core::totp::generate_code_now(entry).map_err(|e| e.to_string())?;
-            let code = tofa_core::totp::format_code(&code_raw);
+            let code = tofa_core::totp::generate_code_now(entry)
+                .map(|raw| tofa_core::totp::format_code(&raw))
+                .unwrap_or_else(|_| "------".to_string());
             let seconds_left = tofa_core::totp::seconds_remaining_now(entry);
             // Use split_name: no colon → account=name, issuer="" (not the reverse)
             let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&entry.name);

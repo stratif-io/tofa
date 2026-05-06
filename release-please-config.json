@@ -31,7 +31,7 @@
       "extra-files": [
         {
           "type": "json",
-          "path": "tofa-app/src-tauri/tauri.conf.json",
+          "path": "tauri.conf.json",
           "jsonpath": "$.version"
         }
       ]

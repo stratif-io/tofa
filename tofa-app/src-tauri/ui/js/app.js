@@ -658,19 +658,10 @@ $('btn-qr-next').addEventListener('click', () => showQrItem(qrListIndex + 1));
 
 $('btn-qr-save-all').addEventListener('click', async () => {
   if (qrList.length === 0) return;
-  // Native save dialog runs once per item; users can also Cancel to stop.
+  // One save dialog → one zip containing per-entry PNGs and a printable
+  // one-pager (print.html). The backend handles zip composition.
   try {
-    await withPopoverPinned(async () => {
-      for (let i = 0; i < qrList.length; i++) {
-        const item = qrList[i];
-        const padded = String(i + 1).padStart(2, '0');
-        const safeName = (item.name || `qr-${padded}`).replace(/[^A-Za-z0-9._-]/g, '_');
-        await invoke('save_qr_png', {
-          dataUri: item.data_uri,
-          filename: `${padded}-${safeName}.png`,
-        });
-      }
-    });
+    await withPopoverPinned(() => invoke('save_qr_zip', { items: qrList }));
   } catch (err) { toast(String(err), true); }
 });
 
@@ -678,13 +669,26 @@ $('btn-qr-save-all').addEventListener('click', async () => {
 
 $('btn-export-qr').addEventListener('click', () => {
   const list = $('export-qr-list');
-  list.innerHTML = entries.map(e => `
+  list.innerHTML = entries.map(e => {
+    // Non-30s entries can't fit in a Google Authenticator migration QR;
+    // mark them so the user knows the "Single QR" path will refuse the
+    // selection and they should reach for "List of QRs" instead.
+    const isNon30 = e.period && e.period !== 30;
+    const badge = isNon30
+      ? `<span title="${e.period}s period — not compatible with the migration QR; use 'List of QRs' instead" style="font-family:var(--font-mono);font-size:10px;color:var(--warning);border:1px solid var(--warning);border-radius:var(--r-sm);padding:1px 5px;margin-left:var(--s-2);">${e.period}s</span>`
+      : '';
+    const accountSpan = e.issuer
+      ? `<span style="font-size:11px;color:var(--text-muted);margin-left:auto;">${e.account}</span>`
+      : '';
+    return `
     <label style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-2) var(--s-2);border-radius:var(--r-md);cursor:pointer;">
       <input type="checkbox" data-id="${e.id}" checked style="width:14px;height:14px;accent-color:var(--brand);">
       <span style="font-size:13px;">${e.issuer || e.name}</span>
-      ${e.issuer ? `<span style="font-size:11px;color:var(--text-muted);margin-left:auto;">${e.account}</span>` : ''}
+      ${badge}
+      ${accountSpan}
     </label>
-  `).join('');
+  `;
+  }).join('');
   $('export-qr-overlay').style.display = 'flex';
 });
 

@@ -715,29 +715,19 @@ pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> 
     // is below rqrr's reliable detection threshold. Conversely, sparse QRs at
     // very high res can carry noise that confuses detection.
     //
-    // Cover both ends: scan at native resolution first, then at progressively
-    // smaller rescales, deduplicating URIs across passes.
+    // Cover both ends: scan at native resolution first (handles the common
+    // Retina case), then a small ladder of downscales as a fallback for
+    // sparse/large QRs. Stop early once we've had two consecutive unproductive
+    // passes — large screenshots get expensive to resize repeatedly.
     let mut seen = std::collections::HashSet::new();
     let mut uris: Vec<String> = Vec::new();
-    let mut scan = |gray: image::ImageBuffer<image::Luma<u8>, Vec<u8>>| {
-        let mut prepared = rqrr::PreparedImage::prepare(gray);
-        for grid in prepared.detect_grids() {
-            if let Ok((_, content)) = grid.decode() {
-                if seen.insert(content.clone()) {
-                    uris.push(content);
-                }
-            }
-        }
-    };
 
-    // Native resolution first: this is what catches dense QRs in Retina captures.
-    scan(raw.to_luma8());
+    // Native resolution first: catches dense QRs in Retina captures.
+    scan_into(raw.to_luma8(), &mut seen, &mut uris);
 
-    // Progressive downscales: catch sparse/large QRs that rqrr handles better
-    // at lower resolution. Skip any width >= the native one (we just did that).
-    // Multiple intermediate widths because rqrr's grid detector hits an
-    // odd sweet spot per QR; covering the spectrum maximizes hit rate.
-    for &max_w in &[3840u32, 3072, 2560, 2048, 1920, 1600, 1280, 1024, 960, 800] {
+    let mut last_count = uris.len();
+    let mut unproductive = 0u8;
+    for &max_w in &[1920u32, 1280, 960] {
         if raw.width() <= max_w {
             continue;
         }
@@ -746,13 +736,37 @@ pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> 
         let resized = raw
             .resize(max_w, h, image::imageops::FilterType::Lanczos3)
             .to_luma8();
-        scan(resized);
+        scan_into(resized, &mut seen, &mut uris);
+        if uris.len() == last_count {
+            unproductive += 1;
+            if unproductive >= 2 {
+                break;
+            }
+        } else {
+            unproductive = 0;
+            last_count = uris.len();
+        }
     }
 
     if uris.is_empty() {
         Err(QrError::NoQrFound)
     } else {
         Ok(uris)
+    }
+}
+
+fn scan_into(
+    gray: image::ImageBuffer<image::Luma<u8>, Vec<u8>>,
+    seen: &mut std::collections::HashSet<String>,
+    uris: &mut Vec<String>,
+) {
+    let mut prepared = rqrr::PreparedImage::prepare(gray);
+    for grid in prepared.detect_grids() {
+        if let Ok((_, content)) = grid.decode() {
+            if seen.insert(content.clone()) {
+                uris.push(content);
+            }
+        }
     }
 }
 

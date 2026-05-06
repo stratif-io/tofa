@@ -355,6 +355,44 @@ pub(crate) fn parse_uri(uri: &str) -> Result<OtpSecret, QrError> {
     })
 }
 
+/// Builds a single-account `otpauth://totp/...` URI from a vault entry,
+/// preserving algorithm, digits, and period as query parameters. The label
+/// is `Issuer:account` (or just `account` when the entry name has no colon).
+/// All user-controlled fields are percent-encoded per RFC 3986 unreserved.
+pub fn build_otpauth_uri(entry: &crate::store::VaultEntry) -> String {
+    let (issuer, account) = OtpMeta::split_name(&entry.name);
+    let label = if issuer.is_empty() {
+        account.clone()
+    } else {
+        format!("{issuer}:{account}")
+    };
+    let mut uri = format!(
+        "otpauth://totp/{}?secret={}",
+        percent_encode(&label),
+        entry.secret,
+    );
+    if !issuer.is_empty() {
+        uri.push_str(&format!("&issuer={}", percent_encode(&issuer)));
+    }
+    uri.push_str(&format!("&algorithm={}", entry.algorithm));
+    uri.push_str(&format!("&digits={}", entry.digits));
+    uri.push_str(&format!("&period={}", entry.period));
+    uri
+}
+
+fn percent_encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for byte in s.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(byte as char)
+            }
+            b => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
 /// Builds a Google Authenticator `otpauth-migration://` URI from a list of
 /// accounts. Returns the URI string ready to encode into a QR code.
 ///

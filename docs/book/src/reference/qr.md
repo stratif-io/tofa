@@ -15,7 +15,9 @@ tofa qr [FLAGS]
 | Flag | Description |
 |---|---|
 | `--all <ALL>` | Export all accounts as a migration QR |
-| `--output <PATH>` | Save QR as PNG instead of displaying in terminal |
+| `--multi <MULTI>` | Emit one otpauth:// QR per entry instead of a single migration QR. Requires `--all` and `--output-dir`. Preserves period/algorithm/digits for every entry — use this when the migration format would refuse because the selection mixes 30s and non-30s entries |
+| `--output <PATH>` | Save QR as PNG instead of displaying in terminal (single-QR modes) |
+| `--output-dir <DIR>` | Directory to write per-entry PNGs into when using `--multi` |
 
 <!-- END auto:help -->
 

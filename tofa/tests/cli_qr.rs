@@ -163,6 +163,77 @@ fn qr_all_refuses_when_selection_mixes_periods() {
 }
 
 #[test]
+fn qr_all_multi_writes_one_png_per_entry_with_full_otpauth() {
+    // `tofa qr --all --multi --output-dir <dir>` writes one PNG per entry,
+    // each containing a complete otpauth:// URI that round-trips every field
+    // (including non-30s period for the second entry).
+    let tmp = TempDir::new().unwrap();
+    let vault_path = tmp.path().join("vault.enc");
+    let pass = "testpass";
+
+    let mut vault = tofa_core::store::Vault::new();
+    vault.add_entry(tofa_core::store::VaultEntry {
+        id: String::new(),
+        name: "GitHub:alice".to_string(),
+        secret: "JBSWY3DPEHPK3PXP".to_string(),
+        created_at: "2026-01-01".to_string(),
+        period: 30,
+        digits: 6,
+        algorithm: "SHA1".to_string(),
+    });
+    vault.add_entry(tofa_core::store::VaultEntry {
+        id: String::new(),
+        name: "Custom:bob".to_string(),
+        secret: "MFRGGZDFM5XW6YTBOI".to_string(),
+        created_at: "2026-01-01".to_string(),
+        period: 60,
+        digits: 8,
+        algorithm: "SHA256".to_string(),
+    });
+    vault.save(&vault_path, pass).unwrap();
+
+    let out_dir = tmp.path().join("multi");
+    Command::cargo_bin("tofa")
+        .unwrap()
+        .env("TOFA_PASSPHRASE", pass)
+        .env("TOFA_VAULT", vault_path.to_str().unwrap())
+        .args([
+            "qr",
+            "--all",
+            "--multi",
+            "--output-dir",
+            out_dir.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    let pngs: Vec<_> = std::fs::read_dir(&out_dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().is_some_and(|x| x == "png"))
+        .collect();
+    assert_eq!(pngs.len(), 2, "expected one PNG per entry");
+
+    let mut found_60s = false;
+    let mut found_30s = false;
+    for entry in &pngs {
+        let uri = tofa_core::qr::scan_qr_uri(&entry.path()).expect("scan");
+        assert!(uri.starts_with("otpauth://totp/"), "got: {uri}");
+        let parsed = tofa_core::qr::parse_input(&uri).expect("parse");
+        match parsed.meta.period {
+            Some(30) => found_30s = true,
+            Some(60) => {
+                found_60s = true;
+                assert_eq!(parsed.meta.algorithm.as_deref(), Some("SHA256"));
+                assert_eq!(parsed.meta.digits, Some(8));
+            }
+            other => panic!("unexpected period: {other:?}"),
+        }
+    }
+    assert!(found_30s && found_60s, "both entries must round-trip");
+}
+
+#[test]
 fn qr_all_with_single_60s_entry_uses_otpauth_and_preserves_period() {
     // Vault with one 60s entry. `tofa qr --all` should route through the
     // single-entry otpauth:// path so the period survives the export.

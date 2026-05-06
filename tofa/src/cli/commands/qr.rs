@@ -9,14 +9,45 @@ pub struct QrArgs {
     /// Export all accounts as a migration QR
     #[arg(long, conflicts_with = "name")]
     pub all: bool,
-    /// Save QR as PNG instead of displaying in terminal
-    #[arg(long, value_name = "PATH")]
+    /// Emit one otpauth:// QR per entry instead of a single migration QR.
+    /// Requires `--all` and `--output-dir`. Preserves period/algorithm/digits
+    /// for every entry — use this when the migration format would refuse
+    /// because the selection mixes 30s and non-30s entries.
+    #[arg(long, requires = "all", requires = "output_dir")]
+    pub multi: bool,
+    /// Save QR as PNG instead of displaying in terminal (single-QR modes).
+    #[arg(long, value_name = "PATH", conflicts_with = "output_dir")]
     pub output: Option<PathBuf>,
+    /// Directory to write per-entry PNGs into when using `--multi`.
+    #[arg(long, value_name = "DIR")]
+    pub output_dir: Option<PathBuf>,
 }
 
 pub fn run(args: QrArgs, vault_path: PathBuf) -> CliResult {
     let pass = read_passphrase("Passphrase: ")?;
     let vault = open_vault(&vault_path, &pass)?;
+
+    if args.multi {
+        // --multi: write one otpauth:// PNG per entry into --output-dir.
+        let dir = args
+            .output_dir
+            .as_deref()
+            .ok_or("--multi requires --output-dir")?;
+        std::fs::create_dir_all(dir).map_err(|e| format!("create output dir: {e}"))?;
+        let entries = vault.entries();
+        if entries.is_empty() {
+            return Err("vault has no entries".into());
+        }
+        for (i, entry) in entries.iter().enumerate() {
+            let uri = tofa_core::qr::build_otpauth_uri(entry);
+            let filename = format!("{:02}-{}.png", i + 1, sanitize_filename(&entry.name));
+            let path = dir.join(&filename);
+            tofa_core::uri_to_qr_png(&uri, &path)
+                .map_err(|e| format!("PNG generation failed for {filename}: {e}"))?;
+        }
+        eprintln!("Wrote {} QR PNG(s) to {}", entries.len(), dir.display());
+        return Ok(());
+    }
 
     let uri = if args.all {
         // build_selection_uri picks the right format: a single otpauth:// when
@@ -41,4 +72,14 @@ pub fn run(args: QrArgs, vault_path: PathBuf) -> CliResult {
         }
     }
     Ok(())
+}
+
+/// Replace path-unsafe characters in an entry name so it can be a filename.
+fn sanitize_filename(name: &str) -> String {
+    name.chars()
+        .map(|c| match c {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' => c,
+            _ => '_',
+        })
+        .collect()
 }

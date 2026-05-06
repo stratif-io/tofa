@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.6.0...tofa-macos-v0.6.1) (2026-05-06)
+
+
+### Bug Fixes
+
+* **core:** preserve per-account algorithm and digits in migration export ([49641a8](https://github.com/stratif-io/tofa/commit/49641a8dcd0ca1885db7d9c56f471301c6b2a7ff))
+* repair broken 0.4.0 publish, harden release pipeline, preserve OTP params in migration export ([654a6a9](https://github.com/stratif-io/tofa/commit/654a6a910f1bb954ebb2030b4aac29e19bb74ca0))
+
 ## [0.6.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.5.3...tofa-macos-v0.6.0) (2026-05-05)
 
 

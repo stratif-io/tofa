@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.6.1...tofa-macos-v0.6.2) (2026-05-06)
+
+
+### Bug Fixes
+
+* **app:** sync tauri.conf.json version to 0.6.1 ([666a178](https://github.com/stratif-io/tofa/commit/666a178c6dd7b6597c8556a9e00375889f8af2ed))
+* sync tauri.conf.json version + fix release-please path so it stays in sync ([36e55f9](https://github.com/stratif-io/tofa/commit/36e55f9a9364e8a894b921392687c6225ed51822))
+
 ## [0.6.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.6.0...tofa-macos-v0.6.1) (2026-05-06)
 
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0](https://github.com/stratif-io/tofa/compare/tofa-core-v0.5.0...tofa-core-v0.6.0) (2026-05-06)
+
+
+### Features
+
+* **core:** add build_otpauth_uri helper for single-entry exports ([ae6a79b](https://github.com/stratif-io/tofa/commit/ae6a79b8b7aa37b7b169a279cde3fd56dcf58ae4))
+* **core:** build_selection_uri dispatches by selection shape ([6695d10](https://github.com/stratif-io/tofa/commit/6695d106b119d36fe3811034ce05569bc457c6f5))
+* full-fidelity QR export rules across CLI, TUI, and Tauri app ([b0cb6de](https://github.com/stratif-io/tofa/commit/b0cb6decb0820186368619ff9f09d420c94b64ba))
+
 ## [0.5.0](https://github.com/stratif-io/tofa/compare/tofa-core-v0.4.0...tofa-core-v0.5.0) (2026-05-06)
 
 

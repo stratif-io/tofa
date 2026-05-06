@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.6.2...tofa-macos-v0.7.0) (2026-05-06)
+
+
+### Features
+
+* **core:** build_selection_uri dispatches by selection shape ([6695d10](https://github.com/stratif-io/tofa/commit/6695d106b119d36fe3811034ce05569bc457c6f5))
+* full-fidelity QR export rules across CLI, TUI, and Tauri app ([b0cb6de](https://github.com/stratif-io/tofa/commit/b0cb6decb0820186368619ff9f09d420c94b64ba))
+* **tui,app:** list-of-otpauth multi-QR export in TUI and Tauri app ([316fdce](https://github.com/stratif-io/tofa/commit/316fdce3cce3847591907e1c3c7b54347b39bad1))
+
+
+### Bug Fixes
+
+* **cli:** emit full otpauth URI from `tofa qr <name>` ([305068a](https://github.com/stratif-io/tofa/commit/305068ad5548e79f8d77a5852f1e3f675054fdbe))
+
 ## [0.6.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.6.1...tofa-macos-v0.6.2) (2026-05-06)
 
 

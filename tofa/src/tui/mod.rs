@@ -17,7 +17,6 @@ use std::{
     time::{Duration, Instant},
 };
 use tofa_core::{
-    generate_migration_uri,
     qr::{parse_input, parse_migration, scan_qr_uri},
     store::{Vault, VaultEntry},
     totp::generate_code_now,
@@ -836,29 +835,30 @@ fn handle_export_key(
             }
         }
         KeyCode::Enter => {
-            let entries = vault.entries();
-            let accounts: Vec<tofa_core::MigrationAccount<'_>> = entries
+            let selection: Vec<tofa_core::VaultEntry> = vault
+                .entries()
                 .iter()
                 .enumerate()
                 .filter(|(i, _)| state.export_checked.get(*i).copied().unwrap_or(true))
-                .map(|(_, e)| tofa_core::MigrationAccount {
-                    name: e.name.as_str(),
-                    issuer: "",
-                    secret_b32: e.secret.as_str(),
-                    algorithm: e.algorithm.as_str(),
-                    digits: e.digits,
-                })
+                .map(|(_, e)| e.clone())
                 .collect();
 
-            if accounts.is_empty() {
-                state.status_message = Some("No accounts selected.".to_string());
-                state.screen = Screen::List;
-                return Ok(());
+            match tofa_core::build_selection_uri(&selection) {
+                Ok(uri) => {
+                    state.export_qr_lines = uri_to_qr_lines(&uri);
+                    state.screen = Screen::ExportQr;
+                }
+                Err(tofa_core::SelectionExportError::Empty) => {
+                    state.status_message = Some("No accounts selected.".to_string());
+                    state.screen = Screen::List;
+                }
+                Err(err) => {
+                    // Truncate for the status bar; the full message is logged
+                    // and the user can deselect the offending entries.
+                    state.status_message = Some(err.to_string());
+                    state.screen = Screen::List;
+                }
             }
-
-            let uri = generate_migration_uri(&accounts)?;
-            state.export_qr_lines = uri_to_qr_lines(&uri);
-            state.screen = Screen::ExportQr;
         }
         _ => {}
     }

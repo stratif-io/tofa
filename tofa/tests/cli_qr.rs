@@ -122,3 +122,80 @@ fn qr_single_entry_preserves_full_otpauth_params() {
     assert_eq!(parsed.meta.digits, Some(8));
     assert_eq!(parsed.meta.period, Some(60));
 }
+
+#[test]
+fn qr_all_refuses_when_selection_mixes_periods() {
+    // Vault with a 30s and a 60s entry. `tofa qr --all` should refuse
+    // because the migration QR can't carry the non-30s entry alongside.
+    let tmp = TempDir::new().unwrap();
+    let vault_path = tmp.path().join("vault.enc");
+    let pass = "testpass";
+
+    let mut vault = tofa_core::store::Vault::new();
+    vault.add_entry(tofa_core::store::VaultEntry {
+        id: String::new(),
+        name: "Standard:alice".to_string(),
+        secret: "JBSWY3DPEHPK3PXP".to_string(),
+        created_at: "2026-01-01".to_string(),
+        period: 30,
+        digits: 6,
+        algorithm: "SHA1".to_string(),
+    });
+    vault.add_entry(tofa_core::store::VaultEntry {
+        id: String::new(),
+        name: "Custom:bob".to_string(),
+        secret: "MFRGGZDFM5XW6YTBOI".to_string(),
+        created_at: "2026-01-01".to_string(),
+        period: 60,
+        digits: 6,
+        algorithm: "SHA1".to_string(),
+    });
+    vault.save(&vault_path, pass).unwrap();
+
+    Command::cargo_bin("tofa")
+        .unwrap()
+        .env("TOFA_PASSPHRASE", pass)
+        .env("TOFA_VAULT", vault_path.to_str().unwrap())
+        .args(["qr", "--all"])
+        .assert()
+        .failure()
+        .stderr(contains("non-30s period"));
+}
+
+#[test]
+fn qr_all_with_single_60s_entry_uses_otpauth_and_preserves_period() {
+    // Vault with one 60s entry. `tofa qr --all` should route through the
+    // single-entry otpauth:// path so the period survives the export.
+    let tmp = TempDir::new().unwrap();
+    let vault_path = tmp.path().join("vault.enc");
+    let pass = "testpass";
+
+    let mut vault = tofa_core::store::Vault::new();
+    vault.add_entry(tofa_core::store::VaultEntry {
+        id: String::new(),
+        name: "Custom:alice".to_string(),
+        secret: "JBSWY3DPEHPK3PXP".to_string(),
+        created_at: "2026-01-01".to_string(),
+        period: 60,
+        digits: 6,
+        algorithm: "SHA1".to_string(),
+    });
+    vault.save(&vault_path, pass).unwrap();
+
+    let out_png = tmp.path().join("all.png");
+    Command::cargo_bin("tofa")
+        .unwrap()
+        .env("TOFA_PASSPHRASE", pass)
+        .env("TOFA_VAULT", vault_path.to_str().unwrap())
+        .args(["qr", "--all", "--output", out_png.to_str().unwrap()])
+        .assert()
+        .success();
+
+    let scanned_uri = tofa_core::qr::scan_qr_uri(&out_png).expect("scan");
+    assert!(
+        scanned_uri.starts_with("otpauth://totp/"),
+        "single-entry --all must use otpauth:// not migration; got: {scanned_uri}"
+    );
+    let parsed = tofa_core::qr::parse_input(&scanned_uri).expect("parse");
+    assert_eq!(parsed.meta.period, Some(60));
+}

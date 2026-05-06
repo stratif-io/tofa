@@ -19,22 +19,12 @@ pub fn run(args: QrArgs, vault_path: PathBuf) -> CliResult {
     let vault = open_vault(&vault_path, &pass)?;
 
     let uri = if args.all {
-        // Build a MigrationAccount per entry. VaultEntry.name may be "issuer:account",
-        // but the migration encoder doesn't try to split — it stores the full string
-        // as the name and leaves issuer empty.
-        let entries = vault.entries();
-        let accounts: Vec<tofa_core::MigrationAccount<'_>> = entries
-            .iter()
-            .map(|e| tofa_core::MigrationAccount {
-                name: e.name.as_str(),
-                issuer: "",
-                secret_b32: e.secret.as_str(),
-                algorithm: e.algorithm.as_str(),
-                digits: e.digits,
-            })
-            .collect();
-        tofa_core::generate_migration_uri(&accounts)
-            .map_err(|e| format!("QR generation failed: {e}"))?
+        // build_selection_uri picks the right format: a single otpauth:// when
+        // there's exactly one entry, otpauth-migration:// when multiple all-30s
+        // entries, and refuses with NonStandardPeriod when a multi-selection
+        // includes a non-30s entry that the migration format can't carry.
+        let entries: Vec<_> = vault.entries().to_vec();
+        tofa_core::build_selection_uri(&entries).map_err(|e| e.to_string())?
     } else {
         let name = args.name.as_deref().ok_or("provide a name or --all")?;
         let (_, entry) = find_entry(&vault, name)?;

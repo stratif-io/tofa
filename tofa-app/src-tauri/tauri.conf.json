@@ -1,6 +1,6 @@
 {
   "productName": "Tofa",
-  "version": "0.5.3",
+  "version": "0.6.1",
   "identifier": "io.stratif.tofa",
   "build": {
     "frontendDist": "../src"

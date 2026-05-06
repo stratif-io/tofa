@@ -119,6 +119,9 @@ fn run_app(
                     screens::export::render(f, area, &app_state, v);
                 }
                 Screen::ExportQr => screens::export_qr::render(f, area, &app_state),
+                Screen::ExportOtpauthList => {
+                    screens::export_otpauth_list::render(f, area, &app_state)
+                }
                 Screen::ScanningQr => {
                     let v = vault
                         .as_ref()
@@ -335,6 +338,9 @@ fn run_app(
                             if key.code == KeyCode::Esc {
                                 app_state.screen = Screen::Export;
                             }
+                        }
+                        Screen::ExportOtpauthList => {
+                            handle_export_otpauth_list_key(key.code, &mut app_state);
                         }
                         Screen::DeleteConfirm => handle_delete_confirm_key(
                             key.code,
@@ -835,13 +841,7 @@ fn handle_export_key(
             }
         }
         KeyCode::Enter => {
-            let selection: Vec<tofa_core::VaultEntry> = vault
-                .entries()
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| state.export_checked.get(*i).copied().unwrap_or(true))
-                .map(|(_, e)| e.clone())
-                .collect();
+            let selection: Vec<tofa_core::VaultEntry> = checked_selection(state, vault);
 
             match tofa_core::build_selection_uri(&selection) {
                 Ok(uri) => {
@@ -853,16 +853,59 @@ fn handle_export_key(
                     state.screen = Screen::List;
                 }
                 Err(err) => {
-                    // Truncate for the status bar; the full message is logged
-                    // and the user can deselect the offending entries.
                     state.status_message = Some(err.to_string());
                     state.screen = Screen::List;
                 }
             }
         }
+        KeyCode::Char('m') => {
+            // 'm' = list-of-otpauth multi export. Each entry becomes its own QR
+            // shown one at a time on the next screen — preserves period for
+            // every entry, and works when the migration QR would refuse the
+            // selection.
+            let selection = checked_selection(state, vault);
+            if selection.is_empty() {
+                state.status_message = Some("No accounts selected.".to_string());
+                state.screen = Screen::List;
+                return Ok(());
+            }
+            state.otpauth_list_qrs = selection
+                .iter()
+                .map(|e| uri_to_qr_lines(&tofa_core::qr::build_otpauth_uri(e)))
+                .collect();
+            state.otpauth_list_titles = selection.iter().map(|e| e.name.clone()).collect();
+            state.otpauth_list_index = 0;
+            state.screen = Screen::ExportOtpauthList;
+        }
         _ => {}
     }
     Ok(())
+}
+
+fn checked_selection(state: &AppState, vault: &Vault) -> Vec<tofa_core::VaultEntry> {
+    vault
+        .entries()
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| state.export_checked.get(*i).copied().unwrap_or(true))
+        .map(|(_, e)| e.clone())
+        .collect()
+}
+
+fn handle_export_otpauth_list_key(key: KeyCode, state: &mut AppState) {
+    let total = state.otpauth_list_qrs.len();
+    match key {
+        KeyCode::Esc => state.screen = Screen::Export,
+        KeyCode::Left | KeyCode::Char('h') if state.otpauth_list_index > 0 => {
+            state.otpauth_list_index -= 1;
+        }
+        KeyCode::Right | KeyCode::Char('l')
+            if total > 0 && state.otpauth_list_index < total - 1 =>
+        {
+            state.otpauth_list_index += 1;
+        }
+        _ => {}
+    }
 }
 
 fn open_file_picker(state: &mut AppState) {

@@ -98,7 +98,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "[ Space ] toggle  [ Enter ] generate QR  [ Esc ] back",
+            "[ Space ] toggle  [ Enter ] migration QR  [ m ] separate QRs  [ Esc ] back",
             Style::default().fg(theme::TEXT_MUTED),
         ))),
         chunks[3],

@@ -614,9 +614,34 @@ $('btn-detail-qr').addEventListener('click', async () => {
   finally { loaderDone(); }
 });
 
+// ── QR list pagination state ────────────────────────────────────────────────
+// When the user picks "List of QRs" multi-export, qrList holds the per-entry
+// items and qrListIndex tracks which one is currently displayed in the
+// shared qr-overlay. qrList is empty for single-QR (compatible) mode.
+let qrList = [];
+let qrListIndex = 0;
+
+function showQrItem(idx) {
+  if (qrList.length === 0) return;
+  qrListIndex = Math.max(0, Math.min(idx, qrList.length - 1));
+  const item = qrList[qrListIndex];
+  $('qr-overlay-title').textContent = item.name;
+  $('qr-overlay-img').src = item.data_uri;
+  $('qr-overlay-counter').textContent = `${qrListIndex + 1} of ${qrList.length}`;
+}
+
+function resetQrOverlayToSingle() {
+  qrList = [];
+  qrListIndex = 0;
+  $('qr-overlay-pager').style.display = 'none';
+  $('btn-qr-save-all').style.display = 'none';
+  $('btn-qr-save').style.display = '';
+}
+
 $('btn-qr-close').addEventListener('click', () => {
   $('qr-overlay').style.display = 'none';
   $('qr-overlay-img').src = '';
+  resetQrOverlayToSingle();
 });
 
 $('btn-qr-save').addEventListener('click', async () => {
@@ -625,6 +650,27 @@ $('btn-qr-save').addEventListener('click', async () => {
   const filename = `${$('qr-overlay-title').textContent || 'tofa-qr'}.png`;
   try {
     await withPopoverPinned(() => invoke('save_qr_png', { dataUri: img.src, filename }));
+  } catch (err) { toast(String(err), true); }
+});
+
+$('btn-qr-prev').addEventListener('click', () => showQrItem(qrListIndex - 1));
+$('btn-qr-next').addEventListener('click', () => showQrItem(qrListIndex + 1));
+
+$('btn-qr-save-all').addEventListener('click', async () => {
+  if (qrList.length === 0) return;
+  // Native save dialog runs once per item; users can also Cancel to stop.
+  try {
+    await withPopoverPinned(async () => {
+      for (let i = 0; i < qrList.length; i++) {
+        const item = qrList[i];
+        const padded = String(i + 1).padStart(2, '0');
+        const safeName = (item.name || `qr-${padded}`).replace(/[^A-Za-z0-9._-]/g, '_');
+        await invoke('save_qr_png', {
+          dataUri: item.data_uri,
+          filename: `${padded}-${safeName}.png`,
+        });
+      }
+    });
   } catch (err) { toast(String(err), true); }
 });
 
@@ -653,9 +699,29 @@ $('btn-export-qr-generate').addEventListener('click', async () => {
   loaderStart();
   try {
     const dataUri = await invoke('generate_selection_qr', { ids });
+    resetQrOverlayToSingle();
     $('export-qr-overlay').style.display = 'none';
     $('qr-overlay-title').textContent = `${ids.length} account${ids.length > 1 ? 's' : ''}`;
     $('qr-overlay-img').src = dataUri;
+    $('qr-overlay').style.display = 'flex';
+  } catch (err) { toast(String(err), true); }
+  finally { loaderDone(); }
+});
+
+$('btn-export-qr-generate-multi').addEventListener('click', async () => {
+  const ids = [...$('export-qr-list').querySelectorAll('input[type=checkbox]:checked')]
+    .map(cb => cb.dataset.id);
+  if (ids.length === 0) { toast('Select at least one account', true); return; }
+  loaderStart();
+  try {
+    const items = await invoke('generate_otpauth_list', { ids });
+    qrList = items;
+    qrListIndex = 0;
+    $('export-qr-overlay').style.display = 'none';
+    $('qr-overlay-pager').style.display = 'flex';
+    $('btn-qr-save-all').style.display = '';
+    $('btn-qr-save').style.display = 'none';
+    showQrItem(0);
     $('qr-overlay').style.display = 'flex';
   } catch (err) { toast(String(err), true); }
   finally { loaderDone(); }

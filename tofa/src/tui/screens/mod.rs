@@ -2,6 +2,7 @@ pub mod add_form;
 pub mod add_name;
 pub mod delete_confirm;
 pub mod export;
+pub mod export_otpauth_list;
 pub mod export_qr;
 pub mod file_picker;
 pub mod fullscreen;

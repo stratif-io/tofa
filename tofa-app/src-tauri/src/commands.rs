@@ -882,6 +882,66 @@ pub async fn generate_selection_qr(
     .map_err(|e| e.to_string())?
 }
 
+/// Per-entry QR result for the multi-otpauth export.
+#[derive(Serialize)]
+pub struct OtpauthQrItem {
+    pub name: String,
+    pub data_uri: String,
+}
+
+/// Generate one otpauth:// QR PNG per selected entry, returned as a list
+/// so the frontend can paginate. Each PNG preserves period/algorithm/digits
+/// for its entry — use this when the migration QR can't combine the selection
+/// (e.g., mixed 30s and non-30s periods).
+#[tauri::command]
+pub async fn generate_otpauth_list(
+    ids: Vec<String>,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<OtpauthQrItem>, String> {
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+
+    tokio::task::spawn_blocking(move || {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+
+        let selection: Vec<tofa_core::store::VaultEntry> = ids
+            .iter()
+            .filter_map(|id| vault.entry_by_id(id).cloned())
+            .collect();
+
+        if selection.is_empty() {
+            return Err("No matching entries found.".to_string());
+        }
+
+        let mut items = Vec::with_capacity(selection.len());
+        for entry in &selection {
+            let uri = tofa_core::qr::build_otpauth_uri(entry);
+            let tmp = std::env::temp_dir().join(format!("tofa_qr_list_{}.png", entry.id));
+            tofa_core::qr::uri_to_qr_png(&uri, &tmp).map_err(|e| e.to_string())?;
+            let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
+            let _ = std::fs::remove_file(&tmp);
+            let data_uri = format!(
+                "data:image/png;base64,{}",
+                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)
+            );
+            items.push(OtpauthQrItem {
+                name: entry.name.clone(),
+                data_uri,
+            });
+        }
+        Ok(items)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Save a base64-encoded PNG to a user-chosen location via native save dialog.
 #[tauri::command]
 pub async fn save_qr_png(

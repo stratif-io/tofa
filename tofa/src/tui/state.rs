@@ -13,6 +13,7 @@ pub enum Screen {
     OtpDetail,
     Export,
     ExportQr,
+    ExportOtpauthList,
     ScanningQr,
 }
 
@@ -52,6 +53,10 @@ pub struct AppState {
     pub export_checked: Vec<bool>,
     pub export_selected: usize,
     pub export_qr_lines: Vec<String>,
+    // multi-otpauth list export
+    pub otpauth_list_qrs: Vec<Vec<String>>,
+    pub otpauth_list_titles: Vec<String>,
+    pub otpauth_list_index: usize,
     // file picker
     pub fp_path: PathBuf,
     pub fp_entries: Vec<(String, bool)>,
@@ -96,6 +101,9 @@ impl AppState {
             export_checked: Vec::new(),
             export_selected: 0,
             export_qr_lines: Vec::new(),
+            otpauth_list_qrs: Vec::new(),
+            otpauth_list_titles: Vec::new(),
+            otpauth_list_index: 0,
             fp_path: PathBuf::new(),
             fp_entries: Vec::new(),
             fp_selected: 0,

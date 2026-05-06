@@ -103,8 +103,9 @@
     </div>
     <div style="padding:var(--s-3);font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">Select accounts to include</div>
     <div id="export-qr-list" style="flex:1;overflow-y:auto;padding:0 var(--s-3);display:flex;flex-direction:column;gap:var(--s-2);"></div>
-    <div style="padding:var(--s-3);display:flex;gap:var(--s-2);">
-      <button id="btn-export-qr-generate" class="btn btn-primary" style="flex:1;">Generate QR</button>
+    <div style="padding:var(--s-3);display:flex;flex-direction:column;gap:var(--s-2);">
+      <button id="btn-export-qr-generate" class="btn btn-primary">Single QR (compatible)</button>
+      <button id="btn-export-qr-generate-multi" class="btn btn-ghost" title="One QR per account; preserves period/algorithm/digits exactly">List of QRs (full fidelity)</button>
     </div>
   </div>
 </div>
@@ -178,9 +179,15 @@
 <!-- QR overlay — root level so it appears over any view -->
 <div id="qr-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:100;flex-direction:column;align-items:center;justify-content:center;padding:var(--s-5);">
   <p id="qr-overlay-title" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:var(--s-4);text-align:center;"></p>
-  <img id="qr-overlay-img" src="" alt="QR code" style="width:200px;height:200px;image-rendering:pixelated;border-radius:var(--r-md);margin-bottom:var(--s-4);">
+  <img id="qr-overlay-img" src="" alt="QR code" style="width:200px;height:200px;image-rendering:pixelated;border-radius:var(--r-md);margin-bottom:var(--s-2);">
+  <div id="qr-overlay-pager" style="display:none;align-items:center;gap:var(--s-3);margin-bottom:var(--s-4);">
+    <button id="btn-qr-prev" class="btn btn-ghost" style="padding:4px 10px;" title="Previous">←</button>
+    <span id="qr-overlay-counter" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);min-width:60px;text-align:center;"></span>
+    <button id="btn-qr-next" class="btn btn-ghost" style="padding:4px 10px;" title="Next">→</button>
+  </div>
   <div style="display:flex;gap:var(--s-2);width:100%;">
     <button id="btn-qr-save" class="btn btn-primary" style="flex:1;">Save PNG</button>
+    <button id="btn-qr-save-all" class="btn btn-primary" style="flex:1;display:none;">Save all</button>
     <button id="btn-qr-close" class="btn btn-secondary" style="flex:1;">Close</button>
   </div>
 </div>

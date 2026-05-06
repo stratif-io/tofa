@@ -14,7 +14,7 @@ tofa scan [FLAGS]
 
 | Flag | Description |
 |---|---|
-| `--name <NAME>` | Override the account name (default: derived from QR metadata) |
+| `--name <NAME>` | Override the account name (only applied when exactly one entry is found) |
 
 <!-- END auto:help -->
 

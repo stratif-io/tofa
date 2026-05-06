@@ -20,7 +20,7 @@ fn setup() -> TempDir {
             "--name",
             "GitHub:carlo",
             "--secret",
-            "JBSWY3DPEHPK3PXP",
+            "CLIEXPORTAAAAAAA",
         ])
         .assert()
         .success();
@@ -45,7 +45,7 @@ fn export_produces_json_file() {
         .stderr(contains("plain text"));
     let content = std::fs::read_to_string(&out).unwrap();
     assert!(content.contains("GitHub:carlo"));
-    assert!(content.contains("JBSWY3DPEHPK3PXP"));
+    assert!(content.contains("CLIEXPORTAAAAAAA"));
 }
 
 #[test]

@@ -33,7 +33,9 @@ fn entry_from_otp(otp: &tofa_core::qr::OtpSecret) -> VaultEntry {
     }
 }
 
-const DEMO_SECRET: &str = "JBSWY3DPEHPK3PXP";
+const DEMO_SECRET: &str = "QRGENSTANDARDAAA";
+const DEMO_MIGRATION_SHA1_SECRET: &str = "DEMOSHAONEAAAAAA";
+const DEMO_MIGRATION_8DIGIT_SECRET: &str = "DEMOEIGHTAAAAAAA";
 
 #[test]
 fn standard_qr_parses_secret() {
@@ -79,7 +81,7 @@ fn migration_qr_totp_sha1_account() {
         .iter()
         .find(|a| a.meta.issuer.as_deref() == Some("Demo TOTP SHA1"))
         .expect("Demo TOTP SHA1 should be present");
-    assert_eq!(acc.secret, DEMO_SECRET);
+    assert_eq!(acc.secret, DEMO_MIGRATION_SHA1_SECRET);
     assert_valid_code(acc);
 }
 
@@ -90,14 +92,18 @@ fn migration_qr_8digit_account() {
         .iter()
         .find(|a| a.meta.issuer.as_deref() == Some("Demo TOTP 8-digit"))
         .expect("Demo TOTP 8-digit should be present");
-    assert_eq!(acc.secret, DEMO_SECRET);
+    assert_eq!(acc.secret, DEMO_MIGRATION_8DIGIT_SECRET);
     // The 8-digit account should produce an 8-digit code
     let code = generate_code_at(&entry_from_otp(acc), 1_746_000_000).unwrap();
     assert_eq!(code.len(), 8, "8-digit account produces 8-digit codes");
 }
 
 #[test]
-fn migration_and_standard_qr_same_secret() {
+fn migration_and_standard_qr_have_distinct_secrets() {
+    // Each fixture entry must use its own unique secret so that bugs which
+    // collapse distinct accounts cannot be silently masked. The standard
+    // single-entry QR and the SHA1 account inside the migration QR must
+    // therefore decode to different secrets and produce different codes.
     let standard_path = fixture("demo_standard.png");
     let standard = parse_input(&standard_path.to_string_lossy()).unwrap();
 
@@ -107,12 +113,17 @@ fn migration_and_standard_qr_same_secret() {
         .find(|a| a.meta.issuer.as_deref() == Some("Demo TOTP SHA1"))
         .unwrap();
 
+    assert_ne!(
+        standard.secret, migration.secret,
+        "fixture entries must each use a unique secret"
+    );
+
     let ts = 1_746_000_000u64;
     let code_standard = generate_code_at(&entry_from_otp(&standard), ts).unwrap();
     let code_migration = generate_code_at(&entry_from_otp(migration), ts).unwrap();
-    assert_eq!(
+    assert_ne!(
         code_standard, code_migration,
-        "both fixtures use the same secret"
+        "different secrets must yield different codes"
     );
 }
 

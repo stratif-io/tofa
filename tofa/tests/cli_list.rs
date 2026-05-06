@@ -12,8 +12,8 @@ fn setup() -> TempDir {
         .assert()
         .success();
     for (name, secret) in &[
-        ("GitHub:carlo", "JBSWY3DPEHPK3PXP"),
-        ("Authelia:carlo", "JBSWY3DPEHPK3PXQ"),
+        ("GitHub:carlo", "CLILISTPRIMARYAA"),
+        ("Authelia:carlo", "CLILISTSECONDAAA"),
     ] {
         Command::cargo_bin("tofa")
             .unwrap()

@@ -46,7 +46,7 @@ fn import_json_roundtrip() {
             "--name",
             "GitHub:carlo",
             "--secret",
-            "JBSWY3DPEHPK3PXP",
+            "CLIIMPORTAAAAAAA",
         ])
         .assert()
         .success();
@@ -86,12 +86,12 @@ fn import_skips_duplicates() {
             "--name",
             "GitHub:carlo",
             "--secret",
-            "JBSWY3DPEHPK3PXP",
+            "CLIIMPORTAAAAAAA",
         ])
         .assert()
         .success();
 
-    let json = r#"[{"name":"GitHub:carlo","secret":"JBSWY3DPEHPK3PXP","created_at":"2026-01-01"}]"#;
+    let json = r#"[{"name":"GitHub:carlo","secret":"CLIIMPORTAAAAAAA","created_at":"2026-01-01"}]"#;
     let f = tmp.path().join("dup.json");
     std::fs::write(&f, json).unwrap();
 

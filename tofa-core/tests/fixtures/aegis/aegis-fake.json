@@ -16,7 +16,7 @@
         "favorite": false,
         "icon": null,
         "info": {
-          "secret": "JBSWY3DPEHPK3PXP",
+          "secret": "AEGISGITHUBAAAAA",
           "algo": "SHA1",
           "digits": 6,
           "period": 30
@@ -31,7 +31,7 @@
         "favorite": false,
         "icon": null,
         "info": {
-          "secret": "JBSWY3DPEHPK3PXP",
+          "secret": "AEGISGOOGLEAAAAA",
           "algo": "SHA1",
           "digits": 6,
           "period": 30
@@ -46,7 +46,7 @@
         "favorite": true,
         "icon": null,
         "info": {
-          "secret": "JBSWY3DPEHPK3PXP",
+          "secret": "AEGISSTRIPEAAAAA",
           "algo": "SHA1",
           "digits": 6,
           "period": 30
@@ -61,7 +61,7 @@
         "favorite": false,
         "icon": null,
         "info": {
-          "secret": "JBSWY3DPEHPK3PXP",
+          "secret": "AEGISAWSAAAAAAAA",
           "algo": "SHA256",
           "digits": 8,
           "period": 60
@@ -76,7 +76,7 @@
         "favorite": false,
         "icon": null,
         "info": {
-          "secret": "JBSWY3DPEHPK3PXP",
+          "secret": "AEGISHOTPAAAAAAA",
           "algo": "SHA1",
           "digits": 6,
           "counter": 0

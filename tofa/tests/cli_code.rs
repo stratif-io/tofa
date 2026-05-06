@@ -40,7 +40,7 @@ fn setup() -> TempDir {
             "--name",
             "GitHub:carlo",
             "--secret",
-            "JBSWY3DPEHPK3PXP",
+            "CLICODEPRIMARYAA",
         ])
         .assert()
         .success();
@@ -53,7 +53,7 @@ fn setup() -> TempDir {
             "--name",
             "GitHub:perso",
             "--secret",
-            "JBSWY3DPEHPK3PXQ",
+            "CLICODESECONDAAA",
         ])
         .assert()
         .success();

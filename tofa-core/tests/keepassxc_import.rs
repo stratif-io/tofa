@@ -26,7 +26,7 @@ fn keepassxc_shopify_entry() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("Shopify"))
         .expect("Shopify entry should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "KPXSHOPIFYAAAAAA");
     assert_eq!(e.meta.account.as_deref(), Some("henry@example.com"));
     assert_eq!(e.meta.digits, Some(6));
     assert_eq!(e.meta.period, Some(30));
@@ -53,5 +53,5 @@ fn keepassxc_bare_secret_entry() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("DigitalOcean"))
         .expect("DigitalOcean entry should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "KPXDIGITALOCEANA");
 }

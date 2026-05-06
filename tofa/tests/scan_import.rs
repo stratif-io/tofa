@@ -24,7 +24,7 @@ fn empty_uri_list_imports_nothing() {
 
 #[test]
 fn single_otpauth_uri_imports_one_entry() {
-    let e = entry("GitHub:alice", "JBSWY3DPEHPK3PXP", "SHA256", 8, 60);
+    let e = entry("GitHub:alice", "SCANSINGLEAAAAAA", "SHA256", 8, 60);
     let uri = build_otpauth_uri(&e);
 
     let mut vault = Vault::new();
@@ -32,7 +32,7 @@ fn single_otpauth_uri_imports_one_entry() {
 
     assert_eq!(count, 1);
     let added = &vault.entries()[0];
-    assert_eq!(added.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(added.secret, "SCANSINGLEAAAAAA");
     assert_eq!(added.algorithm, "SHA256");
     assert_eq!(added.digits, 8);
     assert_eq!(added.period, 60);
@@ -44,14 +44,14 @@ fn migration_uri_imports_each_account() {
         MigrationAccount {
             name: "alice@example.com",
             issuer: "Foo",
-            secret_b32: "JBSWY3DPEHPK3PXP",
+            secret_b32: "SCANMIGALICEAAAA",
             algorithm: "SHA1",
             digits: 6,
         },
         MigrationAccount {
             name: "bob@example.com",
             issuer: "Bar",
-            secret_b32: "MFRGGZDFM5XW6YTBOI",
+            secret_b32: "SCANMIGBOBAAAAAA",
             algorithm: "SHA1",
             digits: 6,
         },
@@ -64,31 +64,25 @@ fn migration_uri_imports_each_account() {
     assert_eq!(count, 2);
     assert_eq!(vault.entries().len(), 2);
     let secrets: Vec<&str> = vault.entries().iter().map(|e| e.secret.as_str()).collect();
-    assert!(secrets.contains(&"JBSWY3DPEHPK3PXP"));
-    assert!(secrets.contains(&"MFRGGZDFM5XW6YTBOI"));
+    assert!(secrets.contains(&"SCANMIGALICEAAAA"));
+    assert!(secrets.contains(&"SCANMIGBOBAAAAAA"));
 }
 
 #[test]
 fn mixed_otpauth_and_migration_uris_are_all_imported() {
-    let solo_uri = build_otpauth_uri(&entry(
-        "Solo:carol",
-        "ORSXG5BAONUGCZDPN5SGSZJB",
-        "SHA1",
-        6,
-        30,
-    ));
+    let solo_uri = build_otpauth_uri(&entry("Solo:carol", "SCANSOLOCAROLAAA", "SHA1", 6, 30));
     let migration_uri = generate_migration_uri(&[
         MigrationAccount {
             name: "alice@example.com",
             issuer: "Foo",
-            secret_b32: "JBSWY3DPEHPK3PXP",
+            secret_b32: "SCANMIXALICEAAAA",
             algorithm: "SHA1",
             digits: 6,
         },
         MigrationAccount {
             name: "bob@example.com",
             issuer: "Bar",
-            secret_b32: "MFRGGZDFM5XW6YTBOI",
+            secret_b32: "SCANMIXBOBAAAAAA",
             algorithm: "SHA1",
             digits: 6,
         },
@@ -103,7 +97,7 @@ fn mixed_otpauth_and_migration_uris_are_all_imported() {
 
 #[test]
 fn name_override_applies_when_exactly_one_entry_imported() {
-    let e = entry("DerivedName:alice", "JBSWY3DPEHPK3PXP", "SHA1", 6, 30);
+    let e = entry("DerivedName:alice", "SCANOVERRIDEAAAA", "SHA1", 6, 30);
     let uri = build_otpauth_uri(&e);
 
     let mut vault = Vault::new();
@@ -120,14 +114,14 @@ fn name_override_is_ignored_when_multiple_entries_imported() {
         MigrationAccount {
             name: "alice@example.com",
             issuer: "Foo",
-            secret_b32: "JBSWY3DPEHPK3PXP",
+            secret_b32: "SCANOVERMALCEAAA",
             algorithm: "SHA1",
             digits: 6,
         },
         MigrationAccount {
             name: "bob@example.com",
             issuer: "Bar",
-            secret_b32: "MFRGGZDFM5XW6YTBOI",
+            secret_b32: "SCANOVERMBOBAAAA",
             algorithm: "SHA1",
             digits: 6,
         },

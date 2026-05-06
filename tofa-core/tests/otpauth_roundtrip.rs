@@ -17,7 +17,7 @@ fn entry(name: &str, secret: &str, algorithm: &str, digits: u8, period: u32) -> 
 fn otpauth_roundtrip_preserves_period_algorithm_digits() {
     let e = entry(
         "GitHub:alice@example.com",
-        "JBSWY3DPEHPK3PXP",
+        "OAUTHROUNDFULLAA",
         "SHA256",
         8,
         60,
@@ -26,7 +26,7 @@ fn otpauth_roundtrip_preserves_period_algorithm_digits() {
     assert!(uri.starts_with("otpauth://totp/"), "uri: {uri}");
 
     let parsed = parse_input(&uri).expect("parse uri");
-    assert_eq!(parsed.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(parsed.secret, "OAUTHROUNDFULLAA");
     assert_eq!(parsed.meta.issuer.as_deref(), Some("GitHub"));
     assert_eq!(parsed.meta.account.as_deref(), Some("alice@example.com"));
     assert_eq!(parsed.meta.algorithm.as_deref(), Some("SHA256"));
@@ -36,7 +36,7 @@ fn otpauth_roundtrip_preserves_period_algorithm_digits() {
 
 #[test]
 fn otpauth_roundtrip_with_no_issuer_in_name() {
-    let e = entry("alice@example.com", "JBSWY3DPEHPK3PXP", "SHA1", 6, 30);
+    let e = entry("alice@example.com", "OAUTHROUNDNOISSU", "SHA1", 6, 30);
     let uri = build_otpauth_uri(&e);
     let parsed = parse_input(&uri).expect("parse uri");
     assert_eq!(parsed.meta.issuer, None);
@@ -50,7 +50,7 @@ fn otpauth_roundtrip_with_no_issuer_in_name() {
 fn otpauth_roundtrip_handles_special_characters_in_name() {
     let e = entry(
         "Issuer With Spaces:user+tag@example.com",
-        "JBSWY3DPEHPK3PXP",
+        "OAUTHROUNDSPECAA",
         "SHA1",
         6,
         30,

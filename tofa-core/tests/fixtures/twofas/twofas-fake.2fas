@@ -2,7 +2,7 @@
   "services": [
     {
       "name": "Discord",
-      "secret": "JBSWY3DPEHPK3PXP",
+      "secret": "TWOFASDISCORDAAA",
       "updatedAt": 1746000000000,
       "otp": {
         "label": "Discord",
@@ -18,7 +18,7 @@
     },
     {
       "name": "Netlify",
-      "secret": "JBSWY3DPEHPK3PXP",
+      "secret": "TWOFASNETLIFYAAA",
       "updatedAt": 1746000000000,
       "otp": {
         "label": "Netlify",
@@ -34,7 +34,7 @@
     },
     {
       "name": "ShouldBeIgnored",
-      "secret": "JBSWY3DPEHPK3PXP",
+      "secret": "TWOFASHOTPAAAAAA",
       "updatedAt": 1746000000000,
       "otp": {
         "label": "ShouldBeIgnored",

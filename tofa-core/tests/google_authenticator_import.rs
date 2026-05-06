@@ -22,7 +22,7 @@ fn ga_migration_totp_sha1_account() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("Demo TOTP SHA1"))
         .expect("Demo TOTP SHA1 should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "DEMOSHAONEAAAAAA");
 }
 
 #[test]

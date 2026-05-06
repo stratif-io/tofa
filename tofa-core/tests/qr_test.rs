@@ -2,15 +2,15 @@ use tofa_core::qr::parse_input;
 
 #[test]
 fn parse_raw_base32_secret() {
-    let result = parse_input("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ").unwrap();
-    assert_eq!(result.secret, "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+    let result = parse_input("QRTESTRAWSECRETA").unwrap();
+    assert_eq!(result.secret, "QRTESTRAWSECRETA");
 }
 
 #[test]
 fn parse_otpauth_uri() {
-    let uri = "otpauth://totp/GitHub?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GitHub";
+    let uri = "otpauth://totp/GitHub?secret=QRTESTOTPAUTHURI&issuer=GitHub";
     let result = parse_input(uri).unwrap();
-    assert_eq!(result.secret, "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+    assert_eq!(result.secret, "QRTESTOTPAUTHURI");
 }
 
 #[test]
@@ -31,7 +31,7 @@ fn parse_qr_image_file() {
 
     if fixture.exists() {
         let result = parse_input(fixture.to_str().unwrap()).unwrap();
-        assert_eq!(result.secret, "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+        assert_eq!(result.secret, "QRTESTUNIQUEAAAA");
     } else {
         eprintln!("Skipping QR image test — fixture not found");
     }

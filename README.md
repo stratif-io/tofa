@@ -9,10 +9,10 @@
   [![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org)
   [![Platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux-lightgrey.svg)](#)
   [![Tauri](https://img.shields.io/badge/tauri-v2-purple.svg)](https://tauri.app)
-  [![Docs](https://img.shields.io/badge/docs-live-blue.svg)](https://stratif-io.github.io/tofa/)
+  [![Docs](https://img.shields.io/badge/docs-live-blue.svg)](https://docs.tofa.stratif.io/)
 
   <p>
-    <a href="https://stratif-io.github.io/tofa/">Docs</a> ·
+    <a href="https://docs.tofa.stratif.io/">Docs</a> ·
     <a href="#quick-start">Install</a> ·
     <a href="https://github.com/stratif-io/tofa/releases">Releases</a> ·
     <a href="https://github.com/stratif-io/tofa/discussions">Discussions</a>
@@ -62,7 +62,7 @@ brew install --cask tofa
 > xattr -dr com.apple.quarantine /Applications/tofa.app
 > ```
 > Or right-click the app in Finder and choose **Open**, then confirm.
-> See [why](https://stratif-io.github.io/tofa/security.html#unsigned-build).
+> See [why](https://docs.tofa.stratif.io/security.html#unsigned-build).
 
 ## 🔑 Why TOFA
 
@@ -114,7 +114,7 @@ new ones from your computer.
 | **Microsoft Authenticator**       | Cloud-only backup, no plain export | ✗ Not possible                    |
 
 > **Per-vendor migration guides** — with screenshots and step-by-step import —
-> are coming to the [docs site](https://stratif-io.github.io/tofa/). Want a
+> are coming to the [docs site](https://docs.tofa.stratif.io/). Want a
 > vendor prioritized?
 > [Open an issue](https://github.com/stratif-io/tofa/issues/new).
 
@@ -153,7 +153,7 @@ password" link, and that's the point.
 - Run `tofa export` and stash the JSON in a password manager
 - Use `tofa qr <name>` to print a paper backup of any single account
 
-See the [security model](https://stratif-io.github.io/tofa/security.html) for
+See the [security model](https://docs.tofa.stratif.io/security.html) for
 the full threat model and crypto choices.
 
 ## 🤝 Contributing

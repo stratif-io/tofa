@@ -2,7 +2,7 @@
 
 Thanks for your interest in TOFA. This file is short on purpose — most of
 what you need is already in [`CLAUDE.md`](./CLAUDE.md) and the
-[docs site](https://stratif-io.github.io/tofa/).
+[docs site](https://docs.tofa.stratif.io/).
 
 ## Reporting a bug
 

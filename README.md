@@ -6,14 +6,14 @@
 
   [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![crates.io](https://img.shields.io/crates/v/tofa.svg)](https://crates.io/crates/tofa)
-  [![Rust](https://img.shields.io/badge/rust-1.78%2B-orange.svg)](https://www.rust-lang.org)
+  [![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org)
   [![Platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux-lightgrey.svg)](#)
   [![Tauri](https://img.shields.io/badge/tauri-v2-purple.svg)](https://tauri.app)
   [![Docs](https://img.shields.io/badge/docs-live-blue.svg)](https://stratif-io.github.io/tofa/)
 
   <p>
     <a href="https://stratif-io.github.io/tofa/">Docs</a> ·
-    <a href="#-quick-start">Install</a> ·
+    <a href="#quick-start">Install</a> ·
     <a href="https://github.com/stratif-io/tofa/releases">Releases</a> ·
     <a href="https://github.com/stratif-io/tofa/discussions">Discussions</a>
   </p>
@@ -25,6 +25,8 @@
   <img src="docs/demo-cli.gif" alt="TOFA TUI demo" width="640" />
   <p><em>The TUI: live countdown bars, click any row to copy.</em></p>
 </div>
+
+<a id="quick-start"></a>
 
 ## ⚡ Quick Start
 
@@ -79,13 +81,13 @@ tofa --help   # CLI reference
 - **Click any TUI row to copy.** No memorizing names, no typing. The TUI also shows live countdown bars per code.
 - **Import otpauth URIs.** Paste a standard `otpauth://totp/…` URI from anywhere — `tofa add --uri` or the app's "Paste URI".
 - **Import QR images.** Drop a PNG/JPG into the app, or `tofa add --qr screenshot.png` from the CLI.
-- **Import from 9 authenticators.** Aegis, andOTP, 2FAS, Bitwarden, Raivo, Ente, KeePassXC, FreeOTP, and Google Authenticator's migration QR — all parsed natively.
+- **Import from 9 authenticators.** Aegis, andOTP, 2FAS, Bitwarden, Raivo, Ente, KeePassXC, FreeOTP, and Google Authenticator's migration QR — all parsed directly from their export formats.
 
 **Use TOFA day-to-day**
 
 - **Export to QR.** Re-encode any account (or your whole vault) as scannable QR codes for backup or device transfer.
 - **Encrypted vault.** AES-256-GCM with an Argon2id-derived key. Auto-locks after 10 min idle, or on demand.
-- **Scriptable.** `tofa code github | pbcopy` works. `TOFA_PASSPHRASE` env var unlocks the vault for CI/automation.
+- **Scriptable.** `tofa code github | pbcopy` works (`xclip -selection clipboard` on Linux). `TOFA_PASSPHRASE` env var unlocks the vault for CI/automation.
 - **Open source, MIT.** No account, no telemetry, no cloud. Audit the crypto in `tofa-core`.
 
 ## 📥 Migrate from your phone
@@ -107,7 +109,7 @@ new ones from your computer.
 | **FreeOTP / FreeOTP+**            | TXT URI export                     | ✓ direct                          |
 | Any app with **QR display**       | Screenshot or camera               | ✓ via `tofa add --qr` or the app  |
 | **1Password**                     | TOTP fields export                 | ⏳ Coming soon                     |
-| **Apple Passwords**               | CSV export (macOS Sequoia+)        | ⏳ Coming soon                     |
+| **Apple Passwords**               | CSV export (macOS 15+)             | ⏳ Coming soon                     |
 | **Authy**                         | No user-facing export              | ✗ Not possible                    |
 | **Microsoft Authenticator**       | Cloud-only backup, no plain export | ✗ Not possible                    |
 

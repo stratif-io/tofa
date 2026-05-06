@@ -136,6 +136,7 @@ pub fn run() {
             commands::generate_selection_qr,
             commands::generate_otpauth_list,
             commands::save_qr_png,
+            commands::save_qr_zip,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

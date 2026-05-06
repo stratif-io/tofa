@@ -942,6 +942,176 @@ pub async fn generate_otpauth_list(
     .map_err(|e| e.to_string())?
 }
 
+/// One QR PNG to package into the zip.
+#[derive(Deserialize)]
+pub struct QrZipItem {
+    pub name: String,
+    pub data_uri: String,
+}
+
+/// Bundle a list of QR PNGs into a single zip with a printable one-pager.
+/// Asks the user once for the zip's destination path, then writes:
+/// - `<NN>-<sanitized-name>.png` per item
+/// - `print.html` — a self-contained one-pager that lists all QRs in a
+///   responsive grid and is print-stylesheet-friendly (open in any
+///   browser, hit Cmd-P, print or save as PDF).
+#[tauri::command]
+pub async fn save_qr_zip(window: tauri::Window, items: Vec<QrZipItem>) -> Result<(), String> {
+    if items.is_empty() {
+        return Err("nothing to save".to_string());
+    }
+
+    let handle = window.app_handle().clone();
+    let path = tokio::task::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        handle
+            .dialog()
+            .file()
+            .set_title("Save QR Codes")
+            .set_file_name("tofa-qrs.zip")
+            .add_filter("Zip archive", &["zip"])
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let path = match path {
+        None => return Ok(()), // user cancelled
+        Some(p) => p.into_path().map_err(|e| e.to_string())?,
+    };
+
+    let bytes = build_qr_zip(&items)?;
+    std::fs::write(&path, &bytes).map_err(|e| e.to_string())
+}
+
+fn build_qr_zip(items: &[QrZipItem]) -> Result<Vec<u8>, String> {
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+
+    let mut buf = std::io::Cursor::new(Vec::new());
+    let mut zip = zip::ZipWriter::new(&mut buf);
+    let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+    let mut filenames = Vec::with_capacity(items.len());
+    for (i, item) in items.iter().enumerate() {
+        let png = item
+            .data_uri
+            .strip_prefix("data:image/png;base64,")
+            .ok_or_else(|| format!("item {} is not a PNG data URI", i))?;
+        let png_bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, png)
+            .map_err(|e| format!("base64 decode failed for item {}: {}", i, e))?;
+
+        let filename = format!("{:02}-{}.png", i + 1, sanitize_filename_for_zip(&item.name));
+        zip.start_file(&filename, opts).map_err(|e| e.to_string())?;
+        zip.write_all(&png_bytes).map_err(|e| e.to_string())?;
+        filenames.push((filename, item.name.clone()));
+    }
+
+    zip.start_file("print.html", opts)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(build_print_html(&filenames).as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    zip.finish().map_err(|e| e.to_string())?;
+    Ok(buf.into_inner())
+}
+
+fn sanitize_filename_for_zip(name: &str) -> String {
+    name.chars()
+        .map(|c| match c {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' => c,
+            _ => '_',
+        })
+        .collect()
+}
+
+fn build_print_html(items: &[(String, String)]) -> String {
+    let cells: String = items
+        .iter()
+        .map(|(filename, label)| {
+            format!(
+                r#"<figure><img src="{}" alt="{}"><figcaption>{}</figcaption></figure>"#,
+                html_escape(filename),
+                html_escape(label),
+                html_escape(label),
+            )
+        })
+        .collect();
+
+    format!(
+        r#"<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tofa QR codes</title>
+<style>
+  :root {{ color-scheme: light; }}
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 24px;
+    color: #111;
+    background: #fff;
+  }}
+  h1 {{ font-size: 18px; margin: 0 0 4px; }}
+  p.intro {{ font-size: 12px; color: #666; margin: 0 0 24px; }}
+  .grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 24px;
+  }}
+  figure {{
+    margin: 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    text-align: center;
+  }}
+  figure img {{
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    image-rendering: pixelated;
+    background: #fff;
+  }}
+  figcaption {{
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    word-break: break-all;
+    margin-top: 8px;
+  }}
+  @media print {{
+    body {{ margin: 12mm; }}
+    .grid {{ gap: 12px; }}
+    figure {{ border-color: #000; }}
+  }}
+</style>
+</head>
+<body>
+<h1>Tofa OTP backup</h1>
+<p class="intro">Each QR encodes an otpauth:// URI for one account. Scan with any authenticator app.</p>
+<div class="grid">{}</div>
+</body>
+</html>
+"#,
+        cells
+    )
+}
+
+fn html_escape(s: &str) -> String {
+    s.chars()
+        .map(|c| match c {
+            '&' => "&amp;".to_string(),
+            '<' => "&lt;".to_string(),
+            '>' => "&gt;".to_string(),
+            '"' => "&quot;".to_string(),
+            '\'' => "&#39;".to_string(),
+            c => c.to_string(),
+        })
+        .collect()
+}
+
 /// Save a base64-encoded PNG to a user-chosen location via native save dialog.
 #[tauri::command]
 pub async fn save_qr_png(
@@ -975,4 +1145,90 @@ pub async fn save_qr_png(
     };
 
     std::fs::write(&path, &bytes).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Read;
+
+    fn item(name: &str) -> QrZipItem {
+        // 1x1 transparent PNG, base64-encoded — not a valid QR but a valid PNG
+        // for the encoder's "decode this base64" path.
+        let png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+        QrZipItem {
+            name: name.to_string(),
+            data_uri: format!("data:image/png;base64,{png_b64}"),
+        }
+    }
+
+    fn zip_filenames(zip_bytes: &[u8]) -> Vec<String> {
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(zip_bytes)).expect("read zip");
+        (0..archive.len())
+            .map(|i| archive.by_index(i).unwrap().name().to_string())
+            .collect()
+    }
+
+    fn zip_file_contents(zip_bytes: &[u8], name: &str) -> Vec<u8> {
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(zip_bytes)).expect("read zip");
+        let mut file = archive.by_name(name).expect("file in zip");
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf).expect("read file");
+        buf
+    }
+
+    #[test]
+    fn build_qr_zip_writes_one_png_per_item_plus_print_html() {
+        let items = vec![item("Foo:alice"), item("Bar:bob"), item("Baz:carol")];
+        let zip = build_qr_zip(&items).expect("build zip");
+        let names = zip_filenames(&zip);
+        assert!(names.contains(&"01-Foo_alice.png".to_string()));
+        assert!(names.contains(&"02-Bar_bob.png".to_string()));
+        assert!(names.contains(&"03-Baz_carol.png".to_string()));
+        assert!(names.contains(&"print.html".to_string()));
+    }
+
+    #[test]
+    fn build_qr_zip_print_html_references_each_png() {
+        let items = vec![item("Foo:alice"), item("Bar:bob")];
+        let zip = build_qr_zip(&items).expect("build zip");
+        let html = String::from_utf8(zip_file_contents(&zip, "print.html")).expect("utf8");
+        assert!(html.contains("<img src=\"01-Foo_alice.png\""));
+        assert!(html.contains("<img src=\"02-Bar_bob.png\""));
+        assert!(html.contains("Foo:alice"));
+        assert!(html.contains("Bar:bob"));
+    }
+
+    #[test]
+    fn build_qr_zip_html_escapes_entry_names() {
+        // Names with HTML-special characters must not break the page or open
+        // an injection vector when the user opens print.html in a browser.
+        let evil_item = QrZipItem {
+            name: "Evil <script>".to_string(),
+            data_uri: item("x").data_uri,
+        };
+        let zip = build_qr_zip(&[evil_item]).expect("build zip");
+        let html = String::from_utf8(zip_file_contents(&zip, "print.html")).expect("utf8");
+        assert!(!html.contains("<script>"), "raw <script> found in html");
+        assert!(html.contains("Evil &lt;script&gt;"));
+    }
+
+    #[test]
+    fn build_qr_zip_rejects_non_png_data_uri() {
+        let bad = QrZipItem {
+            name: "x".to_string(),
+            data_uri: "data:text/plain;base64,aGVsbG8=".to_string(),
+        };
+        assert!(build_qr_zip(&[bad]).is_err());
+    }
+
+    #[test]
+    fn sanitize_filename_for_zip_strips_path_separators_and_colons() {
+        assert_eq!(
+            sanitize_filename_for_zip("Issuer:account"),
+            "Issuer_account"
+        );
+        assert_eq!(sanitize_filename_for_zip("a/b\\c"), "a_b_c");
+        assert_eq!(sanitize_filename_for_zip("plain"), "plain");
+    }
 }

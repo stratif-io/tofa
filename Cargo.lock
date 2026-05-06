@@ -4522,7 +4522,7 @@ dependencies = [
 
 [[package]]
 name = "tofa"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "arboard",
  "assert_cmd",
@@ -4546,7 +4546,7 @@ dependencies = [
 
 [[package]]
 name = "tofa-app"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4568,7 +4568,7 @@ dependencies = [
 
 [[package]]
 name = "tofa-core"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "aes-gcm",
  "argon2",

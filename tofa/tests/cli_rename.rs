@@ -20,7 +20,7 @@ fn setup() -> TempDir {
             "--name",
             "GitHub:carlo",
             "--secret",
-            "JBSWY3DPEHPK3PXP",
+            "CLIRENAMEMAINAAA",
         ])
         .assert()
         .success();
@@ -68,7 +68,7 @@ fn rename_duplicate_name_fails() {
             "--name",
             "Authelia:carlo",
             "--secret",
-            "JBSWY3DPEHPK3PXQ",
+            "CLIRENAMEDUPAAAA",
         ])
         .assert()
         .success();

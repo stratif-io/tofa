@@ -2,9 +2,16 @@ use tempfile::tempdir;
 use tofa_core::store::{Vault, VaultEntry};
 
 fn make_entry(name: &str) -> VaultEntry {
+    // Per-name secret so multi-entry vault tests don't have duplicate secrets
+    // that could mask account-collision bugs.
+    let secret = match name {
+        "GitHub" => "STORETESTGITHUBA",
+        "AWS" => "STORETESTAWSAAAA",
+        _ => "STORETESTOTHERAA",
+    };
     VaultEntry::new(
         name.to_string(),
-        "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ".to_string(),
+        secret.to_string(),
         "2026-01-01".to_string(),
     )
 }
@@ -22,10 +29,7 @@ fn save_and_load_roundtrip() {
     let loaded = Vault::load(&path, passphrase).unwrap();
     assert_eq!(loaded.entries().len(), 1);
     assert_eq!(loaded.entries()[0].name, "GitHub");
-    assert_eq!(
-        loaded.entries()[0].secret,
-        "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
-    );
+    assert_eq!(loaded.entries()[0].secret, "STORETESTGITHUBA");
 }
 
 #[test]

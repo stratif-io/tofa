@@ -22,7 +22,7 @@ fn twofas_discord_entry() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("Discord"))
         .expect("Discord entry should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "TWOFASDISCORDAAA");
     assert_eq!(e.meta.account.as_deref(), Some("bob#1234"));
     assert_eq!(e.meta.algorithm.as_deref(), Some("SHA1"));
     assert_eq!(e.meta.digits, Some(6));

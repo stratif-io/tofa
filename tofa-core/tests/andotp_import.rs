@@ -22,7 +22,7 @@ fn andotp_dropbox_entry() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("Dropbox"))
         .expect("Dropbox entry should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "ANDDROPBOXAAAAAA");
     assert_eq!(e.meta.account.as_deref(), Some("alice@example.com"));
     assert_eq!(e.meta.algorithm.as_deref(), Some("SHA1"));
     assert_eq!(e.meta.digits, Some(6));

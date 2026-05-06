@@ -537,7 +537,7 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
         (
             "demo@example.com",
             "Demo TOTP SHA1",
-            "JBSWY3DPEHPK3PXP",
+            "DEMOSHAONEAAAAAA",
             1,
             1,
             2,
@@ -545,7 +545,7 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
         (
             "demo@example.com",
             "Demo TOTP SHA256",
-            "JBSWY3DPEHPK3PXP",
+            "DEMOSHATWOAAAAAA",
             2,
             1,
             2,
@@ -553,7 +553,7 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
         (
             "demo@example.com",
             "Demo TOTP SHA512",
-            "JBSWY3DPEHPK3PXP",
+            "DEMOSHAFIVAAAAAA",
             3,
             1,
             2,
@@ -561,7 +561,7 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
         (
             "demo@example.com",
             "Demo TOTP 8-digit",
-            "JBSWY3DPEHPK3PXP",
+            "DEMOEIGHTAAAAAAA",
             1,
             2,
             2,

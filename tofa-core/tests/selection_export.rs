@@ -26,7 +26,7 @@ fn single_entry_uses_otpauth_and_preserves_period() {
     // the otpauth:// path.
     let e = entry(
         "GitHub:alice@example.com",
-        "JBSWY3DPEHPK3PXP",
+        "SELEXSINGLEAAAAA",
         "SHA256",
         8,
         60,
@@ -35,7 +35,7 @@ fn single_entry_uses_otpauth_and_preserves_period() {
     assert!(uri.starts_with("otpauth://totp/"), "uri: {uri}");
 
     let parsed = parse_input(&uri).expect("parse");
-    assert_eq!(parsed.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(parsed.secret, "SELEXSINGLEAAAAA");
     assert_eq!(parsed.meta.algorithm.as_deref(), Some("SHA256"));
     assert_eq!(parsed.meta.digits, Some(8));
     assert_eq!(parsed.meta.period, Some(60));
@@ -44,23 +44,23 @@ fn single_entry_uses_otpauth_and_preserves_period() {
 #[test]
 fn multiple_30s_entries_use_migration_format() {
     let entries = vec![
-        entry("GitHub:alice", "JBSWY3DPEHPK3PXP", "SHA1", 6, 30),
-        entry("GitLab:bob", "MFRGGZDFM5XW6YTBOI", "SHA256", 6, 30),
+        entry("GitHub:alice", "SELEXPAIRAAAAAAA", "SHA1", 6, 30),
+        entry("GitLab:bob", "SELEXPAIRBBBBBBB", "SHA256", 6, 30),
     ];
     let uri = build_selection_uri(&entries).expect("ok");
     assert!(uri.starts_with("otpauth-migration://"), "uri: {uri}");
 
     let parsed = parse_migration(&uri).expect("parse migration");
     assert_eq!(parsed.len(), 2);
-    assert_eq!(parsed[0].secret, "JBSWY3DPEHPK3PXP");
-    assert_eq!(parsed[1].secret, "MFRGGZDFM5XW6YTBOI");
+    assert_eq!(parsed[0].secret, "SELEXPAIRAAAAAAA");
+    assert_eq!(parsed[1].secret, "SELEXPAIRBBBBBBB");
 }
 
 #[test]
 fn multi_selection_with_mixed_periods_is_rejected() {
     let entries = vec![
-        entry("Standard:alice", "JBSWY3DPEHPK3PXP", "SHA1", 6, 30),
-        entry("Custom:bob", "MFRGGZDFM5XW6YTBOI", "SHA1", 6, 60),
+        entry("Standard:alice", "SELEXMIXPAAAAAAA", "SHA1", 6, 30),
+        entry("Custom:bob", "SELEXMIXPBBBBBBB", "SHA1", 6, 60),
     ];
     let result = build_selection_uri(&entries);
     match result {
@@ -78,8 +78,8 @@ fn multi_selection_with_mixed_periods_is_rejected() {
 #[test]
 fn multi_selection_all_non_30s_is_rejected() {
     let entries = vec![
-        entry("Custom:alice", "JBSWY3DPEHPK3PXP", "SHA1", 6, 60),
-        entry("Custom:bob", "MFRGGZDFM5XW6YTBOI", "SHA1", 6, 60),
+        entry("Custom:alice", "SELEXALLSIXTAAAA", "SHA1", 6, 60),
+        entry("Custom:bob", "SELEXALLSIXTBBBB", "SHA1", 6, 60),
     ];
     let result = build_selection_uri(&entries);
     match result {
@@ -98,7 +98,7 @@ fn multi_selection_all_non_30s_is_rejected() {
 fn single_non_30s_entry_is_allowed_via_otpauth() {
     // Single-entry path doesn't go through the migration format, so non-30s
     // is fine — the otpauth:// URI carries the period.
-    let e = entry("Custom:alice", "JBSWY3DPEHPK3PXP", "SHA1", 6, 60);
+    let e = entry("Custom:alice", "SELEXSOLOSIXTAAA", "SHA1", 6, 60);
     let uri = build_selection_uri(std::slice::from_ref(&e)).expect("ok");
     assert!(uri.starts_with("otpauth://totp/"));
     let parsed = parse_input(&uri).expect("parse");

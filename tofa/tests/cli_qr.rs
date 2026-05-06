@@ -20,7 +20,7 @@ fn setup() -> TempDir {
             "--name",
             "GitHub:carlo",
             "--secret",
-            "JBSWY3DPEHPK3PXP",
+            "CLIQRSETUPAAAAAA",
         ])
         .assert()
         .success();
@@ -95,7 +95,7 @@ fn qr_single_entry_preserves_full_otpauth_params() {
     vault.add_entry(tofa_core::store::VaultEntry {
         id: String::new(),
         name: "GitHub:custom@example.com".to_string(),
-        secret: "JBSWY3DPEHPK3PXP".to_string(),
+        secret: "CLIQRSINGLEAAAAA".to_string(),
         created_at: "2026-01-01".to_string(),
         period: 60,
         digits: 8,
@@ -115,7 +115,7 @@ fn qr_single_entry_preserves_full_otpauth_params() {
     let scanned_uri = tofa_core::qr::scan_qr_uri(&out_png).expect("scan QR");
     let parsed = tofa_core::qr::parse_input(&scanned_uri).expect("parse URI");
 
-    assert_eq!(parsed.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(parsed.secret, "CLIQRSINGLEAAAAA");
     assert_eq!(parsed.meta.issuer.as_deref(), Some("GitHub"));
     assert_eq!(parsed.meta.account.as_deref(), Some("custom@example.com"));
     assert_eq!(parsed.meta.algorithm.as_deref(), Some("SHA256"));
@@ -135,7 +135,7 @@ fn qr_all_refuses_when_selection_mixes_periods() {
     vault.add_entry(tofa_core::store::VaultEntry {
         id: String::new(),
         name: "Standard:alice".to_string(),
-        secret: "JBSWY3DPEHPK3PXP".to_string(),
+        secret: "CLIQRMIXPRDAAAAA".to_string(),
         created_at: "2026-01-01".to_string(),
         period: 30,
         digits: 6,
@@ -144,7 +144,7 @@ fn qr_all_refuses_when_selection_mixes_periods() {
     vault.add_entry(tofa_core::store::VaultEntry {
         id: String::new(),
         name: "Custom:bob".to_string(),
-        secret: "MFRGGZDFM5XW6YTBOI".to_string(),
+        secret: "CLIQRMIXPRDBBBBB".to_string(),
         created_at: "2026-01-01".to_string(),
         period: 60,
         digits: 6,
@@ -175,7 +175,7 @@ fn qr_all_multi_writes_one_png_per_entry_with_full_otpauth() {
     vault.add_entry(tofa_core::store::VaultEntry {
         id: String::new(),
         name: "GitHub:alice".to_string(),
-        secret: "JBSWY3DPEHPK3PXP".to_string(),
+        secret: "CLIQRMULTIAAAAAA".to_string(),
         created_at: "2026-01-01".to_string(),
         period: 30,
         digits: 6,
@@ -184,7 +184,7 @@ fn qr_all_multi_writes_one_png_per_entry_with_full_otpauth() {
     vault.add_entry(tofa_core::store::VaultEntry {
         id: String::new(),
         name: "Custom:bob".to_string(),
-        secret: "MFRGGZDFM5XW6YTBOI".to_string(),
+        secret: "CLIQRMULTIBBBBBB".to_string(),
         created_at: "2026-01-01".to_string(),
         period: 60,
         digits: 8,
@@ -245,7 +245,7 @@ fn qr_all_with_single_60s_entry_uses_otpauth_and_preserves_period() {
     vault.add_entry(tofa_core::store::VaultEntry {
         id: String::new(),
         name: "Custom:alice".to_string(),
-        secret: "JBSWY3DPEHPK3PXP".to_string(),
+        secret: "CLIQRSOLOSIXTAAA".to_string(),
         created_at: "2026-01-01".to_string(),
         period: 60,
         digits: 6,

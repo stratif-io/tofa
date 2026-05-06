@@ -22,7 +22,7 @@ fn ente_figma_entry() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("Figma"))
         .expect("Figma entry should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "ENTEFIGMAAAAAAAA");
     assert_eq!(e.meta.account.as_deref(), Some("grace@example.com"));
     assert_eq!(e.meta.digits, Some(6));
     assert_eq!(e.meta.period, Some(30));

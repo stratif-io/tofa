@@ -95,18 +95,22 @@ fn migration_uri_preserves_per_account_algorithm_and_digits() {
     // Two accounts that share a secret but differ in algorithm/digits — the
     // exact case where hardcoding algorithm=SHA1/digits=6 caused all imported
     // entries to display the same TOTP code.
+    // Two accounts that intentionally share a secret but differ in
+    // algorithm/digits — the exact case where a hardcoded SHA1/digits=6 made
+    // every imported entry display the same TOTP code. The shared secret here
+    // is used nowhere else in the test suite.
     let owned = vec![
         (
             "demo@example.com".to_string(),
             "Issuer A".to_string(),
-            "JBSWY3DPEHPK3PXP".to_string(),
+            "MIGRSHAREDAAAAAA".to_string(),
             "SHA256".to_string(),
             6u8,
         ),
         (
             "demo@example.com".to_string(),
             "Issuer B".to_string(),
-            "JBSWY3DPEHPK3PXP".to_string(),
+            "MIGRSHAREDAAAAAA".to_string(),
             "SHA1".to_string(),
             8u8,
         ),

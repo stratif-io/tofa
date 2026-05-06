@@ -22,7 +22,7 @@ fn aegis_github_entry() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("GitHub"))
         .expect("GitHub entry should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "AEGISGITHUBAAAAA");
     assert_eq!(e.meta.account.as_deref(), Some("carlo@example.com"));
     assert_eq!(e.meta.algorithm.as_deref(), Some("SHA1"));
     assert_eq!(e.meta.digits, Some(6));

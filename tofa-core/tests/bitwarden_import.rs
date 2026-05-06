@@ -22,7 +22,7 @@ fn bitwarden_twitter_entry() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("Twitter"))
         .expect("Twitter entry should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "BWTWITTERAAAAAAA");
     assert_eq!(e.meta.account.as_deref(), Some("dave@example.com"));
     assert_eq!(e.meta.digits, Some(6));
     assert_eq!(e.meta.period, Some(30));
@@ -49,5 +49,5 @@ fn bitwarden_bare_secret_entry() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("Fastmail"))
         .expect("Fastmail entry should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "BWFASTMAILAAAAAA");
 }

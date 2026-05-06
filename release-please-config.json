@@ -1,11 +1,25 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "tofa-crates",
+      "components": ["tofa", "tofa-core"]
+    }
+  ],
   "packages": {
     "tofa": {
       "release-type": "rust",
       "component": "tofa",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": false,
+      "include-v-in-tag": true
+    },
+    "tofa-core": {
+      "release-type": "rust",
+      "component": "tofa-core",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": true,
       "include-v-in-tag": true
     },
     "tofa-app/src-tauri": {

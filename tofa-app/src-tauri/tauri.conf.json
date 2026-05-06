@@ -3,7 +3,7 @@
   "version": "0.5.3",
   "identifier": "io.stratif.tofa",
   "build": {
-    "frontendDist": "../src"
+    "frontendDist": "./ui"
   },
   "app": {
     "windows": [],

@@ -52,11 +52,10 @@ This removes the quarantine flag that macOS adds to apps downloaded from the
 internet. Alternatively, right-click the app in Finder, choose **Open**, and
 confirm the dialog — same effect.
 
-Notarization is on the roadmap. Until then, you can verify the build by
-inspecting the source on
-[GitHub](https://github.com/stratif-io/tofa) and running
-`cargo tauri build` locally; the binary you produce is byte-for-byte
-reproducible from a given commit on the same toolchain.
+Notarization is on the roadmap. Until then, you can audit the
+[release workflow](https://github.com/stratif-io/tofa/blob/main/.github/workflows/release.yml)
+that produces these binaries, and run `cargo tauri build` locally from the
+same commit to produce your own.
 
 ## Reporting a vulnerability
 

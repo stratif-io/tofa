@@ -40,7 +40,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             libwayland-dev \
             libxcb1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
-            libdbus-1-dev
+            libdbus-1-dev \
+            libpipewire-0.3-dev
 
       - name: Verify reference is in sync
         run: cargo run -p xtask -- gen-docs --check

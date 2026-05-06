@@ -30,6 +30,20 @@
 
 ## ⚡ Quick Start
 
+### CLI + TUI (macOS, Linux)
+
+```bash
+# Homebrew (macOS or Linux)
+brew tap stratif-io/tofa
+brew install tofa
+
+# Cargo (any platform with Rust)
+cargo install tofa
+
+tofa          # open the TUI
+tofa --help   # CLI reference
+```
+
 ### macOS menu bar app
 
 ```bash
@@ -49,20 +63,6 @@ brew install --cask tofa
 > ```
 > Or right-click the app in Finder and choose **Open**, then confirm.
 > See [why](https://stratif-io.github.io/tofa/security.html#unsigned-build).
-
-### CLI + TUI (macOS, Linux)
-
-```bash
-# Homebrew (macOS or Linux)
-brew tap stratif-io/tofa
-brew install tofa
-
-# Cargo (any platform with Rust)
-cargo install tofa
-
-tofa          # open the TUI
-tofa --help   # CLI reference
-```
 
 ## 🔑 Why TOFA
 

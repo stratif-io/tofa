@@ -823,21 +823,7 @@ pub async fn generate_entry_qr(
             .entry_by_id(&id)
             .ok_or_else(|| format!("entry '{}' not found", id))?;
 
-        let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&entry.name);
-        let label = if issuer.is_empty() {
-            account.clone()
-        } else {
-            format!("{}:{}", issuer, account)
-        };
-        let uri = format!(
-            "otpauth://totp/{}?secret={}&issuer={}&algorithm={}&digits={}&period={}",
-            urlencoding::encode(&label),
-            entry.secret,
-            urlencoding::encode(&issuer),
-            entry.algorithm,
-            entry.digits,
-            entry.period,
-        );
+        let uri = tofa_core::qr::build_otpauth_uri(entry);
 
         let tmp = std::env::temp_dir().join(format!("tofa_qr_{}.png", entry.id));
         tofa_core::qr::uri_to_qr_png(&uri, &tmp).map_err(|e| e.to_string())?;

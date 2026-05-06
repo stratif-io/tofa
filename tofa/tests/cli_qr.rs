@@ -81,3 +81,44 @@ fn qr_name_and_all_exclusive() {
         .assert()
         .failure();
 }
+
+#[test]
+fn qr_single_entry_preserves_full_otpauth_params() {
+    // Hand-craft a vault containing one entry with non-default period,
+    // algorithm, and digits. Run `tofa qr <name>` to export it as a PNG,
+    // then scan the PNG back and verify all five fields round-trip.
+    let tmp = TempDir::new().unwrap();
+    let vault_path = tmp.path().join("vault.enc");
+    let pass = "testpass";
+
+    let mut vault = tofa_core::store::Vault::new();
+    vault.add_entry(tofa_core::store::VaultEntry {
+        id: String::new(),
+        name: "GitHub:custom@example.com".to_string(),
+        secret: "JBSWY3DPEHPK3PXP".to_string(),
+        created_at: "2026-01-01".to_string(),
+        period: 60,
+        digits: 8,
+        algorithm: "SHA256".to_string(),
+    });
+    vault.save(&vault_path, pass).unwrap();
+
+    let out_png = tmp.path().join("qr.png");
+    Command::cargo_bin("tofa")
+        .unwrap()
+        .env("TOFA_PASSPHRASE", pass)
+        .env("TOFA_VAULT", vault_path.to_str().unwrap())
+        .args(["qr", "custom", "--output", out_png.to_str().unwrap()])
+        .assert()
+        .success();
+
+    let scanned_uri = tofa_core::qr::scan_qr_uri(&out_png).expect("scan QR");
+    let parsed = tofa_core::qr::parse_input(&scanned_uri).expect("parse URI");
+
+    assert_eq!(parsed.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(parsed.meta.issuer.as_deref(), Some("GitHub"));
+    assert_eq!(parsed.meta.account.as_deref(), Some("custom@example.com"));
+    assert_eq!(parsed.meta.algorithm.as_deref(), Some("SHA256"));
+    assert_eq!(parsed.meta.digits, Some(8));
+    assert_eq!(parsed.meta.period, Some(60));
+}

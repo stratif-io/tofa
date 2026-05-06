@@ -14,19 +14,6 @@ pub struct QrArgs {
     pub output: Option<PathBuf>,
 }
 
-fn percent_encode(s: &str) -> String {
-    let mut out = String::new();
-    for byte in s.bytes() {
-        match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                out.push(byte as char)
-            }
-            b => out.push_str(&format!("%{b:02X}")),
-        }
-    }
-    out
-}
-
 pub fn run(args: QrArgs, vault_path: PathBuf) -> CliResult {
     let pass = read_passphrase("Passphrase: ")?;
     let vault = open_vault(&vault_path, &pass)?;
@@ -51,11 +38,7 @@ pub fn run(args: QrArgs, vault_path: PathBuf) -> CliResult {
     } else {
         let name = args.name.as_deref().ok_or("provide a name or --all")?;
         let (_, entry) = find_entry(&vault, name)?;
-        format!(
-            "otpauth://totp/{}?secret={}",
-            percent_encode(&entry.name),
-            entry.secret
-        )
+        tofa_core::qr::build_otpauth_uri(entry)
     };
 
     if let Some(out_path) = args.output {

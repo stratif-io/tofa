@@ -1,7 +1,7 @@
 use crate::cli::{open_vault, read_passphrase, CliResult};
 use clap::Args;
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tofa_core::store::Vault;
 use tofa_core::{
     totp::{generate_code_now, seconds_remaining_now},
@@ -127,29 +127,87 @@ fn make_name(otp: &tofa_core::OtpSecret) -> String {
     }
 }
 
-/// Capture every connected display to its own PNG in a temp directory.
-/// Returns the file paths in monitor order. Caller is responsible for
-/// removing them after use.
+/// Capture every connected display to a PNG (or several PNGs) in the system
+/// temp directory. Returns the file paths in capture order. Callers are
+/// responsible for removing the files after use.
+///
+/// Implementation is platform-specific because the cross-platform crates
+/// (xcap, screenshots) drag in the full desktop graphics stack — EGL,
+/// PipeWire, Wayland, XCB — none of which we need just to scan a static
+/// pixel buffer for QR codes:
+/// - **macOS**: `screencapture -D N` per display, stopping when N becomes
+///   invalid. Yields one PNG per display.
+/// - **Linux Wayland**: `grim` (no args) writes all outputs merged into one PNG.
+/// - **Linux X11**: `scrot -m` writes all monitors merged into one PNG.
+/// - **Other**: unsupported.
+///
+/// `scan_all_qr_uris` handles both cases (per-display PNGs and one merged PNG)
+/// because it finds every QR code in the image regardless of layout.
+#[cfg(target_os = "macos")]
 fn capture_screens() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
-    let monitors =
-        xcap::Monitor::all().map_err(|e| format!("Failed to enumerate displays: {e}"))?;
-    let mut paths = Vec::with_capacity(monitors.len());
-    for (i, monitor) in monitors.iter().enumerate() {
-        let image = monitor
-            .capture_image()
-            .map_err(|e| format!("Failed to capture display {i}: {e}"))?;
-        let path = std::env::temp_dir().join(format!("tofa-scan-{i}.png"));
-        save_image_as_png(&image, &path)
-            .map_err(|e| format!("Failed to save capture for display {i}: {e}"))?;
+    let mut paths = Vec::new();
+    for n in 1.. {
+        let path = std::env::temp_dir().join(format!("tofa-scan-{n}.png"));
+        let status = std::process::Command::new("screencapture")
+            .args(["-x", "-t", "png", "-D", &n.to_string()])
+            .arg(&path)
+            .status()?;
+        if !status.success() {
+            // No more displays. screencapture exits non-zero when -D is out
+            // of range, having written nothing.
+            let _ = std::fs::remove_file(&path);
+            break;
+        }
+        // Defensive: if the file wasn't written for some reason, stop.
+        if !path.exists() {
+            break;
+        }
         paths.push(path);
+    }
+    if paths.is_empty() {
+        return Err("screencapture failed for display 1".into());
     }
     Ok(paths)
 }
 
-fn save_image_as_png(
-    image: &xcap::image::RgbaImage,
-    path: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
-    image.save(path)?;
-    Ok(())
+#[cfg(target_os = "linux")]
+fn capture_screens() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    let path = std::env::temp_dir().join("tofa-scan.png");
+    let session_type = std::env::var("XDG_SESSION_TYPE").unwrap_or_default();
+    let is_wayland = session_type == "wayland" || std::env::var("WAYLAND_DISPLAY").is_ok();
+
+    if is_wayland {
+        let status = std::process::Command::new("grim").arg(&path).status();
+        if let Ok(s) = status {
+            if s.success() {
+                return Ok(vec![path]);
+            }
+        }
+        return Err("grim failed; install grim for Wayland multi-monitor screen capture".into());
+    }
+
+    // X11: scrot -m captures all monitors into one image.
+    let status = std::process::Command::new("scrot")
+        .arg("-m")
+        .arg(&path)
+        .status();
+    if let Ok(s) = status {
+        if s.success() {
+            return Ok(vec![path]);
+        }
+    }
+    // Fallback: gnome-screenshot (single display only).
+    let status = std::process::Command::new("gnome-screenshot")
+        .arg("-f")
+        .arg(&path)
+        .status()?;
+    if !status.success() {
+        return Err("screenshot capture failed (install scrot, grim, or gnome-screenshot)".into());
+    }
+    Ok(vec![path])
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn capture_screens() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    Err("Screen capture is not supported on this platform.".into())
 }

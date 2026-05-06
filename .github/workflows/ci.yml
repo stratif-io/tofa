@@ -43,17 +43,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      # System libs required by xcap (used by `tofa scan` to capture all
-      # connected displays cross-platform).
-      - name: Install xcap system deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libwayland-dev \
-            libxcb1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
-            libdbus-1-dev \
-            libpipewire-0.3-dev
-
       - name: clippy
         run: cargo clippy -p tofa -p tofa-core -- -D warnings
 

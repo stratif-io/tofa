@@ -872,12 +872,18 @@ pub async fn generate_selection_qr(
         let vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
 
-        let accounts: Vec<(String, String, String)> = ids
+        let accounts: Vec<(String, String, String, String, u8)> = ids
             .iter()
             .filter_map(|id| vault.entry_by_id(id))
             .map(|e| {
                 let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&e.name);
-                (account, issuer, e.secret.clone())
+                (
+                    account,
+                    issuer,
+                    e.secret.clone(),
+                    e.algorithm.clone(),
+                    e.digits,
+                )
             })
             .collect();
 
@@ -885,9 +891,15 @@ pub async fn generate_selection_qr(
             return Err("No matching entries found.".to_string());
         }
 
-        let refs: Vec<(&str, &str, &str)> = accounts
+        let refs: Vec<tofa_core::qr::MigrationAccount<'_>> = accounts
             .iter()
-            .map(|(n, i, s)| (n.as_str(), i.as_str(), s.as_str()))
+            .map(|(n, i, s, a, d)| tofa_core::qr::MigrationAccount {
+                name: n.as_str(),
+                issuer: i.as_str(),
+                secret_b32: s.as_str(),
+                algorithm: a.as_str(),
+                digits: *d,
+            })
             .collect();
 
         let uri = tofa_core::qr::generate_migration_uri(&refs).map_err(|e| e.to_string())?;

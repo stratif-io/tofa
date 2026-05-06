@@ -837,14 +837,16 @@ fn handle_export_key(
         }
         KeyCode::Enter => {
             let entries = vault.entries();
-            let accounts: Vec<(&str, &str, &str)> = entries
+            let accounts: Vec<tofa_core::MigrationAccount<'_>> = entries
                 .iter()
                 .enumerate()
                 .filter(|(i, _)| state.export_checked.get(*i).copied().unwrap_or(true))
-                .map(|(_, e)| {
-                    let name = e.name.as_str();
-                    // Try to split "issuer:account" → issuer stays separate
-                    (name, "", e.secret.as_str())
+                .map(|(_, e)| tofa_core::MigrationAccount {
+                    name: e.name.as_str(),
+                    issuer: "",
+                    secret_b32: e.secret.as_str(),
+                    algorithm: e.algorithm.as_str(),
+                    digits: e.digits,
                 })
                 .collect();
 

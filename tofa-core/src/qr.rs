@@ -63,6 +63,20 @@ pub struct OtpSecret {
     pub meta: OtpMeta,
 }
 
+/// One account to encode into a Google Authenticator migration URI.
+///
+/// Note: the migration protobuf has no period field, so any non-default
+/// period (e.g. 60s) is silently dropped on export — Google Authenticator
+/// migration assumes 30s. Algorithm and digits are preserved.
+#[derive(Debug, Clone, Copy)]
+pub struct MigrationAccount<'a> {
+    pub name: &'a str,
+    pub issuer: &'a str,
+    pub secret_b32: &'a str,
+    pub algorithm: &'a str,
+    pub digits: u8,
+}
+
 /// Parse a Google Authenticator `otpauth-migration://` URI.
 /// Returns all TOTP accounts found in the payload.
 pub fn parse_migration(uri: &str) -> Result<Vec<OtpSecret>, QrError> {
@@ -342,31 +356,40 @@ pub(crate) fn parse_uri(uri: &str) -> Result<OtpSecret, QrError> {
 }
 
 /// Builds a Google Authenticator `otpauth-migration://` URI from a list of
-/// (name, issuer, base32_secret) tuples.  Returns the URI string ready to
-/// encode into a QR code.
-pub fn generate_migration_uri(
-    accounts: &[(&str, &str, &str)], // (name, issuer, base32_secret)
-) -> Result<String, QrError> {
+/// accounts. Returns the URI string ready to encode into a QR code.
+///
+/// Algorithm strings are mapped to the migration enum: `SHA1`/`SHA256`/`SHA512`/`MD5`
+/// (case-insensitive); unknown values fall back to SHA1. Digits accept 6 or 8;
+/// other values fall back to 6 — Google Authenticator migration only encodes
+/// those two. The migration protobuf has no period field, so any custom period
+/// is silently dropped (importers assume 30s).
+pub fn generate_migration_uri(accounts: &[MigrationAccount<'_>]) -> Result<String, QrError> {
     let mut payload: Vec<u8> = Vec::new();
 
-    for (name, issuer, secret_b32) in accounts {
+    for account in accounts {
         let secret_bytes = BASE32_NOPAD
-            .decode(secret_b32.trim_end_matches('=').as_bytes())
+            .decode(account.secret_b32.trim_end_matches('=').as_bytes())
             .map_err(|_| QrError::MigrationDecode)?;
 
         let mut otp: Vec<u8> = Vec::new();
         // field 1: secret bytes
         otp.extend(proto_field_bytes(1, &secret_bytes));
         // field 2: name
-        otp.extend(proto_field_bytes(2, name.as_bytes()));
+        otp.extend(proto_field_bytes(2, account.name.as_bytes()));
         // field 3: issuer (skip if empty)
-        if !issuer.is_empty() {
-            otp.extend(proto_field_bytes(3, issuer.as_bytes()));
+        if !account.issuer.is_empty() {
+            otp.extend(proto_field_bytes(3, account.issuer.as_bytes()));
         }
-        // field 4: algorithm = 1 (SHA1)
-        otp.extend(proto_field_varint(4, 1));
-        // field 5: digits = 1 (SIX)
-        otp.extend(proto_field_varint(5, 1));
+        // field 4: algorithm enum
+        otp.extend(proto_field_varint(
+            4,
+            algorithm_to_migration_enum(account.algorithm),
+        ));
+        // field 5: digits enum
+        otp.extend(proto_field_varint(
+            5,
+            digits_to_migration_enum(account.digits),
+        ));
         // field 6: type = 2 (TOTP)
         otp.extend(proto_field_varint(6, 2));
 
@@ -479,6 +502,22 @@ fn proto_encode_varint(mut val: u64) -> Vec<u8> {
         }
     }
     buf
+}
+
+fn algorithm_to_migration_enum(s: &str) -> u64 {
+    match s.to_ascii_uppercase().as_str() {
+        "SHA256" => 2,
+        "SHA512" => 3,
+        "MD5" => 4,
+        _ => 1, // SHA1
+    }
+}
+
+fn digits_to_migration_enum(n: u8) -> u64 {
+    match n {
+        8 => 2, // EIGHT
+        _ => 1, // SIX
+    }
 }
 
 fn proto_field_varint(field: u32, val: u64) -> Vec<u8> {

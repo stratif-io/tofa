@@ -32,14 +32,21 @@ pub fn run(args: QrArgs, vault_path: PathBuf) -> CliResult {
     let vault = open_vault(&vault_path, &pass)?;
 
     let uri = if args.all {
-        // Build tuples of (name, issuer, secret) for all entries.
-        // VaultEntry.name may be "issuer:account" — use it as both name and issuer="" for simplicity.
+        // Build a MigrationAccount per entry. VaultEntry.name may be "issuer:account",
+        // but the migration encoder doesn't try to split — it stores the full string
+        // as the name and leaves issuer empty.
         let entries = vault.entries();
-        let tuples: Vec<(&str, &str, &str)> = entries
+        let accounts: Vec<tofa_core::MigrationAccount<'_>> = entries
             .iter()
-            .map(|e| (e.name.as_str(), "", e.secret.as_str()))
+            .map(|e| tofa_core::MigrationAccount {
+                name: e.name.as_str(),
+                issuer: "",
+                secret_b32: e.secret.as_str(),
+                algorithm: e.algorithm.as_str(),
+                digits: e.digits,
+            })
             .collect();
-        tofa_core::generate_migration_uri(&tuples)
+        tofa_core::generate_migration_uri(&accounts)
             .map_err(|e| format!("QR generation failed: {e}"))?
     } else {
         let name = args.name.as_deref().ok_or("provide a name or --all")?;

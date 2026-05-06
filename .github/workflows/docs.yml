@@ -31,6 +31,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
+      # gen-docs builds the tofa CLI to dump its --help output, which means
+      # the xcap-driven `tofa scan` is in the dep graph. Install the matching
+      # system libs so the build doesn't fail on missing wayland/xcb.
+      - name: Install xcap system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwayland-dev \
+            libxcb1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libdbus-1-dev
+
       - name: Verify reference is in sync
         run: cargo run -p xtask -- gen-docs --check
 

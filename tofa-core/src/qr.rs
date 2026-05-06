@@ -709,22 +709,17 @@ pub fn scan_qr_uri(path: &std::path::Path) -> Result<String, QrError> {
 pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> {
     let raw = image::open(path).map_err(|e| QrError::ImageLoad(e.to_string()))?;
 
-    // rqrr misses QR codes when the image is too large (Retina) or when codes
-    // appear at different sizes. Scan at multiple scales and deduplicate results.
-    let widths: &[u32] = &[1920, 1280, 960];
+    // rqrr's grid detector behaves differently at different resolutions. Dense
+    // QRs (long URIs) need enough pixels per module — on a Retina screenshot
+    // (~5120 wide) a 180px-rendered QR is ~135px after rescaling to 1920, which
+    // is below rqrr's reliable detection threshold. Conversely, sparse QRs at
+    // very high res can carry noise that confuses detection.
+    //
+    // Cover both ends: scan at native resolution first, then at progressively
+    // smaller rescales, deduplicating URIs across passes.
     let mut seen = std::collections::HashSet::new();
     let mut uris: Vec<String> = Vec::new();
-
-    for &max_w in widths {
-        let gray = if raw.width() > max_w {
-            let scale = max_w as f32 / raw.width() as f32;
-            let h = (raw.height() as f32 * scale) as u32;
-            raw.resize(max_w, h, image::imageops::FilterType::Lanczos3)
-                .to_luma8()
-        } else {
-            raw.to_luma8()
-        };
-
+    let mut scan = |gray: image::ImageBuffer<image::Luma<u8>, Vec<u8>>| {
         let mut prepared = rqrr::PreparedImage::prepare(gray);
         for grid in prepared.detect_grids() {
             if let Ok((_, content)) = grid.decode() {
@@ -733,6 +728,25 @@ pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> 
                 }
             }
         }
+    };
+
+    // Native resolution first: this is what catches dense QRs in Retina captures.
+    scan(raw.to_luma8());
+
+    // Progressive downscales: catch sparse/large QRs that rqrr handles better
+    // at lower resolution. Skip any width >= the native one (we just did that).
+    // Multiple intermediate widths because rqrr's grid detector hits an
+    // odd sweet spot per QR; covering the spectrum maximizes hit rate.
+    for &max_w in &[3840u32, 3072, 2560, 2048, 1920, 1600, 1280, 1024, 960, 800] {
+        if raw.width() <= max_w {
+            continue;
+        }
+        let scale = max_w as f32 / raw.width() as f32;
+        let h = (raw.height() as f32 * scale) as u32;
+        let resized = raw
+            .resize(max_w, h, image::imageops::FilterType::Lanczos3)
+            .to_luma8();
+        scan(resized);
     }
 
     if uris.is_empty() {

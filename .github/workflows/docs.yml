@@ -43,6 +43,10 @@ jobs:
       - name: Build book
         run: mdbook build docs/book
 
+      - name: Write CNAME for custom domain
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: echo "docs.tofa.stratif.io" > docs/book/dist/CNAME
+
       - name: Upload Pages artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3

@@ -237,9 +237,12 @@ function tick() {
   globalBar.style.setProperty('--progress', `${pct}%`);
   globalBar.style.background = secs < 5 ? 'var(--danger)' : secs < 10 ? 'var(--warning)' : 'var(--brand)';
 
-  // Update per-item timers in the list
+  // Update per-item timers in the list, using each entry's own period
+  // (a 60s TOTP entry must count down from 60, not 30).
   document.querySelectorAll('[data-timer]').forEach(el => {
-    const s = OTP.secondsRemaining();
+    const entry = entries.find(e => e.id === el.dataset.timer);
+    const period = entry?.period || 30;
+    const s = OTP.secondsRemaining(period);
     const color = s < 5 ? 'var(--danger)' : s < 10 ? 'var(--warning)' : 'var(--brand)';
     el.textContent = `${s}s`;
     el.style.color = color;

@@ -710,33 +710,41 @@ pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> 
     let raw = image::open(path).map_err(|e| QrError::ImageLoad(e.to_string()))?;
 
     // rqrr's grid detector behaves differently at different resolutions. Dense
-    // QRs (long URIs) need enough pixels per module — on a Retina screenshot
-    // (~5120 wide) a 180px-rendered QR is ~135px after rescaling to 1920, which
-    // is below rqrr's reliable detection threshold. Conversely, sparse QRs at
-    // very high res can carry noise that confuses detection.
+    // QRs (long URIs) need enough pixels per module; sparse QRs at very high
+    // res can carry noise that confuses detection. Cover both ends with a
+    // small ladder, stopping early when nothing new is found.
     //
-    // Cover both ends: scan at native resolution first (handles the common
-    // Retina case), then a small ladder of downscales as a fallback for
-    // sparse/large QRs. Stop early once we've had two consecutive unproductive
-    // passes — large screenshots get expensive to resize repeatedly.
+    // Cap the highest pass at 3840px even when the source is wider (5K Retina
+    // captures are ~5120). At 3840 each 180-CSS-px QR still has ~8 pixels per
+    // module — plenty for rqrr — and we avoid the ~3-5× cost of running the
+    // detector on a 14M-pixel native image.
+    //
+    // Resize the *RGB* image and convert to luma after; Lanczos3 on RGB
+    // preserves more information than on already-greyscaled pixels (recall
+    // on the synthetic dense-grid drops 10/11 → 7/11 when we collapse to
+    // luma before resizing).
+    let raw_w = raw.width();
+    let mut candidates: Vec<u32> = vec![raw_w.min(3840), 1920, 1280, 960]
+        .into_iter()
+        .filter(|w| *w > 0 && *w <= raw_w)
+        .collect();
+    candidates.sort_unstable_by(|a, b| b.cmp(a));
+    candidates.dedup();
+
     let mut seen = std::collections::HashSet::new();
     let mut uris: Vec<String> = Vec::new();
-
-    // Native resolution first: catches dense QRs in Retina captures.
-    scan_into(raw.to_luma8(), &mut seen, &mut uris);
-
-    let mut last_count = uris.len();
+    let mut last_count = 0usize;
     let mut unproductive = 0u8;
-    for &max_w in &[1920u32, 1280, 960] {
-        if raw.width() <= max_w {
-            continue;
-        }
-        let scale = max_w as f32 / raw.width() as f32;
-        let h = (raw.height() as f32 * scale) as u32;
-        let resized = raw
-            .resize(max_w, h, image::imageops::FilterType::Lanczos3)
-            .to_luma8();
-        scan_into(resized, &mut seen, &mut uris);
+
+    for w in candidates {
+        let gray = if w == raw_w {
+            raw.to_luma8()
+        } else {
+            let h = (raw.height() as f32 * (w as f32 / raw_w as f32)) as u32;
+            raw.resize(w, h, image::imageops::FilterType::Lanczos3)
+                .to_luma8()
+        };
+        scan_into(gray, &mut seen, &mut uris);
         if uris.len() == last_count {
             unproductive += 1;
             if unproductive >= 2 {

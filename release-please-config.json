@@ -20,7 +20,13 @@
       "component": "tofa-core",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": true,
-      "include-v-in-tag": true
+      "include-v-in-tag": true,
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "../tofa/Cargo.toml"
+        }
+      ]
     },
     "tofa-app/src-tauri": {
       "release-type": "rust",

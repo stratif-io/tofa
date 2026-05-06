@@ -355,6 +355,121 @@ pub(crate) fn parse_uri(uri: &str) -> Result<OtpSecret, QrError> {
     })
 }
 
+/// Builds a single-account `otpauth://totp/...` URI from a vault entry,
+/// preserving algorithm, digits, and period as query parameters. The label
+/// is `Issuer:account` (or just `account` when the entry name has no colon).
+/// All user-controlled fields are percent-encoded per RFC 3986 unreserved.
+pub fn build_otpauth_uri(entry: &crate::store::VaultEntry) -> String {
+    let (issuer, account) = OtpMeta::split_name(&entry.name);
+    let label = if issuer.is_empty() {
+        account.clone()
+    } else {
+        format!("{issuer}:{account}")
+    };
+    let mut uri = format!(
+        "otpauth://totp/{}?secret={}",
+        percent_encode(&label),
+        entry.secret,
+    );
+    if !issuer.is_empty() {
+        uri.push_str(&format!("&issuer={}", percent_encode(&issuer)));
+    }
+    uri.push_str(&format!("&algorithm={}", entry.algorithm));
+    uri.push_str(&format!("&digits={}", entry.digits));
+    uri.push_str(&format!("&period={}", entry.period));
+    uri
+}
+
+fn percent_encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for byte in s.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(byte as char)
+            }
+            b => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
+/// Why a selection couldn't be encoded as a single QR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SelectionExportError {
+    /// No entries selected.
+    Empty,
+    /// Selection has multiple entries with non-30s periods. The Google
+    /// Authenticator migration QR (the only widely-supported multi-account
+    /// format) has no period field, so non-30s entries can't be combined
+    /// with others. Caller should either deselect the offending entries,
+    /// export them individually, or use a multi-otpauth list export.
+    NonStandardPeriod {
+        offending_count: usize,
+        total: usize,
+    },
+    /// The migration encoder failed (e.g. an entry's stored secret isn't
+    /// valid base32). Effectively unreachable for entries that came out
+    /// of a tofa vault, but surfaced rather than panicked.
+    EncodingFailed(String),
+}
+
+impl std::fmt::Display for SelectionExportError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Empty => write!(f, "no entries selected"),
+            Self::NonStandardPeriod {
+                offending_count,
+                total,
+            } => write!(
+                f,
+                "{offending_count} of {total} selected entries use a non-30s period; \
+                 the Google Authenticator migration QR cannot include them. \
+                 Export those entries individually."
+            ),
+            Self::EncodingFailed(msg) => write!(f, "QR encoding failed: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for SelectionExportError {}
+
+/// Encodes an export selection as a single QR-ready URI, dispatching by
+/// shape:
+/// - **Empty selection** → `Err(Empty)`.
+/// - **Single entry** → `otpauth://...` (preserves all five fields).
+/// - **Multiple all-30s entries** → `otpauth-migration://...` (Google's
+///   migration format; preserves algorithm and digits, period is implicitly 30).
+/// - **Multiple entries containing any non-30s** → `Err(NonStandardPeriod)`.
+pub fn build_selection_uri(
+    entries: &[crate::store::VaultEntry],
+) -> Result<String, SelectionExportError> {
+    if entries.is_empty() {
+        return Err(SelectionExportError::Empty);
+    }
+    if entries.len() == 1 {
+        return Ok(build_otpauth_uri(&entries[0]));
+    }
+    let offending = entries.iter().filter(|e| e.period != 30).count();
+    if offending > 0 {
+        return Err(SelectionExportError::NonStandardPeriod {
+            offending_count: offending,
+            total: entries.len(),
+        });
+    }
+    let accounts: Vec<MigrationAccount<'_>> = entries
+        .iter()
+        .map(|e| MigrationAccount {
+            name: e.name.as_str(),
+            issuer: "",
+            secret_b32: e.secret.as_str(),
+            algorithm: e.algorithm.as_str(),
+            digits: e.digits,
+        })
+        .collect();
+    generate_migration_uri(&accounts)
+        .map_err(|e| SelectionExportError::EncodingFailed(e.to_string()))
+}
+
 /// Builds a Google Authenticator `otpauth-migration://` URI from a list of
 /// accounts. Returns the URI string ready to encode into a QR code.
 ///

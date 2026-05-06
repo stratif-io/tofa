@@ -134,6 +134,7 @@ pub fn run() {
             commands::import_file,
             commands::generate_entry_qr,
             commands::generate_selection_qr,
+            commands::generate_otpauth_list,
             commands::save_qr_png,
         ])
         .setup(|app| {

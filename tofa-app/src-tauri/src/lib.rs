@@ -120,6 +120,9 @@ pub fn run() {
             commands::unlock,
             commands::get_entries,
             commands::copy_code,
+            commands::copy_uri,
+            commands::get_masked_uri,
+            commands::get_full_uri,
             commands::get_settings,
             commands::save_settings,
             commands::get_secret,
@@ -134,7 +137,10 @@ pub fn run() {
             commands::import_file,
             commands::generate_entry_qr,
             commands::generate_selection_qr,
+            commands::generate_otpauth_list,
             commands::save_qr_png,
+            commands::save_qr_zip,
+            commands::save_uri_list,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

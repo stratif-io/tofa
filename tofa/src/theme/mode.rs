@@ -72,30 +72,45 @@ impl ThemeMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Tests below mutate process-global env vars. cargo runs tests in
+    // parallel by default, so without a shared lock one test's set_var
+    // leaks into another's detect() and the assertion races.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn with_clean_env<F: FnOnce()>(f: F) {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        for var in ["TOFA_THEME", "TERM_BACKGROUND", "COLORSCHEME"] {
+            std::env::remove_var(var);
+        }
+        f();
+        for var in ["TOFA_THEME", "TERM_BACKGROUND", "COLORSCHEME"] {
+            std::env::remove_var(var);
+        }
+    }
 
     #[test]
     fn dark_is_default_when_no_env() {
-        std::env::remove_var("TOFA_THEME");
-        std::env::remove_var("TERM_BACKGROUND");
-        std::env::remove_var("COLORSCHEME");
-        assert_eq!(ThemeMode::detect(), ThemeMode::Dark);
+        with_clean_env(|| {
+            assert_eq!(ThemeMode::detect(), ThemeMode::Dark);
+        });
     }
 
     #[test]
     fn detects_light_from_tofa_theme() {
-        std::env::set_var("TOFA_THEME", "light");
-        let mode = ThemeMode::detect();
-        std::env::remove_var("TOFA_THEME");
-        assert_eq!(mode, ThemeMode::Light);
+        with_clean_env(|| {
+            std::env::set_var("TOFA_THEME", "light");
+            assert_eq!(ThemeMode::detect(), ThemeMode::Light);
+        });
     }
 
     #[test]
     fn detects_dark_from_term_background() {
-        std::env::remove_var("TOFA_THEME");
-        std::env::set_var("TERM_BACKGROUND", "dark");
-        let mode = ThemeMode::detect();
-        std::env::remove_var("TERM_BACKGROUND");
-        assert_eq!(mode, ThemeMode::Dark);
+        with_clean_env(|| {
+            std::env::set_var("TERM_BACKGROUND", "dark");
+            assert_eq!(ThemeMode::detect(), ThemeMode::Dark);
+        });
     }
 
     #[test]

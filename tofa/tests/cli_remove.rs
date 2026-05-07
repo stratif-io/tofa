@@ -20,7 +20,7 @@ fn setup() -> TempDir {
             "--name",
             "GitHub:carlo",
             "--secret",
-            "JBSWY3DPEHPK3PXP",
+            "CLIREMOVEAAAAAAA",
         ])
         .assert()
         .success();

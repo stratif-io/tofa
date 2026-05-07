@@ -237,9 +237,12 @@ function tick() {
   globalBar.style.setProperty('--progress', `${pct}%`);
   globalBar.style.background = secs < 5 ? 'var(--danger)' : secs < 10 ? 'var(--warning)' : 'var(--brand)';
 
-  // Update per-item timers in the list
+  // Update per-item timers in the list, using each entry's own period
+  // (a 60s TOTP entry must count down from 60, not 30).
   document.querySelectorAll('[data-timer]').forEach(el => {
-    const s = OTP.secondsRemaining();
+    const entry = entries.find(e => e.id === el.dataset.timer);
+    const period = entry?.period || 30;
+    const s = OTP.secondsRemaining(period);
     const color = s < 5 ? 'var(--danger)' : s < 10 ? 'var(--warning)' : 'var(--brand)';
     el.textContent = `${s}s`;
     el.style.color = color;
@@ -290,15 +293,19 @@ function openDetail(id) {
 }
 
 function renderDetailMeta(entry) {
+  // Order goes identifiers first, then technical params, then dates,
+  // then sensitive fields at the bottom (sensitive last so the user's
+  // eye lands on plain metadata before the bullets).
   const rows = [
-    ['Account',   entry.account || '—'],
+    ['ID',        entry.id || '—'],
     ['Issuer',    entry.issuer  || '—'],
+    ['Account',   entry.account || '—'],
     ['Algorithm', entry.algorithm || 'SHA1'],
     ['Digits',    String(entry.digits || 6)],
     ['Period',    `${entry.period || 30}s`],
     ['Added',     entry.created_at || '—'],
-    ['ID',        entry.id || '—'],
     ['Secret',    null],
+    ['URI',       null],
   ];
   const tbody = $('detail-meta-body');
   tbody.innerHTML = '';
@@ -308,6 +315,25 @@ function renderDetailMeta(entry) {
       tr.innerHTML = `<td>${label}</td><td><span class="secret-masked" id="secret-cell" title="Click to reveal">●●●●●●●●●●●●●●●●</span></td>`;
       tbody.appendChild(tr);
       $('secret-cell').addEventListener('click', () => {
+        $('reveal-passphrase').value = '';
+        $('reveal-error').style.display = 'none';
+        $('reveal-overlay').style.display = 'flex';
+        $('reveal-passphrase').focus();
+      });
+    } else if (label === 'URI') {
+      // Same trust boundary as the secret row — bullets by default,
+      // unmasked by the same reveal-overlay passphrase prompt. The
+      // backend hands us a pre-masked URI so we don't need the secret
+      // to render the resting state.
+      tr.innerHTML = `<td>${label}</td>` +
+        `<td><span class="secret-masked" id="uri-cell" ` +
+        `style="word-break:break-all;font-family:var(--font-mono);font-size:11px;" ` +
+        `title="Click to reveal">Loading…</span></td>`;
+      tbody.appendChild(tr);
+      invoke('get_masked_uri', { id: entry.id })
+        .then(uri => { $('uri-cell').textContent = uri; })
+        .catch(_ => { $('uri-cell').textContent = '(unavailable)'; });
+      $('uri-cell').addEventListener('click', () => {
         $('reveal-passphrase').value = '';
         $('reveal-error').style.display = 'none';
         $('reveal-overlay').style.display = 'flex';
@@ -478,14 +504,20 @@ function bindAddListeners() {
   if (btnFile) {
     btnFile.addEventListener('click', async () => {
       loaderStart();
-      showBlocking('Importing file…');
+      showBlocking('Importing files…');
       try {
         const added = await withPopoverPinned(() => invoke('pick_and_import_file'));
         if (added.length === 0) return;
         const data = await invoke('get_entries');
         renderList(data);
         showView('view-list');
-        toast(`Added: ${added.join(', ')}`);
+        // Many-account imports get a count + first-few preview;
+        // single imports keep the original "Added: <name>" form.
+        if (added.length <= 3) {
+          toast(`Added: ${added.join(', ')}`);
+        } else {
+          toast(`Added ${added.length} accounts (${added.slice(0, 3).join(', ')}, …)`);
+        }
       } catch (err) { toast(String(err), true); }
       finally { loaderDone(); hideBlocking(); }
     });
@@ -581,6 +613,14 @@ $('btn-detail-copy').addEventListener('click', async () => {
   } catch (err) { toast(String(err), true); }
 });
 
+$('btn-detail-copy-uri').addEventListener('click', async () => {
+  if (!selectedId) return;
+  try {
+    await invoke('copy_uri', { id: selectedId });
+    toast('URI copied to clipboard');
+  } catch (err) { toast(String(err), true); }
+});
+
 $('btn-detail-del').addEventListener('click', async () => {
   if (!selectedId) return;
   showBlocking('Deleting…');
@@ -611,9 +651,34 @@ $('btn-detail-qr').addEventListener('click', async () => {
   finally { loaderDone(); }
 });
 
+// ── QR list pagination state ────────────────────────────────────────────────
+// When the user picks "List of QRs" multi-export, qrList holds the per-entry
+// items and qrListIndex tracks which one is currently displayed in the
+// shared qr-overlay. qrList is empty for single-QR (compatible) mode.
+let qrList = [];
+let qrListIndex = 0;
+
+function showQrItem(idx) {
+  if (qrList.length === 0) return;
+  qrListIndex = Math.max(0, Math.min(idx, qrList.length - 1));
+  const item = qrList[qrListIndex];
+  $('qr-overlay-title').textContent = item.name;
+  $('qr-overlay-img').src = item.data_uri;
+  $('qr-overlay-counter').textContent = `${qrListIndex + 1} of ${qrList.length}`;
+}
+
+function resetQrOverlayToSingle() {
+  qrList = [];
+  qrListIndex = 0;
+  $('qr-overlay-pager').style.display = 'none';
+  $('btn-qr-save-all').style.display = 'none';
+  $('btn-qr-save').style.display = '';
+}
+
 $('btn-qr-close').addEventListener('click', () => {
   $('qr-overlay').style.display = 'none';
   $('qr-overlay-img').src = '';
+  resetQrOverlayToSingle();
 });
 
 $('btn-qr-save').addEventListener('click', async () => {
@@ -625,17 +690,42 @@ $('btn-qr-save').addEventListener('click', async () => {
   } catch (err) { toast(String(err), true); }
 });
 
+$('btn-qr-prev').addEventListener('click', () => showQrItem(qrListIndex - 1));
+$('btn-qr-next').addEventListener('click', () => showQrItem(qrListIndex + 1));
+
+$('btn-qr-save-all').addEventListener('click', async () => {
+  if (qrList.length === 0) return;
+  // One save dialog → one zip containing per-entry PNGs and a printable
+  // one-pager (print.html). The backend handles zip composition.
+  try {
+    await withPopoverPinned(() => invoke('save_qr_zip', { items: qrList }));
+  } catch (err) { toast(String(err), true); }
+});
+
 // ── Export QR (multi-select) ────────────────────────────────────────────────
 
 $('btn-export-qr').addEventListener('click', () => {
   const list = $('export-qr-list');
-  list.innerHTML = entries.map(e => `
+  list.innerHTML = entries.map(e => {
+    // Non-30s entries can't fit in a Google Authenticator migration QR;
+    // mark them so the user knows the "Single QR" path will refuse the
+    // selection and they should reach for "List of QRs" instead.
+    const isNon30 = e.period && e.period !== 30;
+    const badge = isNon30
+      ? `<span title="${e.period}s period — not compatible with the migration QR; use 'List of QRs' instead" style="font-family:var(--font-mono);font-size:10px;color:var(--warning);border:1px solid var(--warning);border-radius:var(--r-sm);padding:1px 5px;margin-left:var(--s-2);">${e.period}s</span>`
+      : '';
+    const accountSpan = e.issuer
+      ? `<span style="font-size:11px;color:var(--text-muted);margin-left:auto;">${e.account}</span>`
+      : '';
+    return `
     <label style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-2) var(--s-2);border-radius:var(--r-md);cursor:pointer;">
       <input type="checkbox" data-id="${e.id}" checked style="width:14px;height:14px;accent-color:var(--brand);">
       <span style="font-size:13px;">${e.issuer || e.name}</span>
-      ${e.issuer ? `<span style="font-size:11px;color:var(--text-muted);margin-left:auto;">${e.account}</span>` : ''}
+      ${badge}
+      ${accountSpan}
     </label>
-  `).join('');
+  `;
+  }).join('');
   $('export-qr-overlay').style.display = 'flex';
 });
 
@@ -650,12 +740,47 @@ $('btn-export-qr-generate').addEventListener('click', async () => {
   loaderStart();
   try {
     const dataUri = await invoke('generate_selection_qr', { ids });
+    resetQrOverlayToSingle();
     $('export-qr-overlay').style.display = 'none';
     $('qr-overlay-title').textContent = `${ids.length} account${ids.length > 1 ? 's' : ''}`;
     $('qr-overlay-img').src = dataUri;
     $('qr-overlay').style.display = 'flex';
   } catch (err) { toast(String(err), true); }
   finally { loaderDone(); }
+});
+
+$('btn-export-qr-generate-multi').addEventListener('click', async () => {
+  const ids = [...$('export-qr-list').querySelectorAll('input[type=checkbox]:checked')]
+    .map(cb => cb.dataset.id);
+  if (ids.length === 0) { toast('Select at least one account', true); return; }
+  loaderStart();
+  try {
+    const items = await invoke('generate_otpauth_list', { ids });
+    qrList = items;
+    qrListIndex = 0;
+    $('export-qr-overlay').style.display = 'none';
+    $('qr-overlay-pager').style.display = 'flex';
+    $('btn-qr-save-all').style.display = '';
+    $('btn-qr-save').style.display = 'none';
+    showQrItem(0);
+    $('qr-overlay').style.display = 'flex';
+  } catch (err) { toast(String(err), true); }
+  finally { loaderDone(); }
+});
+
+// Save selected entries as a plain-text URI list. Round-trips through
+// `tofa import <file>.txt` and the desktop app's drop handler. Useful
+// for moving accounts between authenticators when the receiving app
+// can't read a Google-Authenticator migration QR.
+$('btn-export-uri-list').addEventListener('click', async () => {
+  const ids = [...$('export-qr-list').querySelectorAll('input[type=checkbox]:checked')]
+    .map(cb => cb.dataset.id);
+  if (ids.length === 0) { toast('Select at least one account', true); return; }
+  try {
+    await withPopoverPinned(() => invoke('save_uri_list', { ids }));
+    $('export-qr-overlay').style.display = 'none';
+    toast(`Saved ${ids.length} URI${ids.length > 1 ? 's' : ''}`);
+  } catch (err) { toast(String(err), true); }
 });
 
 $('btn-reveal-cancel').addEventListener('click', () => {
@@ -668,18 +793,35 @@ $('btn-reveal-confirm').addEventListener('click', async () => {
   const errEl = $('reveal-error');
   errEl.style.display = 'none';
   try {
-    const secret = await invoke('get_secret', { id: selectedId, passphrase });
+    // get_full_uri also revalidates the passphrase server-side, so
+    // wrong-passphrase paths surface here before we touch any UI.
+    const [secret, fullUri] = await Promise.all([
+      invoke('get_secret', { id: selectedId, passphrase }),
+      invoke('get_full_uri', { id: selectedId, passphrase }),
+    ]);
     $('reveal-overlay').style.display = 'none';
     $('reveal-passphrase').value = '';
-    // Show secret in cell, truncate after 30s
+    // Show secret + URI in their cells, re-mask both after 30s.
     const cell = $('secret-cell');
     cell.textContent = secret;
     cell.className = '';
     cell.style.color = 'var(--brand)';
+    const uriCell = $('uri-cell');
+    if (uriCell) {
+      uriCell.dataset.masked = uriCell.textContent;
+      uriCell.textContent = fullUri;
+      uriCell.className = '';
+      uriCell.style.color = 'var(--brand)';
+    }
     setTimeout(() => {
       cell.textContent = '●●●●●●●●●●●●●●●●';
       cell.className = 'secret-masked';
       cell.style.color = '';
+      if (uriCell && uriCell.dataset.masked) {
+        uriCell.textContent = uriCell.dataset.masked;
+        uriCell.className = 'secret-masked';
+        uriCell.style.color = '';
+      }
     }, 30000);
   } catch (err) {
     errEl.textContent = String(err);

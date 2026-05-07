@@ -6,10 +6,10 @@ pub mod totp;
 
 pub use crypto::CryptoError;
 pub use qr::{
-    generate_demo_migration_uri, generate_migration_uri, uri_to_qr_lines, uri_to_qr_png, OtpSecret,
-    QrError,
+    build_otpauth_uri, build_selection_uri, generate_demo_migration_uri, generate_migration_uri,
+    uri_to_qr_lines, uri_to_qr_png, MigrationAccount, OtpSecret, QrError, SelectionExportError,
 };
-pub use store::{Vault, VaultEntry};
+pub use store::{today_iso, Vault, VaultEntry, DEFAULT_ALGORITHM, DEFAULT_DIGITS, DEFAULT_PERIOD};
 pub use totp::{
     generate_code_at, generate_code_now, seconds_remaining, seconds_remaining_now, TotpError,
 };

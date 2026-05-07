@@ -22,7 +22,7 @@ fn raivo_notion_entry() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("Notion"))
         .expect("Notion entry should be present");
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    assert_eq!(e.secret, "RAIVONOTIONAAAAA");
     assert_eq!(e.meta.account.as_deref(), Some("eve@example.com"));
     assert_eq!(e.meta.algorithm.as_deref(), Some("SHA1"));
     assert_eq!(e.meta.digits, Some(6));

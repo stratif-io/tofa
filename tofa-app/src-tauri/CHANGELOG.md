@@ -1,5 +1,61 @@
 # Changelog
 
+## [0.9.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.8.0...tofa-macos-v0.9.0) (2026-05-07)
+
+
+### Miscellaneous
+
+* version bumped to keep the linked-versions group aligned with tofa-core 0.9.0; no app code changes since 0.8.0.
+
+## [0.8.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.7.0...tofa-macos-v0.8.0) (2026-05-07)
+
+
+### Features
+
+* **app:** copy_uri and save_uri_list with matching UI buttons ([fe4da0f](https://github.com/stratif-io/tofa/commit/fe4da0fd19ea9d22a3a8c39a0537c94e99d8a79c))
+* **app:** highlight non-30s entries + bundle Save All into a single zip ([675fd3e](https://github.com/stratif-io/tofa/commit/675fd3e78688a4430a5beb98c02765e94ca96807))
+* **app:** highlight non-30s entries + bundle Save All into a single zip ([8fe922c](https://github.com/stratif-io/tofa/commit/8fe922cd351d21cc06a9d881bc49e974c105f554))
+* **app:** pick_and_import_file accepts a multi-file selection ([f489502](https://github.com/stratif-io/tofa/commit/f489502ce76545fcb65d480132f224886f8e4c0a))
+* **app:** show otpauth URI on the entry detail view ([3ab079f](https://github.com/stratif-io/tofa/commit/3ab079f1c2f797fc7594c5733b812b3804d14f03))
+* **cli,tui,app:** route every import surface through the unified dispatcher ([5591dcb](https://github.com/stratif-io/tofa/commit/5591dcbfeb7e80d0b425ef8c045c0b9afa480e1c))
+* import dispatcher, URI export, dedup, and architectural audit pass ([9d8f2d4](https://github.com/stratif-io/tofa/commit/9d8f2d4432b59c2b43016e67792013a9c1be3cfa))
+* **tui,app:** accept pasted list of otpauth:// URIs as bulk import ([0eb62a8](https://github.com/stratif-io/tofa/commit/0eb62a84f696b1ddc8272211fd490ac2b32e1dd8))
+
+
+### Bug Fixes
+
+* **core,app:** centralise dedup in Vault::add_entry_if_unique ([7b97628](https://github.com/stratif-io/tofa/commit/7b97628395be94064ffb12aafd719561b1dbd52b))
+
+## [0.7.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.6.2...tofa-macos-v0.7.0) (2026-05-06)
+
+
+### Features
+
+* **core:** build_selection_uri dispatches by selection shape ([6695d10](https://github.com/stratif-io/tofa/commit/6695d106b119d36fe3811034ce05569bc457c6f5))
+* full-fidelity QR export rules across CLI, TUI, and Tauri app ([b0cb6de](https://github.com/stratif-io/tofa/commit/b0cb6decb0820186368619ff9f09d420c94b64ba))
+* **tui,app:** list-of-otpauth multi-QR export in TUI and Tauri app ([316fdce](https://github.com/stratif-io/tofa/commit/316fdce3cce3847591907e1c3c7b54347b39bad1))
+
+
+### Bug Fixes
+
+* **cli:** emit full otpauth URI from `tofa qr <name>` ([305068a](https://github.com/stratif-io/tofa/commit/305068ad5548e79f8d77a5852f1e3f675054fdbe))
+
+## [0.6.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.6.1...tofa-macos-v0.6.2) (2026-05-06)
+
+
+### Bug Fixes
+
+* **app:** sync tauri.conf.json version to 0.6.1 ([666a178](https://github.com/stratif-io/tofa/commit/666a178c6dd7b6597c8556a9e00375889f8af2ed))
+* sync tauri.conf.json version + fix release-please path so it stays in sync ([36e55f9](https://github.com/stratif-io/tofa/commit/36e55f9a9364e8a894b921392687c6225ed51822))
+
+## [0.6.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.6.0...tofa-macos-v0.6.1) (2026-05-06)
+
+
+### Bug Fixes
+
+* **core:** preserve per-account algorithm and digits in migration export ([49641a8](https://github.com/stratif-io/tofa/commit/49641a8dcd0ca1885db7d9c56f471301c6b2a7ff))
+* repair broken 0.4.0 publish, harden release pipeline, preserve OTP params in migration export ([654a6a9](https://github.com/stratif-io/tofa/commit/654a6a910f1bb954ebb2030b4aac29e19bb74ca0))
+
 ## [0.6.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.5.3...tofa-macos-v0.6.0) (2026-05-05)
 
 

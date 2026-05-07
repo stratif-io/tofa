@@ -4522,7 +4522,7 @@ dependencies = [
 
 [[package]]
 name = "tofa"
-version = "0.4.0"
+version = "0.9.0"
 dependencies = [
  "arboard",
  "assert_cmd",
@@ -4542,11 +4542,12 @@ dependencies = [
  "tui-big-text",
  "unicode-width",
  "zeroize",
+ "zip",
 ]
 
 [[package]]
 name = "tofa-app"
-version = "0.5.3"
+version = "0.9.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4562,18 +4563,18 @@ dependencies = [
  "tauri-plugin-dialog",
  "tofa-core",
  "tokio",
- "urlencoding",
  "zeroize",
  "zip",
 ]
 
 [[package]]
 name = "tofa-core"
-version = "0.3.0"
+version = "0.9.0"
 dependencies = [
  "aes-gcm",
  "argon2",
  "base64 0.22.1",
+ "chrono",
  "data-encoding",
  "image",
  "qrcode",
@@ -4585,6 +4586,7 @@ dependencies = [
  "thiserror 1.0.69",
  "totp-rs",
  "zeroize",
+ "zip",
 ]
 
 [[package]]
@@ -4985,12 +4987,6 @@ dependencies = [
  "serde",
  "serde_derive",
 ]
-
-[[package]]
-name = "urlencoding"
-version = "2.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
 name = "urlpattern"

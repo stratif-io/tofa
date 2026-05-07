@@ -139,6 +139,90 @@ pub async fn copy_code(
     Ok(())
 }
 
+/// Copy a single entry's `otpauth://` URI to the system clipboard.
+/// Mirrors the TUI's `u` shortcut and `tofa code <name> --uri --copy`
+/// on the CLI. Useful for moving one account to another authenticator
+/// without exporting the whole vault.
+#[tauri::command]
+pub async fn copy_uri(
+    id: String,
+    state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+    let uri = tokio::task::spawn_blocking(move || {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let entry = vault
+            .entry_by_id(&id)
+            .ok_or_else(|| format!("entry '{}' not found", id))?
+            .clone();
+        Ok::<String, String>(tofa_core::qr::build_otpauth_uri(&entry))
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    use tauri_plugin_clipboard_manager::ClipboardExt;
+    app.clipboard().write_text(uri).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Build the entry's `otpauth://` URI with the secret portion replaced
+/// by bullets, so it can be displayed in the detail view without
+/// leaking the secret. Uses the cached session passphrase — no
+/// re-prompt — since nothing sensitive is returned.
+#[tauri::command]
+pub async fn get_masked_uri(
+    id: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<String, String> {
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+    tokio::task::spawn_blocking(move || {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let entry = vault
+            .entry_by_id(&id)
+            .ok_or_else(|| format!("entry '{}' not found", id))?
+            .clone();
+        let uri = tofa_core::qr::build_otpauth_uri(&entry);
+        Ok::<String, String>(tofa_core::qr::mask_otpauth_uri(&uri, &entry.secret))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Return the full `otpauth://` URI including the unmasked secret.
+/// Requires the user's passphrase, exactly like `get_secret`. The UI
+/// uses this to swap in the real URI after the user passes the reveal
+/// gate, then re-masks after 30s.
+#[tauri::command]
+pub fn get_full_uri(
+    id: String,
+    passphrase: String,
+    state: State<Mutex<AppState>>,
+) -> Result<String, String> {
+    let s = state.lock().map_err(|e| e.to_string())?;
+    let vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
+        .map_err(|_| "Wrong passphrase.".to_string())?;
+    let entry = vault
+        .entry_by_id(&id)
+        .ok_or_else(|| format!("Entry '{}' not found.", id))?;
+    Ok(tofa_core::qr::build_otpauth_uri(entry))
+}
+
 #[tauri::command]
 pub fn get_settings() -> Result<Settings, String> {
     let path = settings_path();
@@ -159,13 +243,17 @@ pub async fn pick_and_import_file(
     state: State<'_, Mutex<AppState>>,
 ) -> Result<Vec<String>, String> {
     let handle = window.app_handle().clone();
-    let path = tokio::task::spawn_blocking(move || {
+    // pick_files (plural) returns Option<Vec<FilePath>>; the native
+    // dialog lets the user ⌘-click / Shift-click to grab several
+    // files at once, so a JSON + a backup zip + a printout PNG can
+    // all be imported in a single round-trip.
+    let picked = tokio::task::spawn_blocking(move || {
         use tauri_plugin_dialog::DialogExt;
         Ok::<_, String>(
             handle
                 .dialog()
                 .file()
-                .set_title("Open QR image or import file")
+                .set_title("Open QR images or import files")
                 .add_filter(
                     "Supported files",
                     &[
@@ -173,24 +261,37 @@ pub async fn pick_and_import_file(
                         "csv", "zip",
                     ],
                 )
-                .blocking_pick_file(),
+                .blocking_pick_files(),
         )
     })
     .await
     .map_err(|e| e.to_string())??;
 
-    let path = match path {
+    let picked = match picked {
         None => return Ok(vec![]),
+        Some(p) if p.is_empty() => return Ok(vec![]),
         Some(p) => p,
     };
 
-    let path = path.into_path().map_err(|e| e.to_string())?;
-    let filename = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("")
-        .to_string();
-    let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+    // Read every file before unlocking the vault so we don't hold the
+    // passphrase while doing I/O. Files that disappear between the
+    // dialog returning and us reading them just get skipped.
+    let mut payloads: Vec<(String, Vec<u8>)> = Vec::with_capacity(picked.len());
+    for fp in picked {
+        let path = fp.into_path().map_err(|e| e.to_string())?;
+        let filename = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+        match std::fs::read(&path) {
+            Ok(bytes) => payloads.push((filename, bytes)),
+            Err(_) => continue,
+        }
+    }
+    if payloads.is_empty() {
+        return Err("No readable files in selection.".into());
+    }
 
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
@@ -202,23 +303,37 @@ pub async fn pick_and_import_file(
     };
 
     tokio::task::spawn_blocking(move || {
-        let otps = extract_otps_from_bytes(&filename, &bytes)?;
+        // Concatenate every file's parsed secrets first, then do one
+        // vault-load + N adds + one save. Files that fail parse_bytes
+        // (unsupported, corrupt, no QR) are counted but don't abort
+        // the rest — the user gets one useful toast instead of an
+        // error halfway through.
+        let mut all_otps: Vec<tofa_core::qr::OtpSecret> = Vec::new();
+        let mut failed = 0usize;
+        for (filename, bytes) in &payloads {
+            match extract_otps_from_bytes(filename, bytes) {
+                Ok(mut otps) => all_otps.append(&mut otps),
+                Err(_) => failed += 1,
+            }
+        }
+        if all_otps.is_empty() {
+            return Err(if failed > 0 {
+                format!("None of the {failed} file(s) contained recognisable accounts.")
+            } else {
+                "No accounts found.".to_string()
+            });
+        }
+
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
-        for otp in otps {
+        for otp in all_otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
-                id: String::new(),
-                name: name.clone(),
-                secret: otp.secret,
-                created_at: today.clone(),
-                period: otp.meta.period.unwrap_or(30),
-                digits: otp.meta.digits.unwrap_or(6),
-                algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            let entry = otp.into_vault_entry(name.clone(), today.clone());
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
         vault
             .save(&vault_path, &passphrase)
@@ -368,33 +483,25 @@ pub async fn scan_screen(
     let added = tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
 
-        // Expand each scanned URI — migration QRs contain multiple accounts
+        // Expand each scanned URI — migration QRs contain multiple accounts.
+        // Per-URI parse errors are swallowed so a single bad QR on the screen
+        // doesn't sink the whole scan.
         let mut otps: Vec<tofa_core::qr::OtpSecret> = Vec::new();
         for uri in &uris {
-            if uri.starts_with("otpauth-migration://") {
-                if let Ok(accounts) = tofa_core::qr::parse_migration(uri) {
-                    otps.extend(accounts);
-                }
-            } else if let Ok(otp) = tofa_core::qr::parse_input(uri) {
-                otps.push(otp);
+            if let Ok(found) = tofa_core::import::parse_uri(uri) {
+                otps.extend(found);
             }
         }
 
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
-                id: String::new(),
-                name: name.clone(),
-                secret: otp.secret,
-                created_at: today.clone(),
-                period: otp.meta.period.unwrap_or(30),
-                digits: otp.meta.digits.unwrap_or(6),
-                algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            let entry = otp.into_vault_entry(name.clone(), today.clone());
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
 
         let _ = app_handle.emit("scan-step", "Saving to vault…");
@@ -422,13 +529,10 @@ pub async fn scan_image_bytes(
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(&b64)
         .map_err(|e| e.to_string())?;
-    let tmp = std::env::temp_dir().join(format!("tofa_drop_{}.png", std::process::id()));
-    std::fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
-
-    let uris =
-        tofa_core::qr::scan_all_qr_uris(&tmp).map_err(|_| "No QR code found in image.".to_string());
-    let _ = std::fs::remove_file(&tmp);
-    let uris = uris?;
+    // Bytes from the JS drop handler don't carry a filename; treat them
+    // as PNG so the unified dispatcher routes through the image branch.
+    let otps = extract_otps_from_bytes("drop.png", &bytes)
+        .map_err(|_| "No QR code found in image.".to_string())?;
 
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
@@ -442,34 +546,15 @@ pub async fn scan_image_bytes(
     let added = tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
-
-        let mut otps: Vec<tofa_core::qr::OtpSecret> = Vec::new();
-        for uri in &uris {
-            if uri.starts_with("otpauth-migration://") {
-                if let Ok(accounts) = tofa_core::qr::parse_migration(uri) {
-                    otps.extend(accounts);
-                }
-            } else if let Ok(otp) = tofa_core::qr::parse_input(uri) {
-                otps.push(otp);
-            }
-        }
-
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
-                id: String::new(),
-                name: name.clone(),
-                secret: otp.secret,
-                created_at: today.clone(),
-                period: otp.meta.period.unwrap_or(30),
-                digits: otp.meta.digits.unwrap_or(6),
-                algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            let entry = otp.into_vault_entry(name.clone(), today.clone());
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
-
         vault
             .save(&vault_path, &passphrase)
             .map_err(|e| e.to_string())?;
@@ -502,12 +587,18 @@ pub async fn add_from_uri(
     tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
 
-        // Expand migration URIs into individual accounts
+        // The text input accepts: a Google-Authenticator migration URI
+        // (multiple accounts), a multi-line list of `otpauth://` URIs
+        // (Ente-style paste, also multiple accounts), or a single
+        // `otpauth://` URI. Bulk inputs ignore the user-supplied name
+        // since one name can't sensibly cover N entries.
         let otps: Vec<tofa_core::qr::OtpSecret> = if uri.starts_with("otpauth-migration://") {
-            tofa_core::qr::parse_migration(&uri).map_err(|e| e.to_string())?
+            tofa_core::import::parse_migration_uri(&uri)?
+        } else if tofa_core::import::is_multi_otpauth_paste(&uri) {
+            tofa_core::import::parse_text_uris(&uri)?
         } else {
             vec![tofa_core::qr::parse_input(&uri).map_err(|e| e.to_string())?]
         };
@@ -518,16 +609,10 @@ pub async fn add_from_uri(
             } else {
                 otp.meta.derive_name()
             };
-            vault.add_entry(tofa_core::store::VaultEntry {
-                id: String::new(),
-                name: entry_name.clone(),
-                secret: otp.secret,
-                created_at: today.clone(),
-                period: otp.meta.period.unwrap_or(30),
-                digits: otp.meta.digits.unwrap_or(6),
-                algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(entry_name);
+            let entry = otp.into_vault_entry(entry_name.clone(), today.clone());
+            if vault.add_entry_if_unique(entry) {
+                added.push(entry_name);
+            }
         }
 
         vault
@@ -603,27 +688,17 @@ pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String
     tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
 
-        let otps: Vec<tofa_core::qr::OtpSecret> = if uri.starts_with("otpauth-migration://") {
-            tofa_core::qr::parse_migration(&uri).map_err(|e| e.to_string())?
-        } else {
-            vec![tofa_core::qr::parse_input(&uri).map_err(|e| e.to_string())?]
-        };
+        let otps = tofa_core::import::parse_uri(&uri)?;
 
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
-                id: String::new(),
-                name: name.clone(),
-                secret: otp.secret,
-                created_at: today.clone(),
-                period: otp.meta.period.unwrap_or(30),
-                digits: otp.meta.digits.unwrap_or(6),
-                algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            let entry = otp.into_vault_entry(name.clone(), today.clone());
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
 
         vault
@@ -639,92 +714,15 @@ fn cam_html() -> String {
     include_str!("cam.html").to_string()
 }
 
-/// Extract OtpSecret entries from raw bytes + filename hint.
-/// Supports: images (QR), JSON (Aegis / andOTP / plain URI list), TXT (URI lines), ZIP (recursive).
+/// Thin wrapper around the unified `tofa_core::import::parse_bytes`
+/// dispatcher. Kept as a function (rather than inlined at call sites)
+/// because three commands route through it: `pick_and_import_file`,
+/// `import_file`, and the drop handler invoked from JS.
 fn extract_otps_from_bytes(
     filename: &str,
     bytes: &[u8],
 ) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
-    let ext = std::path::Path::new(filename)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
-    match ext.as_str() {
-        "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" | "tiff" => {
-            let tmp =
-                std::env::temp_dir().join(format!("tofa_import_{}.{}", std::process::id(), ext));
-            std::fs::write(&tmp, bytes).map_err(|e| e.to_string())?;
-            let uris = tofa_core::qr::scan_all_qr_uris(&tmp);
-            let _ = std::fs::remove_file(&tmp);
-            let uris = uris.map_err(|_| "No QR code found in image.".to_string())?;
-            collect_otps_from_uris(&uris)
-        }
-        "json" | "2fas" => parse_json_import(bytes),
-        "csv" => {
-            let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
-            tofa_core::import::parse_csv(text)
-        }
-        "txt" => {
-            let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
-            let uris: Vec<String> = text
-                .lines()
-                .map(str::trim)
-                .filter(|l| !l.is_empty())
-                .map(String::from)
-                .collect();
-            collect_otps_from_uris(&uris)
-        }
-        "zip" => {
-            use std::io::Read;
-            let cursor = std::io::Cursor::new(bytes);
-            let mut archive = zip::ZipArchive::new(cursor).map_err(|e| e.to_string())?;
-            let mut all = Vec::new();
-            let names: Vec<String> = (0..archive.len())
-                .filter_map(|i| archive.by_index(i).ok().map(|f| f.name().to_string()))
-                .collect();
-            for name in names {
-                if let Ok(mut file) = archive.by_name(&name) {
-                    let mut buf = Vec::new();
-                    file.read_to_end(&mut buf).ok();
-                    if let Ok(mut otps) = extract_otps_from_bytes(&name, &buf) {
-                        all.append(&mut otps);
-                    }
-                }
-            }
-            if all.is_empty() {
-                Err("No OTP accounts found in ZIP.".to_string())
-            } else {
-                Ok(all)
-            }
-        }
-        _ => Err(format!(
-            "Unsupported file type: .{ext}. Try PNG, JPG, JSON, TXT, or ZIP."
-        )),
-    }
-}
-
-fn collect_otps_from_uris(uris: &[String]) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
-    let mut otps = Vec::new();
-    for uri in uris {
-        if uri.starts_with("otpauth-migration://") {
-            if let Ok(accounts) = tofa_core::qr::parse_migration(uri) {
-                otps.extend(accounts);
-            }
-        } else if let Ok(otp) = tofa_core::qr::parse_input(uri) {
-            otps.push(otp);
-        }
-    }
-    if otps.is_empty() {
-        Err("No valid OTP URIs found.".to_string())
-    } else {
-        Ok(otps)
-    }
-}
-
-fn parse_json_import(bytes: &[u8]) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
-    tofa_core::qr::parse_json_bytes(bytes)
+    tofa_core::import::parse_bytes(filename, bytes)
 }
 
 #[tauri::command]
@@ -749,20 +747,14 @@ pub async fn import_file(
         let otps = extract_otps_from_bytes(&filename, &bytes)?;
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
-                id: String::new(),
-                name: name.clone(),
-                secret: otp.secret,
-                created_at: today.clone(),
-                period: otp.meta.period.unwrap_or(30),
-                digits: otp.meta.digits.unwrap_or(6),
-                algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            let entry = otp.into_vault_entry(name.clone(), today.clone());
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
         vault
             .save(&vault_path, &passphrase)
@@ -823,30 +815,8 @@ pub async fn generate_entry_qr(
             .entry_by_id(&id)
             .ok_or_else(|| format!("entry '{}' not found", id))?;
 
-        let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&entry.name);
-        let label = if issuer.is_empty() {
-            account.clone()
-        } else {
-            format!("{}:{}", issuer, account)
-        };
-        let uri = format!(
-            "otpauth://totp/{}?secret={}&issuer={}&algorithm={}&digits={}&period={}",
-            urlencoding::encode(&label),
-            entry.secret,
-            urlencoding::encode(&issuer),
-            entry.algorithm,
-            entry.digits,
-            entry.period,
-        );
-
-        let tmp = std::env::temp_dir().join(format!("tofa_qr_{}.png", entry.id));
-        tofa_core::qr::uri_to_qr_png(&uri, &tmp).map_err(|e| e.to_string())?;
-        let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
-        let _ = std::fs::remove_file(&tmp);
-        Ok(format!(
-            "data:image/png;base64,{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)
-        ))
+        let uri = tofa_core::qr::build_otpauth_uri(entry);
+        tofa_core::qr::uri_to_qr_data_uri(&uri).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -872,37 +842,303 @@ pub async fn generate_selection_qr(
         let vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
 
-        let accounts: Vec<(String, String, String)> = ids
+        let selection: Vec<tofa_core::store::VaultEntry> = ids
             .iter()
-            .filter_map(|id| vault.entry_by_id(id))
-            .map(|e| {
-                let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&e.name);
-                (account, issuer, e.secret.clone())
-            })
+            .filter_map(|id| vault.entry_by_id(id).cloned())
             .collect();
 
-        if accounts.is_empty() {
+        if selection.is_empty() {
             return Err("No matching entries found.".to_string());
         }
 
-        let refs: Vec<(&str, &str, &str)> = accounts
-            .iter()
-            .map(|(n, i, s)| (n.as_str(), i.as_str(), s.as_str()))
-            .collect();
-
-        let uri = tofa_core::qr::generate_migration_uri(&refs).map_err(|e| e.to_string())?;
-
-        let tmp = std::env::temp_dir().join("tofa_qr_export.png");
-        tofa_core::qr::uri_to_qr_png(&uri, &tmp).map_err(|e| e.to_string())?;
-        let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
-        let _ = std::fs::remove_file(&tmp);
-        Ok(format!(
-            "data:image/png;base64,{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)
-        ))
+        let uri = tofa_core::build_selection_uri(&selection).map_err(|e| e.to_string())?;
+        tofa_core::qr::uri_to_qr_data_uri(&uri).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Per-entry QR result for the multi-otpauth export.
+#[derive(Serialize)]
+pub struct OtpauthQrItem {
+    pub name: String,
+    pub data_uri: String,
+}
+
+/// Generate one otpauth:// QR PNG per selected entry, returned as a list
+/// so the frontend can paginate. Each PNG preserves period/algorithm/digits
+/// for its entry — use this when the migration QR can't combine the selection
+/// (e.g., mixed 30s and non-30s periods).
+#[tauri::command]
+pub async fn generate_otpauth_list(
+    ids: Vec<String>,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Vec<OtpauthQrItem>, String> {
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+
+    tokio::task::spawn_blocking(move || {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+
+        let selection: Vec<tofa_core::store::VaultEntry> = ids
+            .iter()
+            .filter_map(|id| vault.entry_by_id(id).cloned())
+            .collect();
+
+        if selection.is_empty() {
+            return Err("No matching entries found.".to_string());
+        }
+
+        let mut items = Vec::with_capacity(selection.len());
+        for entry in &selection {
+            let uri = tofa_core::qr::build_otpauth_uri(entry);
+            let data_uri = tofa_core::qr::uri_to_qr_data_uri(&uri).map_err(|e| e.to_string())?;
+            items.push(OtpauthQrItem {
+                name: entry.name.clone(),
+                data_uri,
+            });
+        }
+        Ok(items)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// One QR PNG to package into the zip.
+#[derive(Deserialize)]
+pub struct QrZipItem {
+    pub name: String,
+    pub data_uri: String,
+}
+
+/// Bundle a list of QR PNGs into a single zip with a printable one-pager.
+/// Asks the user once for the zip's destination path, then writes:
+/// - `<NN>-<sanitized-name>.png` per item
+/// - `print.html` — a self-contained one-pager that lists all QRs in a
+///   responsive grid and is print-stylesheet-friendly (open in any
+///   browser, hit Cmd-P, print or save as PDF).
+/// Save the given vault entry IDs as a plain-text URI list — one
+/// `otpauth://` per line, no trailing newline. Triggers a save dialog
+/// so the user picks the destination. The file round-trips through
+/// `parse_file` (the unified import dispatcher's .txt branch) so
+/// importing it back is a one-liner.
+#[tauri::command]
+pub async fn save_uri_list(
+    window: tauri::Window,
+    ids: Vec<String>,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<(), String> {
+    if ids.is_empty() {
+        return Err("nothing to save".to_string());
+    }
+
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+
+    // Build the URI list off the UI thread — vault load + entry lookup
+    // shouldn't block the dialog.
+    let body = tokio::task::spawn_blocking(move || -> Result<String, String> {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let mut entries: Vec<tofa_core::store::VaultEntry> = Vec::with_capacity(ids.len());
+        for id in &ids {
+            let e = vault
+                .entry_by_id(id)
+                .ok_or_else(|| format!("entry '{id}' not found"))?
+                .clone();
+            entries.push(e);
+        }
+        Ok(tofa_core::qr::entries_to_uri_list(&entries))
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let handle = window.app_handle().clone();
+    let path = tokio::task::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        let date = tofa_core::today_iso();
+        handle
+            .dialog()
+            .file()
+            .set_title("Save URI list")
+            .set_file_name(format!("tofa-export-{date}.txt"))
+            .add_filter("Text file", &["txt"])
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let path = match path {
+        None => return Ok(()), // user cancelled
+        Some(p) => p.into_path().map_err(|e| e.to_string())?,
+    };
+
+    std::fs::write(&path, body).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn save_qr_zip(window: tauri::Window, items: Vec<QrZipItem>) -> Result<(), String> {
+    if items.is_empty() {
+        return Err("nothing to save".to_string());
+    }
+
+    let handle = window.app_handle().clone();
+    let path = tokio::task::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        handle
+            .dialog()
+            .file()
+            .set_title("Save QR Codes")
+            .set_file_name("tofa-qrs.zip")
+            .add_filter("Zip archive", &["zip"])
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let path = match path {
+        None => return Ok(()), // user cancelled
+        Some(p) => p.into_path().map_err(|e| e.to_string())?,
+    };
+
+    let bytes = build_qr_zip(&items)?;
+    std::fs::write(&path, &bytes).map_err(|e| e.to_string())
+}
+
+fn build_qr_zip(items: &[QrZipItem]) -> Result<Vec<u8>, String> {
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+
+    let mut buf = std::io::Cursor::new(Vec::new());
+    let mut zip = zip::ZipWriter::new(&mut buf);
+    let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+    let mut filenames = Vec::with_capacity(items.len());
+    for (i, item) in items.iter().enumerate() {
+        let png = item
+            .data_uri
+            .strip_prefix("data:image/png;base64,")
+            .ok_or_else(|| format!("item {} is not a PNG data URI", i))?;
+        let png_bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, png)
+            .map_err(|e| format!("base64 decode failed for item {}: {}", i, e))?;
+
+        let filename = format!(
+            "{:02}-{}.png",
+            i + 1,
+            tofa_core::qr::sanitize_filename(&item.name)
+        );
+        zip.start_file(&filename, opts).map_err(|e| e.to_string())?;
+        zip.write_all(&png_bytes).map_err(|e| e.to_string())?;
+        filenames.push((filename, item.name.clone()));
+    }
+
+    zip.start_file("print.html", opts)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(build_print_html(&filenames).as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    zip.finish().map_err(|e| e.to_string())?;
+    Ok(buf.into_inner())
+}
+
+fn build_print_html(items: &[(String, String)]) -> String {
+    let cells: String = items
+        .iter()
+        .map(|(filename, label)| {
+            format!(
+                r#"<figure><img src="{}" alt="{}"><figcaption>{}</figcaption></figure>"#,
+                html_escape(filename),
+                html_escape(label),
+                html_escape(label),
+            )
+        })
+        .collect();
+
+    format!(
+        r#"<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tofa QR codes</title>
+<style>
+  :root {{ color-scheme: light; }}
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 24px;
+    color: #111;
+    background: #fff;
+  }}
+  h1 {{ font-size: 18px; margin: 0 0 4px; }}
+  p.intro {{ font-size: 12px; color: #666; margin: 0 0 24px; }}
+  .grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 24px;
+  }}
+  figure {{
+    margin: 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    text-align: center;
+  }}
+  figure img {{
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    image-rendering: pixelated;
+    background: #fff;
+  }}
+  figcaption {{
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    word-break: break-all;
+    margin-top: 8px;
+  }}
+  @media print {{
+    body {{ margin: 12mm; }}
+    .grid {{ gap: 12px; }}
+    figure {{ border-color: #000; }}
+  }}
+</style>
+</head>
+<body>
+<h1>Tofa OTP backup</h1>
+<p class="intro">Each QR encodes an otpauth:// URI for one account. Scan with any authenticator app.</p>
+<div class="grid">{}</div>
+</body>
+</html>
+"#,
+        cells
+    )
+}
+
+fn html_escape(s: &str) -> String {
+    s.chars()
+        .map(|c| match c {
+            '&' => "&amp;".to_string(),
+            '<' => "&lt;".to_string(),
+            '>' => "&gt;".to_string(),
+            '"' => "&quot;".to_string(),
+            '\'' => "&#39;".to_string(),
+            c => c.to_string(),
+        })
+        .collect()
 }
 
 /// Save a base64-encoded PNG to a user-chosen location via native save dialog.
@@ -938,4 +1174,80 @@ pub async fn save_qr_png(
     };
 
     std::fs::write(&path, &bytes).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Read;
+
+    fn item(name: &str) -> QrZipItem {
+        // 1x1 transparent PNG, base64-encoded — not a valid QR but a valid PNG
+        // for the encoder's "decode this base64" path.
+        let png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+        QrZipItem {
+            name: name.to_string(),
+            data_uri: format!("data:image/png;base64,{png_b64}"),
+        }
+    }
+
+    fn zip_filenames(zip_bytes: &[u8]) -> Vec<String> {
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(zip_bytes)).expect("read zip");
+        (0..archive.len())
+            .map(|i| archive.by_index(i).unwrap().name().to_string())
+            .collect()
+    }
+
+    fn zip_file_contents(zip_bytes: &[u8], name: &str) -> Vec<u8> {
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(zip_bytes)).expect("read zip");
+        let mut file = archive.by_name(name).expect("file in zip");
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf).expect("read file");
+        buf
+    }
+
+    #[test]
+    fn build_qr_zip_writes_one_png_per_item_plus_print_html() {
+        let items = vec![item("Foo:alice"), item("Bar:bob"), item("Baz:carol")];
+        let zip = build_qr_zip(&items).expect("build zip");
+        let names = zip_filenames(&zip);
+        assert!(names.contains(&"01-Foo_alice.png".to_string()));
+        assert!(names.contains(&"02-Bar_bob.png".to_string()));
+        assert!(names.contains(&"03-Baz_carol.png".to_string()));
+        assert!(names.contains(&"print.html".to_string()));
+    }
+
+    #[test]
+    fn build_qr_zip_print_html_references_each_png() {
+        let items = vec![item("Foo:alice"), item("Bar:bob")];
+        let zip = build_qr_zip(&items).expect("build zip");
+        let html = String::from_utf8(zip_file_contents(&zip, "print.html")).expect("utf8");
+        assert!(html.contains("<img src=\"01-Foo_alice.png\""));
+        assert!(html.contains("<img src=\"02-Bar_bob.png\""));
+        assert!(html.contains("Foo:alice"));
+        assert!(html.contains("Bar:bob"));
+    }
+
+    #[test]
+    fn build_qr_zip_html_escapes_entry_names() {
+        // Names with HTML-special characters must not break the page or open
+        // an injection vector when the user opens print.html in a browser.
+        let evil_item = QrZipItem {
+            name: "Evil <script>".to_string(),
+            data_uri: item("x").data_uri,
+        };
+        let zip = build_qr_zip(&[evil_item]).expect("build zip");
+        let html = String::from_utf8(zip_file_contents(&zip, "print.html")).expect("utf8");
+        assert!(!html.contains("<script>"), "raw <script> found in html");
+        assert!(html.contains("Evil &lt;script&gt;"));
+    }
+
+    #[test]
+    fn build_qr_zip_rejects_non_png_data_uri() {
+        let bad = QrZipItem {
+            name: "x".to_string(),
+            data_uri: "data:text/plain;base64,aGVsbG8=".to_string(),
+        };
+        assert!(build_qr_zip(&[bad]).is_err());
+    }
 }

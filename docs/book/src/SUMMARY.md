@@ -29,6 +29,7 @@
 # Recipes
 
 - [Importing from Aegis / andOTP](./recipes/import-from-aegis.md)
+- [Moving an account to another authenticator](./recipes/move-account.md)
 - [Copying codes to clipboard](./recipes/clipboard.md)
 - [Scripting with TOFA_PASSPHRASE](./recipes/scripting.md)
 - [Shell completions setup](./recipes/completions-setup.md)

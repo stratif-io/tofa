@@ -8,7 +8,7 @@
       "login": {
         "username": "dave@example.com",
         "password": "secret",
-        "totp": "otpauth://totp/Twitter:dave@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Twitter&algorithm=SHA1&digits=6&period=30"
+        "totp": "otpauth://totp/Twitter:dave@example.com?secret=BWTWITTERAAAAAAA&issuer=Twitter&algorithm=SHA1&digits=6&period=30"
       }
     },
     {
@@ -18,7 +18,7 @@
       "login": {
         "username": "dave@acme.io",
         "password": "secret",
-        "totp": "otpauth://totp/Linear:dave@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=Linear&algorithm=SHA256&digits=8&period=60"
+        "totp": "otpauth://totp/Linear:dave@acme.io?secret=BWLINEARAAAAAAAA&issuer=Linear&algorithm=SHA256&digits=8&period=60"
       }
     },
     {
@@ -28,7 +28,7 @@
       "login": {
         "username": "dave@fastmail.com",
         "password": "secret",
-        "totp": "JBSWY3DPEHPK3PXP"
+        "totp": "BWFASTMAILAAAAAA"
       }
     },
     {

@@ -15,7 +15,9 @@ tofa qr [FLAGS]
 | Flag | Description |
 |---|---|
 | `--all <ALL>` | Export all accounts as a migration QR |
-| `--output <PATH>` | Save QR as PNG instead of displaying in terminal |
+| `--multi <MULTI>` | Emit one otpauth:// QR per entry instead of a single migration QR. Requires `--all` and `--output-dir`. Preserves period/algorithm/digits for every entry — use this when the migration format would refuse because the selection mixes 30s and non-30s entries |
+| `--output <PATH>` | Save QR as PNG instead of displaying in terminal (single-QR modes) |
+| `--output-dir <DIR>` | Directory to write per-entry PNGs into when using `--multi` |
 
 <!-- END auto:help -->
 
@@ -39,7 +41,7 @@ Save as a PNG instead of printing:
 ```console
 $ tofa qr GitHub:you --output github-you.png
 Passphrase: ********
-✓ wrote github-you.png
+QR saved to github-you.png
 ```
 
 Export every account as a single migration QR (Google Authenticator format —
@@ -48,8 +50,22 @@ scan it with the Authenticator app to import everything at once):
 ```console
 $ tofa qr --all --output migration.png
 Passphrase: ********
-✓ wrote migration.png (3 accounts)
+QR saved to migration.png
 ```
+
+If the selection mixes 30s and non-30s entries, the migration format
+can't carry them. Use `--multi` to write one `otpauth://` PNG per
+entry instead — period, digits, and algorithm are preserved per file:
+
+```console
+$ tofa qr --all --multi --output-dir ~/tofa-qrs
+Passphrase: ********
+Wrote 12 QR PNG(s) to /Users/you/tofa-qrs
+```
+
+Filenames are zero-padded and sanitized (`01-GitHub_you.png`,
+`02-Discord_you.png`, …) so a directory listing matches the
+in-vault order.
 
 ## Notes
 
@@ -59,6 +75,11 @@ Passphrase: ********
   support (most modern fonts do).
 - The migration format is the same one Google Authenticator uses — any reader
   that handles `otpauth-migration://` will accept the result.
+- `--multi` is the right mode when the migration format refuses your
+  selection (mixed periods) or when the receiving app prefers
+  per-account QRs. The output round-trips through `tofa import` —
+  zip the directory (`zip -r tofa-qrs.zip ~/tofa-qrs`) and import the
+  archive.
 
 ## See also
 

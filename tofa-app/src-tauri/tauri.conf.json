@@ -1,9 +1,9 @@
 {
   "productName": "Tofa",
-  "version": "0.5.3",
+  "version": "0.9.0",
   "identifier": "io.stratif.tofa",
   "build": {
-    "frontendDist": "../src"
+    "frontendDist": "./ui"
   },
   "app": {
     "windows": [],

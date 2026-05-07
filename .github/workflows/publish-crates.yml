@@ -17,11 +17,24 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      # Publish in dependency order: core first, then CLI
+      # Publish in dependency order: core first, then CLI.
+      # We deliberately do NOT pass --no-verify: cargo's build step against
+      # the resolved dependency versions is exactly what catches API
+      # mismatches between a path-dep's version constraint and what's
+      # actually on crates.io.
       - name: Publish tofa-core
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p tofa-core --no-verify || echo "tofa-core already published, skipping"
+        run: |
+          set -euo pipefail
+          version=$(cargo metadata --no-deps --format-version=1 \
+            | jq -r '.packages[] | select(.name == "tofa-core") | .version')
+          echo "tofa-core local version: $version"
+          if curl -sfI "https://crates.io/api/v1/crates/tofa-core/$version" >/dev/null; then
+            echo "tofa-core $version already published, skipping"
+          else
+            cargo publish -p tofa-core
+          fi
 
       - name: Wait for tofa-core to be indexed
         run: sleep 30
@@ -29,4 +42,13 @@ jobs:
       - name: Publish tofa
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p tofa --no-verify || echo "tofa already published, skipping"
+        run: |
+          set -euo pipefail
+          version=$(cargo metadata --no-deps --format-version=1 \
+            | jq -r '.packages[] | select(.name == "tofa") | .version')
+          echo "tofa local version: $version"
+          if curl -sfI "https://crates.io/api/v1/crates/tofa/$version" >/dev/null; then
+            echo "tofa $version already published, skipping"
+          else
+            cargo publish -p tofa
+          fi

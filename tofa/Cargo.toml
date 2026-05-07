@@ -1,6 +1,6 @@
 [package]
 name = "tofa"
-version = "0.4.0"
+version = "0.9.0"
 edition = "2021"
 license = "MIT"
 description = "Eye-candy terminal OTP manager"
@@ -18,7 +18,7 @@ name = "tofa"
 path = "src/main.rs"
 
 [dependencies]
-tofa-core = { path = "../tofa-core", version = "0.3.0" }
+tofa-core = { path = "../tofa-core", version = "0.9.0" } # x-release-please-version
 unicode-width = "0.1"
 ratatui = "0.28"
 crossterm = "0.28"
@@ -42,3 +42,4 @@ assert_cmd = "2"
 predicates = "3"
 tempfile = "3"
 serde_json = "1"
+zip = { version = "2", default-features = false, features = ["deflate"] }

@@ -63,6 +63,44 @@ pub struct OtpSecret {
     pub meta: OtpMeta,
 }
 
+impl OtpSecret {
+    /// Build a `VaultEntry` for this OTP, applying the standard
+    /// defaults (SHA1 / 6 digits / 30s period) anywhere the source
+    /// didn't specify them. Every import surface — CLI, TUI, desktop
+    /// app, drag-drop, file picker, paste — funnels through this so
+    /// the defaults can't drift between platforms. The resulting
+    /// entry's `id` is left blank; `Vault::add_entry*` generates it.
+    pub fn into_vault_entry(self, name: String, created_at: String) -> crate::store::VaultEntry {
+        use crate::store::{DEFAULT_ALGORITHM, DEFAULT_DIGITS, DEFAULT_PERIOD};
+        crate::store::VaultEntry {
+            id: String::new(),
+            name,
+            secret: self.secret,
+            created_at,
+            period: self.meta.period.unwrap_or(DEFAULT_PERIOD),
+            digits: self.meta.digits.unwrap_or(DEFAULT_DIGITS),
+            algorithm: self
+                .meta
+                .algorithm
+                .unwrap_or_else(|| DEFAULT_ALGORITHM.to_string()),
+        }
+    }
+}
+
+/// One account to encode into a Google Authenticator migration URI.
+///
+/// Note: the migration protobuf has no period field, so any non-default
+/// period (e.g. 60s) is silently dropped on export — Google Authenticator
+/// migration assumes 30s. Algorithm and digits are preserved.
+#[derive(Debug, Clone, Copy)]
+pub struct MigrationAccount<'a> {
+    pub name: &'a str,
+    pub issuer: &'a str,
+    pub secret_b32: &'a str,
+    pub algorithm: &'a str,
+    pub digits: u8,
+}
+
 /// Parse a Google Authenticator `otpauth-migration://` URI.
 /// Returns all TOTP accounts found in the payload.
 pub fn parse_migration(uri: &str) -> Result<Vec<OtpSecret>, QrError> {
@@ -341,32 +379,199 @@ pub(crate) fn parse_uri(uri: &str) -> Result<OtpSecret, QrError> {
     })
 }
 
+/// Builds a single-account `otpauth://totp/...` URI from a vault entry,
+/// preserving algorithm, digits, and period as query parameters. The label
+/// is `Issuer:account` (or just `account` when the entry name has no colon).
+/// All user-controlled fields are percent-encoded per RFC 3986 unreserved.
+pub fn build_otpauth_uri(entry: &crate::store::VaultEntry) -> String {
+    let (issuer, account) = OtpMeta::split_name(&entry.name);
+    let label = if issuer.is_empty() {
+        account.clone()
+    } else {
+        format!("{issuer}:{account}")
+    };
+    let mut uri = format!(
+        "otpauth://totp/{}?secret={}",
+        percent_encode(&label),
+        entry.secret,
+    );
+    if !issuer.is_empty() {
+        uri.push_str(&format!("&issuer={}", percent_encode(&issuer)));
+    }
+    uri.push_str(&format!("&algorithm={}", entry.algorithm));
+    uri.push_str(&format!("&digits={}", entry.digits));
+    uri.push_str(&format!("&period={}", entry.period));
+    uri
+}
+
+fn percent_encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for byte in s.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(byte as char)
+            }
+            b => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
+/// Why a selection couldn't be encoded as a single QR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SelectionExportError {
+    /// No entries selected.
+    Empty,
+    /// Selection has multiple entries with non-30s periods. The Google
+    /// Authenticator migration QR (the only widely-supported multi-account
+    /// format) has no period field, so non-30s entries can't be combined
+    /// with others. Caller should either deselect the offending entries,
+    /// export them individually, or use a multi-otpauth list export.
+    NonStandardPeriod {
+        offending_count: usize,
+        total: usize,
+    },
+    /// The migration encoder failed (e.g. an entry's stored secret isn't
+    /// valid base32). Effectively unreachable for entries that came out
+    /// of a tofa vault, but surfaced rather than panicked.
+    EncodingFailed(String),
+}
+
+impl std::fmt::Display for SelectionExportError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Empty => write!(f, "no entries selected"),
+            Self::NonStandardPeriod {
+                offending_count,
+                total,
+            } => write!(
+                f,
+                "{offending_count} of {total} selected entries use a non-30s period; \
+                 the Google Authenticator migration QR cannot include them. \
+                 Export those entries individually."
+            ),
+            Self::EncodingFailed(msg) => write!(f, "QR encoding failed: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for SelectionExportError {}
+
+/// Replace the `secret` substring in an `otpauth://` URI with 16
+/// bullets, returning the result unchanged if the secret can't be
+/// found. Used by every detail-view surface (TUI fullscreen, desktop
+/// app's masked-URI command) so the bullet count is the same on every
+/// platform regardless of whether the secret is 16, 26, or 32 chars
+/// long. Centralising the rule means a future change (different
+/// length, different glyph) lands in one place.
+pub fn mask_otpauth_uri(uri: &str, secret: &str) -> String {
+    if !uri.contains(secret) {
+        return uri.to_string();
+    }
+    uri.replacen(secret, &"•".repeat(16), 1)
+}
+
+/// Build a plain-text URI list for the given entries — one
+/// `otpauth://totp/...` line per entry, no trailing newline. This is the
+/// inverse of `tofa_core::import::parse_text_uris` (Ente Auth's export
+/// format), so a vault → URI list → vault round trip preserves every
+/// Replace path-unsafe characters in a vault entry name so it can
+/// safely be a filename. Used by every QR-PNG export surface (CLI
+/// `tofa qr --multi`, desktop app print/zip flow) so they all produce
+/// the same filenames and a future change to the rule lands in one
+/// place. Keeps ASCII letters, digits, `-`, `_`, `.`; everything
+/// else (including `:`, `/`, spaces) becomes `_`.
+pub fn sanitize_filename(name: &str) -> String {
+    name.chars()
+        .map(|c| match c {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' => c,
+            _ => '_',
+        })
+        .collect()
+}
+
+/// entry. Used by the CLI (`tofa export --format uris`), TUI (export
+/// screen "save as URI list"), and desktop app ("Save as URI list").
+pub fn entries_to_uri_list(entries: &[crate::store::VaultEntry]) -> String {
+    entries
+        .iter()
+        .map(build_otpauth_uri)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Encodes an export selection as a single QR-ready URI, dispatching by
+/// shape:
+/// - **Empty selection** → `Err(Empty)`.
+/// - **Single entry** → `otpauth://...` (preserves all five fields).
+/// - **Multiple all-30s entries** → `otpauth-migration://...` (Google's
+///   migration format; preserves algorithm and digits, period is implicitly 30).
+/// - **Multiple entries containing any non-30s** → `Err(NonStandardPeriod)`.
+pub fn build_selection_uri(
+    entries: &[crate::store::VaultEntry],
+) -> Result<String, SelectionExportError> {
+    if entries.is_empty() {
+        return Err(SelectionExportError::Empty);
+    }
+    if entries.len() == 1 {
+        return Ok(build_otpauth_uri(&entries[0]));
+    }
+    let offending = entries.iter().filter(|e| e.period != 30).count();
+    if offending > 0 {
+        return Err(SelectionExportError::NonStandardPeriod {
+            offending_count: offending,
+            total: entries.len(),
+        });
+    }
+    let accounts: Vec<MigrationAccount<'_>> = entries
+        .iter()
+        .map(|e| MigrationAccount {
+            name: e.name.as_str(),
+            issuer: "",
+            secret_b32: e.secret.as_str(),
+            algorithm: e.algorithm.as_str(),
+            digits: e.digits,
+        })
+        .collect();
+    generate_migration_uri(&accounts)
+        .map_err(|e| SelectionExportError::EncodingFailed(e.to_string()))
+}
+
 /// Builds a Google Authenticator `otpauth-migration://` URI from a list of
-/// (name, issuer, base32_secret) tuples.  Returns the URI string ready to
-/// encode into a QR code.
-pub fn generate_migration_uri(
-    accounts: &[(&str, &str, &str)], // (name, issuer, base32_secret)
-) -> Result<String, QrError> {
+/// accounts. Returns the URI string ready to encode into a QR code.
+///
+/// Algorithm strings are mapped to the migration enum: `SHA1`/`SHA256`/`SHA512`/`MD5`
+/// (case-insensitive); unknown values fall back to SHA1. Digits accept 6 or 8;
+/// other values fall back to 6 — Google Authenticator migration only encodes
+/// those two. The migration protobuf has no period field, so any custom period
+/// is silently dropped (importers assume 30s).
+pub fn generate_migration_uri(accounts: &[MigrationAccount<'_>]) -> Result<String, QrError> {
     let mut payload: Vec<u8> = Vec::new();
 
-    for (name, issuer, secret_b32) in accounts {
+    for account in accounts {
         let secret_bytes = BASE32_NOPAD
-            .decode(secret_b32.trim_end_matches('=').as_bytes())
+            .decode(account.secret_b32.trim_end_matches('=').as_bytes())
             .map_err(|_| QrError::MigrationDecode)?;
 
         let mut otp: Vec<u8> = Vec::new();
         // field 1: secret bytes
         otp.extend(proto_field_bytes(1, &secret_bytes));
         // field 2: name
-        otp.extend(proto_field_bytes(2, name.as_bytes()));
+        otp.extend(proto_field_bytes(2, account.name.as_bytes()));
         // field 3: issuer (skip if empty)
-        if !issuer.is_empty() {
-            otp.extend(proto_field_bytes(3, issuer.as_bytes()));
+        if !account.issuer.is_empty() {
+            otp.extend(proto_field_bytes(3, account.issuer.as_bytes()));
         }
-        // field 4: algorithm = 1 (SHA1)
-        otp.extend(proto_field_varint(4, 1));
-        // field 5: digits = 1 (SIX)
-        otp.extend(proto_field_varint(5, 1));
+        // field 4: algorithm enum
+        otp.extend(proto_field_varint(
+            4,
+            algorithm_to_migration_enum(account.algorithm),
+        ));
+        // field 5: digits enum
+        otp.extend(proto_field_varint(
+            5,
+            digits_to_migration_enum(account.digits),
+        ));
         // field 6: type = 2 (TOTP)
         otp.extend(proto_field_varint(6, 2));
 
@@ -399,7 +604,7 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
         (
             "demo@example.com",
             "Demo TOTP SHA1",
-            "JBSWY3DPEHPK3PXP",
+            "DEMOSHAONEAAAAAA",
             1,
             1,
             2,
@@ -407,7 +612,7 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
         (
             "demo@example.com",
             "Demo TOTP SHA256",
-            "JBSWY3DPEHPK3PXP",
+            "DEMOSHATWOAAAAAA",
             2,
             1,
             2,
@@ -415,7 +620,7 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
         (
             "demo@example.com",
             "Demo TOTP SHA512",
-            "JBSWY3DPEHPK3PXP",
+            "DEMOSHAFIVAAAAAA",
             3,
             1,
             2,
@@ -423,7 +628,7 @@ pub fn generate_demo_migration_uri() -> Result<String, QrError> {
         (
             "demo@example.com",
             "Demo TOTP 8-digit",
-            "JBSWY3DPEHPK3PXP",
+            "DEMOEIGHTAAAAAAA",
             1,
             2,
             2,
@@ -479,6 +684,22 @@ fn proto_encode_varint(mut val: u64) -> Vec<u8> {
         }
     }
     buf
+}
+
+fn algorithm_to_migration_enum(s: &str) -> u64 {
+    match s.to_ascii_uppercase().as_str() {
+        "SHA256" => 2,
+        "SHA512" => 3,
+        "MD5" => 4,
+        _ => 1, // SHA1
+    }
+}
+
+fn digits_to_migration_enum(n: u8) -> u64 {
+    match n {
+        8 => 2, // EIGHT
+        _ => 1, // SIX
+    }
 }
 
 fn proto_field_varint(field: u32, val: u64) -> Vec<u8> {
@@ -552,32 +773,102 @@ pub fn scan_qr_uri(path: &std::path::Path) -> Result<String, QrError> {
         .ok_or(QrError::NoQrFound)
 }
 
-pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> {
-    let raw = image::open(path).map_err(|e| QrError::ImageLoad(e.to_string()))?;
+/// Reports on a single resolution pass during a scan. Emitted after each
+/// pass completes, so callers (CLI spinner, app progress UI) can surface
+/// "pass @ 1920px • 7 found" feedback while the full ladder is still running.
+#[derive(Debug, Clone, Copy)]
+pub struct ScanProgress {
+    /// Width of the image fed to the detector for this pass, in pixels.
+    pub pass_width: u32,
+    /// Total unique URIs decoded so far across all completed passes for
+    /// this image. Monotonically non-decreasing across events.
+    pub found: usize,
+}
 
-    // rqrr misses QR codes when the image is too large (Retina) or when codes
-    // appear at different sizes. Scan at multiple scales and deduplicate results.
-    let widths: &[u32] = &[1920, 1280, 960];
+pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> {
+    scan_all_qr_uris_with_progress(path, |_| {})
+}
+
+pub fn scan_all_qr_uris_with_progress<F: FnMut(ScanProgress)>(
+    path: &std::path::Path,
+    on_progress: F,
+) -> Result<Vec<String>, QrError> {
+    let raw = image::open(path).map_err(|e| QrError::ImageLoad(e.to_string()))?;
+    scan_dynamic_image_with_progress(raw, on_progress)
+}
+
+/// Same as `scan_all_qr_uris_with_progress` but operating on an
+/// already-decoded image. Used by the zip-import path so callers can
+/// scan an image in memory without writing it to a tempfile first.
+pub fn scan_dynamic_image_with_progress<F: FnMut(ScanProgress)>(
+    raw: image::DynamicImage,
+    mut on_progress: F,
+) -> Result<Vec<String>, QrError> {
+    // rqrr's grid detector behaves differently at different resolutions. Dense
+    // QRs (long URIs) need enough pixels per module; sparse QRs at very high
+    // res can carry noise that confuses detection. Cover both ends with a
+    // small ladder, stopping early when nothing new is found.
+    //
+    // Cap the highest pass at 3840px even when the source is wider (5K Retina
+    // captures are ~5120). At 3840 each 180-CSS-px QR still has ~8 pixels per
+    // module — plenty for rqrr — and we avoid the ~3-5× cost of running the
+    // detector on a 14M-pixel native image.
+    //
+    // Resize the *RGB* image and convert to luma after; Lanczos3 on RGB
+    // preserves more information than on already-greyscaled pixels (recall
+    // on the synthetic dense-grid drops 10/11 → 7/11 when we collapse to
+    // luma before resizing).
+    //
+    // Filter-diversity rung: when the source is wide enough that 1920 is a
+    // real resize (not native), insert an extra pass at 1920 using Triangle
+    // alongside the Lanczos one. Lanczos preserves sharper edges but
+    // introduces ringing; Triangle is softer with no ringing. A QR that
+    // lands just below rqrr's detection threshold under one filter often
+    // decodes under the other. Doing this only at 1920 (not at 1280/960)
+    // is deliberate — Triangle's bilinear blur smears dense QRs at small
+    // widths where each module is only 3-4 pixels (recall on the synthetic
+    // dense-grid drops 10/11 → 9/11 if we use Triangle at 960). 1920 is
+    // wide enough to keep modules sharp under either filter.
+    use image::imageops::FilterType;
+    let raw_w = raw.width();
+    let mut candidates: Vec<(u32, FilterType)> = vec![
+        (raw_w.min(3840), FilterType::Lanczos3),
+        (1920, FilterType::Lanczos3),
+        (1280, FilterType::Lanczos3),
+        (960, FilterType::Lanczos3),
+    ];
+    if raw_w > 1920 {
+        candidates.insert(2, (1920, FilterType::Triangle));
+    }
+    candidates.retain(|(w, _)| *w > 0 && *w <= raw_w);
+    candidates.sort_by_key(|c| std::cmp::Reverse(c.0));
+    candidates.dedup();
+
     let mut seen = std::collections::HashSet::new();
     let mut uris: Vec<String> = Vec::new();
+    let mut last_count = 0usize;
+    let mut unproductive = 0u8;
 
-    for &max_w in widths {
-        let gray = if raw.width() > max_w {
-            let scale = max_w as f32 / raw.width() as f32;
-            let h = (raw.height() as f32 * scale) as u32;
-            raw.resize(max_w, h, image::imageops::FilterType::Lanczos3)
-                .to_luma8()
-        } else {
+    for (w, filter) in candidates.iter().copied() {
+        let gray = if w == raw_w {
             raw.to_luma8()
+        } else {
+            let h = (raw.height() as f32 * (w as f32 / raw_w as f32)) as u32;
+            raw.resize(w, h, filter).to_luma8()
         };
-
-        let mut prepared = rqrr::PreparedImage::prepare(gray);
-        for grid in prepared.detect_grids() {
-            if let Ok((_, content)) = grid.decode() {
-                if seen.insert(content.clone()) {
-                    uris.push(content);
-                }
+        scan_into(gray, &mut seen, &mut uris);
+        on_progress(ScanProgress {
+            pass_width: w,
+            found: uris.len(),
+        });
+        if uris.len() == last_count {
+            unproductive += 1;
+            if unproductive >= 2 {
+                break;
             }
+        } else {
+            unproductive = 0;
+            last_count = uris.len();
         }
     }
 
@@ -585,6 +876,21 @@ pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> 
         Err(QrError::NoQrFound)
     } else {
         Ok(uris)
+    }
+}
+
+fn scan_into(
+    gray: image::ImageBuffer<image::Luma<u8>, Vec<u8>>,
+    seen: &mut std::collections::HashSet<String>,
+    uris: &mut Vec<String>,
+) {
+    let mut prepared = rqrr::PreparedImage::prepare(gray);
+    for grid in prepared.detect_grids() {
+        if let Ok((_, content)) = grid.decode() {
+            if seen.insert(content.clone()) {
+                uris.push(content);
+            }
+        }
     }
 }
 
@@ -642,8 +948,11 @@ fn is_valid_base32(s: &str) -> bool {
 
 pub use crate::import::parse_json_bytes;
 
-pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> {
-    use image::Luma;
+/// Encode `data` as a QR code and return the PNG bytes. Used both by
+/// `uri_to_qr_png` (write-to-disk) and `uri_to_qr_data_uri` (in-memory
+/// data URI for the desktop app).
+pub fn uri_to_qr_png_bytes(data: &str) -> Result<Vec<u8>, QrError> {
+    use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder, Luma};
     let code = QrCode::with_error_correction_level(data.as_bytes(), EcLevel::L)
         .or_else(|_| QrCode::with_error_correction_level(data.as_bytes(), EcLevel::M))
         .map_err(|e| QrError::QrGenerate(e.to_string()))?;
@@ -652,7 +961,41 @@ pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> 
         .quiet_zone(true)
         .module_dimensions(8, 8)
         .build();
-    img.save(path)
+    let mut buf = Vec::new();
+    PngEncoder::new(&mut buf)
+        .write_image(&img, img.width(), img.height(), ExtendedColorType::L8)
         .map_err(|e| QrError::ImageLoad(e.to_string()))?;
+    Ok(buf)
+}
+
+pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> {
+    let bytes = uri_to_qr_png_bytes(data)?;
+    std::fs::write(path, bytes).map_err(|e| QrError::ImageLoad(e.to_string()))?;
     Ok(())
+}
+
+/// Build a `data:image/png;base64,…` URI for this otpauth URI's QR
+/// code. Lets the desktop app embed QRs in the webview without going
+/// through a temp file, and keeps the base64 / data-URI plumbing out
+/// of the frontend (it was duplicated three times in commands.rs).
+pub fn uri_to_qr_data_uri(data: &str) -> Result<String, QrError> {
+    let bytes = uri_to_qr_png_bytes(data)?;
+    Ok(format!("data:image/png;base64,{}", B64.encode(&bytes)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_filename_strips_path_separators_and_colons() {
+        assert_eq!(sanitize_filename("Issuer:account"), "Issuer_account");
+        assert_eq!(sanitize_filename("a/b\\c"), "a_b_c");
+        assert_eq!(sanitize_filename("plain"), "plain");
+        assert_eq!(sanitize_filename("with space"), "with_space");
+        assert_eq!(
+            sanitize_filename("dot.kept-and_under"),
+            "dot.kept-and_under"
+        );
+    }
 }

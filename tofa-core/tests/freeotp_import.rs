@@ -22,8 +22,8 @@ fn freeotp_npm_entry_secret_decoded() {
         .iter()
         .find(|e| e.meta.issuer.as_deref() == Some("npm"))
         .expect("npm entry should be present");
-    // Signed bytes [72,101,108,108,111,33,-34,-83,-66,-17] decode to JBSWY3DPEHPK3PXP
-    assert_eq!(e.secret, "JBSWY3DPEHPK3PXP");
+    // Signed bytes [44,72,71,77,-19,123,0,0,0,0] decode to FREEOTPNPMAAAAAA
+    assert_eq!(e.secret, "FREEOTPNPMAAAAAA");
     assert_eq!(e.meta.account.as_deref(), Some("frank@example.com"));
     assert_eq!(e.meta.digits, Some(6));
     assert_eq!(e.meta.period, Some(30));

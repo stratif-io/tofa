@@ -710,6 +710,42 @@ fn try_import_file(state: &mut AppState, file: &Path, vault: &mut Vault, vault_p
     }
 }
 
+/// Bulk variant of `try_import_file`: parses every checked path,
+/// concatenates the resulting OtpSecrets, and runs them through the
+/// shared import-and-save pipeline once. Files that fail to parse are
+/// counted but don't abort the rest — the toast surfaces the
+/// success/failure split.
+fn try_import_files(state: &mut AppState, files: &[PathBuf], vault: &mut Vault, vault_path: &Path) {
+    let mut all: Vec<OtpSecret> = Vec::new();
+    let mut failed = 0usize;
+    for f in files {
+        match tofa_core::import::parse_file(f) {
+            Ok(mut secrets) => all.append(&mut secrets),
+            Err(_) => failed += 1,
+        }
+    }
+    if all.is_empty() {
+        state.clear_add_form();
+        state.fp_query.clear();
+        state.fp_checked.clear();
+        state.screen = Screen::List;
+        state.status_message = Some(format!(
+            "Import failed: no recognisable accounts in {} file(s).",
+            files.len()
+        ));
+        return;
+    }
+    try_import_secrets(state, all, vault, vault_path);
+    state.fp_checked.clear();
+    if failed > 0 {
+        // try_import_secrets has already set a "Imported N" toast;
+        // append the failure count so the user sees both numbers.
+        if let Some(msg) = state.status_message.as_mut() {
+            msg.push_str(&format!(" {failed} file(s) couldn't be parsed."));
+        }
+    }
+}
+
 fn try_parse_and_advance(state: &mut AppState, raw: &str) {
     match parse_input(raw) {
         Ok(otp) => {
@@ -1049,6 +1085,7 @@ fn open_file_picker(state: &mut AppState) {
     state.fp_path = start;
     state.fp_selected = 0;
     state.fp_query.clear();
+    state.fp_checked.clear();
     refresh_fp_entries(state);
     state.screen = Screen::FilePicker;
 }
@@ -1106,6 +1143,7 @@ fn handle_file_picker_key(
 
     match key {
         KeyCode::Esc | KeyCode::Tab => {
+            state.fp_checked.clear();
             state.screen = Screen::AddForm;
         }
         KeyCode::Backspace => {
@@ -1121,6 +1159,24 @@ fn handle_file_picker_key(
                 state.fp_selected += 1;
             }
         }
+        KeyCode::Char(' ') => {
+            // Toggle the highlighted entry's checked state. Only files
+            // count — checking a directory wouldn't have an obvious
+            // meaning (descend? recursive import?) and the unified
+            // dispatcher already handles zips & multi-QR images
+            // when the user wants bulk content.
+            let visible: Vec<_> = filtered(&state.fp_entries, &state.fp_query);
+            if let Some((name, is_dir)) = visible.get(state.fp_selected).copied() {
+                if !*is_dir {
+                    let full = state.fp_path.join(name);
+                    if let Some(pos) = state.fp_checked.iter().position(|p| p == &full) {
+                        state.fp_checked.remove(pos);
+                    } else {
+                        state.fp_checked.push(full);
+                    }
+                }
+            }
+        }
         KeyCode::Enter => {
             let visible: Vec<_> = filtered(&state.fp_entries, &state.fp_query);
             if let Some((name, is_dir)) = visible.get(state.fp_selected).copied() {
@@ -1134,10 +1190,26 @@ fn handle_file_picker_key(
                     state.fp_path = new_path;
                     state.fp_query.clear();
                     refresh_fp_entries(state);
+                } else if !state.fp_checked.is_empty() {
+                    // Honour the multi-selection. Include the cursor's
+                    // file too if it isn't already checked, so Enter
+                    // never silently ignores the highlighted row.
+                    let cursor_file = state.fp_path.join(&name);
+                    let mut files = state.fp_checked.clone();
+                    if !files.contains(&cursor_file) {
+                        files.push(cursor_file);
+                    }
+                    try_import_files(state, &files, vault, path);
                 } else {
                     let file_path = state.fp_path.join(&name);
                     try_import_file(state, &file_path, vault, path);
                 }
+            } else if !state.fp_checked.is_empty() {
+                // No row under the cursor (e.g. filtered to nothing)
+                // but the user already checked some files — import
+                // those.
+                let files = state.fp_checked.clone();
+                try_import_files(state, &files, vault, path);
             }
         }
         KeyCode::Char(c) => {

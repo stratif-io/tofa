@@ -71,6 +71,10 @@ pub struct AppState {
     pub fp_entries: Vec<(String, bool)>,
     pub fp_selected: usize,
     pub fp_query: String,
+    /// Files explicitly checked by the user (Space-toggle). Holds full
+    /// paths so a check survives navigating into other directories,
+    /// letting the user compose a multi-folder import in one go.
+    pub fp_checked: Vec<PathBuf>,
     // pending QR scan
     pub pending_scan_path: Option<PathBuf>,
     // pending vault write (deferred one tick so "Saving…" toast renders first)
@@ -120,6 +124,7 @@ impl AppState {
             fp_entries: Vec::new(),
             fp_selected: 0,
             fp_query: String::new(),
+            fp_checked: Vec::new(),
             pending_scan_path: None,
             pending_vault_action: None,
             detail_revealing: false,

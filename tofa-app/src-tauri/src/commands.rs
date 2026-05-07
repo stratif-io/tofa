@@ -244,13 +244,17 @@ pub async fn pick_and_import_file(
     state: State<'_, Mutex<AppState>>,
 ) -> Result<Vec<String>, String> {
     let handle = window.app_handle().clone();
-    let path = tokio::task::spawn_blocking(move || {
+    // pick_files (plural) returns Option<Vec<FilePath>>; the native
+    // dialog lets the user ⌘-click / Shift-click to grab several
+    // files at once, so a JSON + a backup zip + a printout PNG can
+    // all be imported in a single round-trip.
+    let picked = tokio::task::spawn_blocking(move || {
         use tauri_plugin_dialog::DialogExt;
         Ok::<_, String>(
             handle
                 .dialog()
                 .file()
-                .set_title("Open QR image or import file")
+                .set_title("Open QR images or import files")
                 .add_filter(
                     "Supported files",
                     &[
@@ -258,24 +262,37 @@ pub async fn pick_and_import_file(
                         "csv", "zip",
                     ],
                 )
-                .blocking_pick_file(),
+                .blocking_pick_files(),
         )
     })
     .await
     .map_err(|e| e.to_string())??;
 
-    let path = match path {
+    let picked = match picked {
         None => return Ok(vec![]),
+        Some(p) if p.is_empty() => return Ok(vec![]),
         Some(p) => p,
     };
 
-    let path = path.into_path().map_err(|e| e.to_string())?;
-    let filename = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("")
-        .to_string();
-    let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+    // Read every file before unlocking the vault so we don't hold the
+    // passphrase while doing I/O. Files that disappear between the
+    // dialog returning and us reading them just get skipped.
+    let mut payloads: Vec<(String, Vec<u8>)> = Vec::with_capacity(picked.len());
+    for fp in picked {
+        let path = fp.into_path().map_err(|e| e.to_string())?;
+        let filename = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+        match std::fs::read(&path) {
+            Ok(bytes) => payloads.push((filename, bytes)),
+            Err(_) => continue,
+        }
+    }
+    if payloads.is_empty() {
+        return Err("No readable files in selection.".into());
+    }
 
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
@@ -287,12 +304,32 @@ pub async fn pick_and_import_file(
     };
 
     tokio::task::spawn_blocking(move || {
-        let otps = extract_otps_from_bytes(&filename, &bytes)?;
+        // Concatenate every file's parsed secrets first, then do one
+        // vault-load + N adds + one save. Files that fail parse_bytes
+        // (unsupported, corrupt, no QR) are counted but don't abort
+        // the rest — the user gets one useful toast instead of an
+        // error halfway through.
+        let mut all_otps: Vec<tofa_core::qr::OtpSecret> = Vec::new();
+        let mut failed = 0usize;
+        for (filename, bytes) in &payloads {
+            match extract_otps_from_bytes(filename, bytes) {
+                Ok(mut otps) => all_otps.append(&mut otps),
+                Err(_) => failed += 1,
+            }
+        }
+        if all_otps.is_empty() {
+            return Err(if failed > 0 {
+                format!("None of the {failed} file(s) contained recognisable accounts.")
+            } else {
+                "No accounts found.".to_string()
+            });
+        }
+
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let mut added = Vec::new();
-        for otp in otps {
+        for otp in all_otps {
             let name = otp.meta.derive_name();
             vault.add_entry(tofa_core::store::VaultEntry {
                 id: String::new(),

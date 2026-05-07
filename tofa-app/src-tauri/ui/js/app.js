@@ -504,14 +504,20 @@ function bindAddListeners() {
   if (btnFile) {
     btnFile.addEventListener('click', async () => {
       loaderStart();
-      showBlocking('Importing file…');
+      showBlocking('Importing files…');
       try {
         const added = await withPopoverPinned(() => invoke('pick_and_import_file'));
         if (added.length === 0) return;
         const data = await invoke('get_entries');
         renderList(data);
         showView('view-list');
-        toast(`Added: ${added.join(', ')}`);
+        // Many-account imports get a count + first-few preview;
+        // single imports keep the original "Added: <name>" form.
+        if (added.length <= 3) {
+          toast(`Added: ${added.join(', ')}`);
+        } else {
+          toast(`Added ${added.length} accounts (${added.slice(0, 3).join(', ')}, …)`);
+        }
       } catch (err) { toast(String(err), true); }
       finally { loaderDone(); hideBlocking(); }
     });

@@ -74,6 +74,12 @@ pub struct ScanArgs {
 }
 
 pub fn run(args: ScanArgs, vault_path: PathBuf) -> CliResult {
+    eprintln!(
+        "⚠  Experimental — screen scan may miss QR codes at the edge of \
+         rqrr's detection threshold. If a code is missing, rerun the scan \
+         or import that one separately."
+    );
+
     let captures = {
         let _spin = Spinner::start("Capturing screens…");
         capture_screens()?

@@ -44,9 +44,12 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     // Extra rows when the passphrase prompt is active
     let extra_rows: u16 = if state.detail_revealing { 3 } else { 0 };
-    // +2 rows for the URI label and its (potentially wrapped) value.
-    let box_h = (10 + extra_rows).min(area.height.saturating_sub(4));
-    let box_w = area.width.min(62);
+    // Modal needs to fit (with borders): 1 title + 1 gap + 5 fields +
+    // 3 rows for the wrapped URI + 1 help = 11 inner, +2 borders = 13.
+    let box_h = (13 + extra_rows).min(area.height.saturating_sub(4));
+    // Wide enough that "URI: otpauth://totp/Issuer:account?secret=..."
+    // fits on at most three lines for typical entries.
+    let box_w = area.width.min(78);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
     let modal = Rect {
@@ -87,7 +90,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         Constraint::Length(1), // algorithm · digits · period
         Constraint::Length(1), // secret
         Constraint::Length(1), // created
-        Constraint::Length(2), // URI (wraps to 2 lines for ~120-char URIs)
+        Constraint::Length(3), // URI (wraps to up to 3 lines for ~150-char URIs)
     ];
     if state.detail_revealing {
         constraints.push(Constraint::Length(1)); // gap
@@ -189,16 +192,28 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         8
     };
 
-    let reveal_hint = if state.detail_secret_visible {
-        "[ s ] hide secret"
+    let key = |k: &'static str| Span::styled(k, Style::default().fg(theme::BRAND));
+    let desc = |d: &'static str| Span::styled(d, Style::default().fg(theme::TEXT));
+    let sep = || Span::styled("  ", Style::default());
+    let reveal_label = if state.detail_secret_visible {
+        " hide secret"
     } else {
-        "[ s ] reveal secret"
+        " reveal secret"
     };
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            format!("[ y ] copy code · [ u ] copy URI · {reveal_hint} · [ Esc ] back"),
-            Style::default().fg(theme::TEXT_MUTED),
-        )))
+        Paragraph::new(Line::from(vec![
+            key("y"),
+            desc(" copy code"),
+            sep(),
+            key("u"),
+            desc(" copy URI"),
+            sep(),
+            key("s"),
+            desc(reveal_label),
+            sep(),
+            key("esc"),
+            desc(" back"),
+        ]))
         .alignment(Alignment::Center),
         chunks[help_idx],
     );

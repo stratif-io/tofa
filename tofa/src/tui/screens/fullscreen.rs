@@ -131,11 +131,20 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         chunks[5],
     );
 
+    let key = |k: &'static str| Span::styled(k, Style::default().fg(theme::BRAND));
+    let desc = |d: &'static str| Span::styled(d, Style::default().fg(theme::TEXT));
+    let sep = || Span::styled("  ", Style::default());
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            "[ y ] copy   [ Esc ] back",
-            Style::default().fg(theme::TEXT_MUTED),
-        )))
+        Paragraph::new(Line::from(vec![
+            key("y"),
+            desc(" copy code"),
+            sep(),
+            key("u"),
+            desc(" copy URI"),
+            sep(),
+            key("esc"),
+            desc(" back"),
+        ]))
         .alignment(Alignment::Center),
         chunks[7],
     );

@@ -234,7 +234,7 @@ fn render_footer(f: &mut Frame, area: Rect) {
         desc(" fullscreen"),
         sep(),
         key("i"),
-        desc(" detail"),
+        desc(" info"),
         sep(),
         key("h"),
         desc(" codes"),

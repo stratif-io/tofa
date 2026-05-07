@@ -83,7 +83,24 @@ fn run_app(
         .unwrap_or_else(default_vault_path);
     app_state.is_new_vault = !path.exists();
 
+    // Mouse capture is on by default (set up in `run()` before we get
+    // here) so we can route clicks on the list to copy-code, etc. But
+    // on the Info modal the user wants to select text natively — every
+    // terminal handles selection itself when mouse capture is off, so
+    // we toggle it per-screen.
+    let mut mouse_captured = true;
+
     loop {
+        let want_captured = !matches!(app_state.screen, Screen::OtpDetail);
+        if want_captured != mouse_captured {
+            if want_captured {
+                execute!(terminal.backend_mut(), EnableMouseCapture)?;
+            } else {
+                execute!(terminal.backend_mut(), DisableMouseCapture)?;
+            }
+            mouse_captured = want_captured;
+        }
+
         terminal.draw(|f| {
             let area = f.area();
             match app_state.screen {
@@ -262,10 +279,10 @@ fn run_app(
                                 Screen::Fullscreen => {
                                     app_state.screen = Screen::List;
                                 }
-                                Screen::OtpDetail => {
-                                    app_state.reset_detail_reveal();
-                                    app_state.screen = Screen::List;
-                                }
+                                // OtpDetail intentionally does NOT close on
+                                // click: mouse capture is disabled there so
+                                // the user can select URI / secret text
+                                // natively. Use Esc / `i` to close.
                                 Screen::Export => {
                                     app_state.screen = Screen::List;
                                 }
@@ -556,7 +573,6 @@ fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
             state.screen = Screen::OtpDetail;
         }
         KeyCode::Char('y') => copy_selected_code(state, vault),
-        KeyCode::Char('u') => copy_selected_uri(state, vault),
         KeyCode::Char('l') => lock_screen(state),
         KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
             state.selected_index -= 1;

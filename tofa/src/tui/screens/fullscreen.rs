@@ -139,9 +139,6 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             key("y"),
             desc(" copy code"),
             sep(),
-            key("u"),
-            desc(" copy URI"),
-            sep(),
             key("esc"),
             desc(" back"),
         ]))

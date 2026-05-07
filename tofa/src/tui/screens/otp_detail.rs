@@ -106,7 +106,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "OTP Details",
+            "Info",
             Style::default()
                 .fg(theme::TEXT)
                 .add_modifier(Modifier::BOLD),

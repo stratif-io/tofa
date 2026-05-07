@@ -10,7 +10,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
-use state::{AppState, OtpMetaDisplay, Screen};
+use state::{AppState, Screen};
 use std::{
     io,
     path::{Path, PathBuf},
@@ -189,20 +189,13 @@ fn run_app(
                 PendingVaultAction::AddEntry => {
                     let name = app_state.add_name.trim().to_string();
                     let secret = app_state.add_parsed_secret.clone();
-                    let meta = app_state.add_meta.take();
+                    let meta = app_state.add_meta.take().unwrap_or_default();
                     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-                    v.add_entry(tofa_core::store::VaultEntry {
-                        id: String::new(),
-                        name: name.clone(),
+                    let otp = OtpSecret {
                         secret: secret.to_string(),
-                        created_at: today,
-                        period: meta.as_ref().and_then(|m| m.period).unwrap_or(30),
-                        digits: meta.as_ref().and_then(|m| m.digits).unwrap_or(6),
-                        algorithm: meta
-                            .as_ref()
-                            .and_then(|m| m.algorithm.clone())
-                            .unwrap_or_else(|| "SHA1".to_string()),
-                    });
+                        meta,
+                    };
+                    v.add_entry(otp.into_vault_entry(name.clone(), today));
                     if save_vault(&mut app_state, v, &path) {
                         app_state.selected_index = v.entries().len().saturating_sub(1);
                         app_state.clear_add_form();
@@ -732,13 +725,7 @@ fn try_parse_and_advance(state: &mut AppState, raw: &str) {
                 (None, Some(a)) => a.clone(),
                 (None, None) => String::new(),
             };
-            state.add_meta = Some(OtpMetaDisplay {
-                issuer: otp.meta.issuer,
-                account: otp.meta.account,
-                algorithm: otp.meta.algorithm,
-                digits: otp.meta.digits,
-                period: otp.meta.period,
-            });
+            state.add_meta = Some(otp.meta);
             state.screen = Screen::AddName;
         }
         Err(e) => {
@@ -1219,14 +1206,10 @@ fn list_row_content_width(vault: &Vault) -> usize {
     let max_label_w = entries
         .iter()
         .map(|e| {
-            if let Some(pos) = e.name.find(':') {
-                let issuer = &e.name[..pos];
-                let account = &e.name[pos + 1..];
-                if account.is_empty() {
-                    e.name.chars().count()
-                } else {
-                    issuer.chars().count() + 3 + account.chars().count()
-                }
+            let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&e.name);
+            if !issuer.is_empty() && !account.is_empty() {
+                // " · " separator is 3 visible cells.
+                issuer.chars().count() + 3 + account.chars().count()
             } else {
                 e.name.chars().count()
             }

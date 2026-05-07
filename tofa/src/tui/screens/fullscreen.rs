@@ -110,8 +110,9 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         .constraints(constraints)
         .split(inner);
 
-    let header = if let Some(pos) = entry.name.find(':') {
-        format!("{} · {}", &entry.name[..pos], &entry.name[pos + 1..])
+    let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&entry.name);
+    let header = if !issuer.is_empty() && !account.is_empty() {
+        format!("{issuer} · {account}")
     } else {
         entry.name.clone()
     };

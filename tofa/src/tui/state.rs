@@ -1,4 +1,5 @@
 use std::{path::PathBuf, time::Instant};
+use tofa_core::qr::OtpMeta;
 use zeroize::Zeroizing;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -23,13 +24,9 @@ pub enum PendingVaultAction {
     AddEntry,
 }
 
-pub struct OtpMetaDisplay {
-    pub issuer: Option<String>,
-    pub account: Option<String>,
-    pub algorithm: Option<String>,
-    pub digits: Option<u8>,
-    pub period: Option<u32>,
-}
+// `OtpMetaDisplay` was a TUI-local struct identical to
+// `tofa_core::qr::OtpMeta`. Use the core type directly to avoid the
+// near-duplicate.
 
 pub struct AppState {
     pub screen: Screen,
@@ -40,7 +37,7 @@ pub struct AppState {
     pub add_name: String,
     pub add_secret_input: String,
     pub add_parsed_secret: Zeroizing<String>,
-    pub add_meta: Option<OtpMetaDisplay>,
+    pub add_meta: Option<OtpMeta>,
     pub add_focused_field: usize,
     pub unlock_error: bool,
     pub unlock_error_msg: Option<String>,

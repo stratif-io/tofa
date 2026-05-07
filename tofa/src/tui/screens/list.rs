@@ -97,14 +97,9 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let labels: Vec<String> = entries
         .iter()
         .map(|entry| {
-            if let Some(pos) = entry.name.find(':') {
-                let issuer = &entry.name[..pos];
-                let account = &entry.name[pos + 1..];
-                if account.is_empty() {
-                    entry.name.clone()
-                } else {
-                    format!("{} · {}", issuer, account)
-                }
+            let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&entry.name);
+            if !issuer.is_empty() && !account.is_empty() {
+                format!("{issuer} · {account}")
             } else {
                 entry.name.clone()
             }

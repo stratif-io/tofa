@@ -49,6 +49,15 @@ Passphrase: ********
 Imported 1 account(s) from 1 screen(s).
 ```
 
+Re-running the scan with QRs already in the vault — duplicates are
+counted and skipped, so it's safe to retry:
+
+```console
+$ tofa scan
+...
+Imported 0 account(s) from 1 screen(s) (3 duplicate(s) skipped).
+```
+
 ## How it works
 
 - **Capture.** macOS uses `screencapture -D N` per display (one PNG
@@ -73,6 +82,9 @@ Imported 1 account(s) from 1 screen(s).
 - All visible QRs are imported. Migration QRs are expanded into their
   constituent accounts; vCards / URLs / other QR payloads are silently
   ignored.
+- Accounts already in the vault are deduped on (name, secret) and
+  reported as `N duplicate(s) skipped` — re-running a scan never
+  creates duplicate rows.
 
 ## See also
 

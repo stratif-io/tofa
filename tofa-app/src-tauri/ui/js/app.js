@@ -584,6 +584,14 @@ $('btn-detail-copy').addEventListener('click', async () => {
   } catch (err) { toast(String(err), true); }
 });
 
+$('btn-detail-copy-uri').addEventListener('click', async () => {
+  if (!selectedId) return;
+  try {
+    await invoke('copy_uri', { id: selectedId });
+    toast('URI copied to clipboard');
+  } catch (err) { toast(String(err), true); }
+});
+
 $('btn-detail-del').addEventListener('click', async () => {
   if (!selectedId) return;
   showBlocking('Deleting…');
@@ -729,6 +737,21 @@ $('btn-export-qr-generate-multi').addEventListener('click', async () => {
     $('qr-overlay').style.display = 'flex';
   } catch (err) { toast(String(err), true); }
   finally { loaderDone(); }
+});
+
+// Save selected entries as a plain-text URI list. Round-trips through
+// `tofa import <file>.txt` and the desktop app's drop handler. Useful
+// for moving accounts between authenticators when the receiving app
+// can't read a Google-Authenticator migration QR.
+$('btn-export-uri-list').addEventListener('click', async () => {
+  const ids = [...$('export-qr-list').querySelectorAll('input[type=checkbox]:checked')]
+    .map(cb => cb.dataset.id);
+  if (ids.length === 0) { toast('Select at least one account', true); return; }
+  try {
+    await withPopoverPinned(() => invoke('save_uri_list', { ids }));
+    $('export-qr-overlay').style.display = 'none';
+    toast(`Saved ${ids.length} URI${ids.length > 1 ? 's' : ''}`);
+  } catch (err) { toast(String(err), true); }
 });
 
 $('btn-reveal-cancel').addEventListener('click', () => {

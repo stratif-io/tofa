@@ -139,6 +139,40 @@ pub async fn copy_code(
     Ok(())
 }
 
+/// Copy a single entry's `otpauth://` URI to the system clipboard.
+/// Mirrors the TUI's `u` shortcut and `tofa code <name> --uri --copy`
+/// on the CLI. Useful for moving one account to another authenticator
+/// without exporting the whole vault.
+#[tauri::command]
+pub async fn copy_uri(
+    id: String,
+    state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+    let uri = tokio::task::spawn_blocking(move || {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let entry = vault
+            .entry_by_id(&id)
+            .ok_or_else(|| format!("entry '{}' not found", id))?
+            .clone();
+        Ok::<String, String>(tofa_core::qr::build_otpauth_uri(&entry))
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    use tauri_plugin_clipboard_manager::ClipboardExt;
+    app.clipboard().write_text(uri).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn get_settings() -> Result<Settings, String> {
     let path = settings_path();
@@ -874,6 +908,71 @@ pub struct QrZipItem {
 /// - `print.html` — a self-contained one-pager that lists all QRs in a
 ///   responsive grid and is print-stylesheet-friendly (open in any
 ///   browser, hit Cmd-P, print or save as PDF).
+/// Save the given vault entry IDs as a plain-text URI list — one
+/// `otpauth://` per line, no trailing newline. Triggers a save dialog
+/// so the user picks the destination. The file round-trips through
+/// `parse_file` (the unified import dispatcher's .txt branch) so
+/// importing it back is a one-liner.
+#[tauri::command]
+pub async fn save_uri_list(
+    window: tauri::Window,
+    ids: Vec<String>,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<(), String> {
+    if ids.is_empty() {
+        return Err("nothing to save".to_string());
+    }
+
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+
+    // Build the URI list off the UI thread — vault load + entry lookup
+    // shouldn't block the dialog.
+    let body = tokio::task::spawn_blocking(move || -> Result<String, String> {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let mut entries: Vec<tofa_core::store::VaultEntry> = Vec::with_capacity(ids.len());
+        for id in &ids {
+            let e = vault
+                .entry_by_id(id)
+                .ok_or_else(|| format!("entry '{id}' not found"))?
+                .clone();
+            entries.push(e);
+        }
+        Ok(tofa_core::qr::entries_to_uri_list(&entries))
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let handle = window.app_handle().clone();
+    let path = tokio::task::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        let date = chrono::Local::now().format("%Y-%m-%d");
+        handle
+            .dialog()
+            .file()
+            .set_title("Save URI list")
+            .set_file_name(&format!("tofa-export-{date}.txt"))
+            .add_filter("Text file", &["txt"])
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let path = match path {
+        None => return Ok(()), // user cancelled
+        Some(p) => p.into_path().map_err(|e| e.to_string())?,
+    };
+
+    std::fs::write(&path, body).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub async fn save_qr_zip(window: tauri::Window, items: Vec<QrZipItem>) -> Result<(), String> {
     if items.is_empty() {

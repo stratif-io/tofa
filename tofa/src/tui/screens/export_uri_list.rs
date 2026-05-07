@@ -63,18 +63,25 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         chunks[0],
     );
 
+    // Compact layout: name + URI back-to-back, no blank between
+    // entries. The name's muted brand colour and the URI's plain text
+    // give enough contrast to tell rows apart without extra
+    // whitespace. URI is rendered DIM so it reads visually "smaller"
+    // than the names — the closest TUI equivalent of a smaller font,
+    // without resorting to terminal-specific escape sequences.
     let mut lines: Vec<Line> = Vec::new();
-    for (i, (name, uri)) in state.export_uri_list.iter().enumerate() {
-        if i > 0 {
-            lines.push(Line::from(""));
-        }
+    for (name, uri) in state.export_uri_list.iter() {
         lines.push(Line::from(Span::styled(
             name.clone(),
-            Style::default().fg(theme::TEXT_MUTED),
+            Style::default()
+                .fg(theme::BRAND)
+                .add_modifier(Modifier::BOLD),
         )));
         lines.push(Line::from(Span::styled(
             uri.clone(),
-            Style::default().fg(theme::TEXT),
+            Style::default()
+                .fg(theme::TEXT_MUTED)
+                .add_modifier(Modifier::DIM),
         )));
     }
 

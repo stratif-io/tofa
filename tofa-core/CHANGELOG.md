@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.0](https://github.com/stratif-io/tofa/compare/tofa-core-v0.6.0...tofa-core-v0.7.0) (2026-05-07)
+## [0.8.0](https://github.com/stratif-io/tofa/compare/tofa-core-v0.6.0...tofa-core-v0.8.0) (2026-05-07)
 
 
 ### Features

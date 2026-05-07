@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.8.0](https://github.com/stratif-io/tofa/compare/tofa-core-v0.6.0...tofa-core-v0.8.0) (2026-05-07)
+
+
+### Features
+
+* **cli,tui,app:** route every import surface through the unified dispatcher ([5591dcb](https://github.com/stratif-io/tofa/commit/5591dcbfeb7e80d0b425ef8c045c0b9afa480e1c))
+* **core,cli:** expose per-pass scan progress and surface it in the spinner ([08da8af](https://github.com/stratif-io/tofa/commit/08da8af76513c7df8ce05dc95dbcdf02e81e6703))
+* **core:** add entries_to_uri_list for plain-text URI exports ([f326953](https://github.com/stratif-io/tofa/commit/f326953530f1bcc98097f473e32fadf78d8cb88b))
+* **core:** add unified import::parse_file(path) dispatcher ([26c159d](https://github.com/stratif-io/tofa/commit/26c159d0129b59e48ad017e288c34daef9ec9ccc))
+* import dispatcher, URI export, dedup, and architectural audit pass ([9d8f2d4](https://github.com/stratif-io/tofa/commit/9d8f2d4432b59c2b43016e67792013a9c1be3cfa))
+
+
+### Bug Fixes
+
+* **core,app:** centralise dedup in Vault::add_entry_if_unique ([7b97628](https://github.com/stratif-io/tofa/commit/7b97628395be94064ffb12aafd719561b1dbd52b))
+* **core:** scan native resolution before downscaled rescales ([5ea3fde](https://github.com/stratif-io/tofa/commit/5ea3fde8fdec87420b0211d917a29355b987b26d))
+* **core:** scan native resolution before downscaled rescales ([b658501](https://github.com/stratif-io/tofa/commit/b6585014cc6af52361ce534ec7846cce56772759))
+
+
+### Performance Improvements
+
+* **core:** add Triangle filter pass at 1920px for marginal-QR recall ([9e36e44](https://github.com/stratif-io/tofa/commit/9e36e4462e41a5b126ec35a6d1f04c90e588ccac))
+* **core:** cap effective native scan at 3840px ([f39c548](https://github.com/stratif-io/tofa/commit/f39c548c9bcfbb373095ad38e166ca6c479f1350))
+* **core:** trim scan rescale ladder + early termination ([e5cc986](https://github.com/stratif-io/tofa/commit/e5cc9867d40e82755718969701426db43259396f))
+* **core:** trim scan rescale ladder + early termination ([445f2fd](https://github.com/stratif-io/tofa/commit/445f2fd356dcd93cc7fbc8fc64adf8498e9f2c2d))
+
 ## [0.6.0](https://github.com/stratif-io/tofa/compare/tofa-core-v0.5.0...tofa-core-v0.6.0) (2026-05-06)
 
 

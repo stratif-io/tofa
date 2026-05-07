@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.8.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.7.0...tofa-macos-v0.8.0) (2026-05-07)
+
+
+### Features
+
+* **app:** copy_uri and save_uri_list with matching UI buttons ([fe4da0f](https://github.com/stratif-io/tofa/commit/fe4da0fd19ea9d22a3a8c39a0537c94e99d8a79c))
+* **app:** highlight non-30s entries + bundle Save All into a single zip ([675fd3e](https://github.com/stratif-io/tofa/commit/675fd3e78688a4430a5beb98c02765e94ca96807))
+* **app:** highlight non-30s entries + bundle Save All into a single zip ([8fe922c](https://github.com/stratif-io/tofa/commit/8fe922cd351d21cc06a9d881bc49e974c105f554))
+* **app:** pick_and_import_file accepts a multi-file selection ([f489502](https://github.com/stratif-io/tofa/commit/f489502ce76545fcb65d480132f224886f8e4c0a))
+* **app:** show otpauth URI on the entry detail view ([3ab079f](https://github.com/stratif-io/tofa/commit/3ab079f1c2f797fc7594c5733b812b3804d14f03))
+* **cli,tui,app:** route every import surface through the unified dispatcher ([5591dcb](https://github.com/stratif-io/tofa/commit/5591dcbfeb7e80d0b425ef8c045c0b9afa480e1c))
+* import dispatcher, URI export, dedup, and architectural audit pass ([9d8f2d4](https://github.com/stratif-io/tofa/commit/9d8f2d4432b59c2b43016e67792013a9c1be3cfa))
+* **tui,app:** accept pasted list of otpauth:// URIs as bulk import ([0eb62a8](https://github.com/stratif-io/tofa/commit/0eb62a84f696b1ddc8272211fd490ac2b32e1dd8))
+
+
+### Bug Fixes
+
+* **core,app:** centralise dedup in Vault::add_entry_if_unique ([7b97628](https://github.com/stratif-io/tofa/commit/7b97628395be94064ffb12aafd719561b1dbd52b))
+
 ## [0.7.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.6.2...tofa-macos-v0.7.0) (2026-05-06)
 
 

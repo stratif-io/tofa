@@ -30,17 +30,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let secret_display = if state.detail_secret_visible {
         entry.secret.clone()
     } else {
-        "•".repeat(entry.secret.len().max(16))
+        // Match the masked URI's bullet count so the Secret row and
+        // the secret portion of the URI row read consistently.
+        "•".repeat(16)
     };
     let full_uri = tofa_core::qr::build_otpauth_uri(entry);
     let uri_display: String = if state.detail_secret_visible {
         full_uri.clone()
     } else {
-        full_uri.replacen(
-            entry.secret.as_str(),
-            &"•".repeat(entry.secret.len().max(16)),
-            1,
-        )
+        tofa_core::qr::mask_otpauth_uri(&full_uri, &entry.secret)
     };
 
     let is_8digit = entry.digits == 8;

@@ -9,7 +9,7 @@ use image::{ImageBuffer, Luma};
 use qrcode::QrCode;
 use std::io::Write;
 use tempfile::NamedTempFile;
-use tofa_core::import::{parse_bytes, parse_file};
+use tofa_core::import::{is_multi_otpauth_paste, parse_bytes, parse_file};
 
 fn qr_image(uri: &str, module_px: u32) -> ImageBuffer<Luma<u8>, Vec<u8>> {
     let code = QrCode::new(uri.as_bytes()).expect("encode QR");
@@ -232,4 +232,46 @@ fn parse_file_zip_ignores_non_image_entries() {
     let secrets = parse_file(zip_file.path()).expect("must parse zip");
     assert_eq!(secrets.len(), 1);
     assert_eq!(secrets[0].secret, "DISCORDFAKEAAAAA");
+}
+
+// ── is_multi_otpauth_paste ──────────────────────────────────────────────
+// The detector that disambiguates "user pasted one URI" from "user
+// pasted N URIs (Ente-style)". Both the TUI's AddForm Enter handler
+// and the desktop app's add_from_uri command consult it. Edge cases
+// matter: a single URI with a trailing newline mustn't be promoted
+// to a list, and prose followed by one URI mustn't either.
+
+#[test]
+fn is_multi_otpauth_paste_single_uri_is_false() {
+    assert!(!is_multi_otpauth_paste(URI_DISCORD));
+}
+
+#[test]
+fn is_multi_otpauth_paste_single_uri_with_trailing_newline_is_false() {
+    let one = format!("{URI_DISCORD}\n");
+    assert!(!is_multi_otpauth_paste(&one));
+}
+
+#[test]
+fn is_multi_otpauth_paste_two_uris_is_true() {
+    let two = format!("{URI_DISCORD}\n{URI_NETLIFY}");
+    assert!(is_multi_otpauth_paste(&two));
+}
+
+#[test]
+fn is_multi_otpauth_paste_blank_input_is_false() {
+    assert!(!is_multi_otpauth_paste(""));
+    assert!(!is_multi_otpauth_paste("   \n  \n"));
+}
+
+#[test]
+fn is_multi_otpauth_paste_ignores_non_otpauth_lines() {
+    let one_with_noise = format!("Here are my codes:\n{URI_DISCORD}");
+    assert!(!is_multi_otpauth_paste(&one_with_noise));
+}
+
+#[test]
+fn is_multi_otpauth_paste_handles_indented_lines() {
+    let two = format!("  {URI_DISCORD}\n\t{URI_NETLIFY}");
+    assert!(is_multi_otpauth_paste(&two));
 }

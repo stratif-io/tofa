@@ -6,10 +6,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tofa_core::store::Vault;
-use tofa_core::{
-    totp::{generate_code_now, seconds_remaining_now},
-    VaultEntry,
-};
+use tofa_core::totp::{generate_code_now, seconds_remaining_now};
 
 /// Tiny stderr braille spinner used around long-ish work (screen capture +
 /// QR scanning). The message slot is shared so the scan loop can update it
@@ -192,15 +189,7 @@ pub fn import_uris_into_vault(
         } else {
             make_name(&otp)
         };
-        vault.add_entry(VaultEntry {
-            id: String::new(),
-            name,
-            secret: otp.secret,
-            created_at: today.clone(),
-            period: otp.meta.period.unwrap_or(30),
-            digits: otp.meta.digits.unwrap_or(6),
-            algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-        });
+        vault.add_entry(otp.into_vault_entry(name, today.clone()));
     }
 
     Ok(total)

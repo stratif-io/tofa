@@ -18,7 +18,7 @@ use std::{
 };
 use tofa_core::{
     qr::{parse_input, OtpSecret},
-    store::{Vault, VaultEntry},
+    store::Vault,
     totp::generate_code_now,
     uri_to_qr_lines,
 };
@@ -650,16 +650,7 @@ fn try_import_secrets(
             (None, Some(a)) => a.clone(),
             (None, None) => format!("imported-{}", vault.entries().len() + 1),
         };
-        let entry = VaultEntry {
-            id: String::new(),
-            name,
-            secret: otp.secret,
-            created_at: today.clone(),
-            period: otp.meta.period.unwrap_or(30),
-            digits: otp.meta.digits.unwrap_or(6),
-            algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-        };
-        if vault.add_entry_if_unique(entry) {
+        if vault.add_entry_if_unique(otp.into_vault_entry(name, today.clone())) {
             imported += 1;
         } else {
             skipped += 1;
@@ -676,18 +667,6 @@ fn try_import_secrets(
         }
         state.status_message = Some(msg);
     }
-}
-
-/// Detect whether the AddForm input looks like a multi-line list of
-/// `otpauth://` URIs (Ente-style paste). Two or more lines starting
-/// with `otpauth://` is unambiguous — a single URI never has a newline,
-/// and migration URIs are caught earlier with their own prefix branch.
-fn is_multi_otpauth_paste(raw: &str) -> bool {
-    raw.lines()
-        .map(str::trim)
-        .filter(|l| l.starts_with("otpauth://"))
-        .count()
-        >= 2
 }
 
 /// Run the unified file dispatcher (image / zip / json / csv / txt) and
@@ -816,7 +795,7 @@ fn handle_add_form_key(
                             state.status_message = Some(format!("Import failed: {e}"));
                         }
                     }
-                } else if is_multi_otpauth_paste(&raw) {
+                } else if tofa_core::import::is_multi_otpauth_paste(&raw) {
                     // Pasted list of otpauth:// URIs (one per line, e.g.
                     // an Ente Auth export pasted directly into the form).
                     // Bulk import — single-URI naming UX doesn't fit when
@@ -1291,54 +1270,5 @@ fn save_vault(state: &mut AppState, vault: &Vault, path: &Path) -> bool {
             state.status_message_at = None; // persistent until dismissed
             false
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn is_multi_otpauth_paste_single_uri_is_false() {
-        let one = "otpauth://totp/Discord:bob?secret=AAAAAAAAAAAAAAAA&issuer=Discord";
-        assert!(!is_multi_otpauth_paste(one));
-    }
-
-    #[test]
-    fn is_multi_otpauth_paste_single_uri_with_trailing_newline_is_false() {
-        // Pasting from a clipboard often appends \n. Don't misclassify
-        // that as a list of two when the second line is empty.
-        let one = "otpauth://totp/Discord:bob?secret=AAAAAAAAAAAAAAAA&issuer=Discord\n";
-        assert!(!is_multi_otpauth_paste(one));
-    }
-
-    #[test]
-    fn is_multi_otpauth_paste_two_uris_is_true() {
-        let two = "otpauth://totp/Discord:bob?secret=AAAAAAAAAAAAAAAA&issuer=Discord\n\
-                   otpauth://totp/GitHub:bob?secret=BBBBBBBBBBBBBBBB&issuer=GitHub";
-        assert!(is_multi_otpauth_paste(two));
-    }
-
-    #[test]
-    fn is_multi_otpauth_paste_blank_input_is_false() {
-        assert!(!is_multi_otpauth_paste(""));
-        assert!(!is_multi_otpauth_paste("   \n  \n"));
-    }
-
-    #[test]
-    fn is_multi_otpauth_paste_ignores_non_otpauth_lines() {
-        // Random commentary above one URI shouldn't trigger bulk import.
-        let one_with_noise = "Here are my codes:\n\
-                              otpauth://totp/Discord:bob?secret=AAAAAAAAAAAAAAAA&issuer=Discord";
-        assert!(!is_multi_otpauth_paste(one_with_noise));
-    }
-
-    #[test]
-    fn is_multi_otpauth_paste_handles_indented_lines() {
-        // Lines may have leading whitespace from a copied list; trim
-        // before matching so they still count.
-        let two = "  otpauth://totp/Discord:bob?secret=A\n\
-                   \totpauth://totp/GitHub:bob?secret=B";
-        assert!(is_multi_otpauth_paste(two));
     }
 }

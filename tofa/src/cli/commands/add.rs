@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use tofa_core::{
     qr::OtpSecret,
     totp::{generate_code_now, seconds_remaining_now},
-    Vault, VaultEntry,
+    Vault,
 };
 
 #[derive(Args)]
@@ -73,15 +73,7 @@ pub fn add_single(
     pass: &str,
 ) -> CliResult {
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let entry = VaultEntry {
-        id: String::new(),
-        name: name.to_string(),
-        secret: otp.secret,
-        created_at: today,
-        period: otp.meta.period.unwrap_or(30),
-        digits: otp.meta.digits.unwrap_or(6),
-        algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-    };
+    let entry = otp.into_vault_entry(name.to_string(), today);
     let code = generate_code_now(&entry).unwrap_or_else(|_| "------".into());
     let secs = seconds_remaining_now(&entry);
     vault.add_entry(entry);
@@ -112,15 +104,7 @@ fn import_migration(
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     for otp in accounts {
         let name = name_override.clone().unwrap_or_else(|| make_name(&otp));
-        vault.add_entry(VaultEntry {
-            id: String::new(),
-            name,
-            secret: otp.secret,
-            created_at: today.clone(),
-            period: otp.meta.period.unwrap_or(30),
-            digits: otp.meta.digits.unwrap_or(6),
-            algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-        });
+        vault.add_entry(otp.into_vault_entry(name, today.clone()));
     }
     vault.save(path, pass)?;
     println!("Imported {count} account(s).");

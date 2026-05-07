@@ -201,6 +201,21 @@ pub fn parse_text_uris(text: &str) -> Result<Vec<OtpSecret>, String> {
     ente::parse(text)
 }
 
+/// Detect a multi-line list of `otpauth://` URIs (Ente-style paste).
+/// Two or more lines starting with `otpauth://` is unambiguous — a
+/// single URI never has a newline, and migration URIs are caught
+/// earlier by their distinct `otpauth-migration://` prefix. Used by
+/// the TUI's AddForm Enter handler and the desktop app's
+/// `add_from_uri` command to decide between the bulk import path
+/// and the single-URI naming flow.
+pub fn is_multi_otpauth_paste(raw: &str) -> bool {
+    raw.lines()
+        .map(str::trim)
+        .filter(|l| l.starts_with("otpauth://"))
+        .count()
+        >= 2
+}
+
 /// Parse a KeePassXC CSV export.
 pub fn parse_csv(csv: &str) -> Result<Vec<OtpSecret>, String> {
     keepassxc::parse(csv)

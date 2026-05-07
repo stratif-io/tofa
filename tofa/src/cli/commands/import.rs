@@ -1,7 +1,6 @@
 use crate::cli::{open_vault, read_passphrase, CliResult};
 use clap::Args;
 use std::path::PathBuf;
-use tofa_core::VaultEntry;
 
 #[derive(Args)]
 pub struct ImportArgs {
@@ -18,15 +17,7 @@ pub fn run(args: ImportArgs, vault_path: PathBuf) -> CliResult {
     let mut skipped = 0;
     for otp in secrets {
         let name = otp.meta.derive_name();
-        let entry = VaultEntry {
-            id: String::new(),
-            name,
-            secret: otp.secret,
-            created_at: today.clone(),
-            period: otp.meta.period.unwrap_or(30),
-            digits: otp.meta.digits.unwrap_or(6),
-            algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-        };
+        let entry = otp.into_vault_entry(name, today.clone());
         if vault.add_entry_if_unique(entry) {
             imported += 1;
         } else {

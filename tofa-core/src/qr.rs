@@ -63,6 +63,26 @@ pub struct OtpSecret {
     pub meta: OtpMeta,
 }
 
+impl OtpSecret {
+    /// Build a `VaultEntry` for this OTP, applying the standard
+    /// defaults (SHA1 / 6 digits / 30s period) anywhere the source
+    /// didn't specify them. Every import surface — CLI, TUI, desktop
+    /// app, drag-drop, file picker, paste — funnels through this so
+    /// the defaults can't drift between platforms. The resulting
+    /// entry's `id` is left blank; `Vault::add_entry*` generates it.
+    pub fn into_vault_entry(self, name: String, created_at: String) -> crate::store::VaultEntry {
+        crate::store::VaultEntry {
+            id: String::new(),
+            name,
+            secret: self.secret,
+            created_at,
+            period: self.meta.period.unwrap_or(30),
+            digits: self.meta.digits.unwrap_or(6),
+            algorithm: self.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
+        }
+    }
+}
+
 /// One account to encode into a Google Authenticator migration URI.
 ///
 /// Note: the migration protobuf has no period field, so any non-default
@@ -440,6 +460,20 @@ impl std::error::Error for SelectionExportError {}
 /// - **Multiple all-30s entries** → `otpauth-migration://...` (Google's
 ///   migration format; preserves algorithm and digits, period is implicitly 30).
 /// - **Multiple entries containing any non-30s** → `Err(NonStandardPeriod)`.
+/// Replace the `secret` substring in an `otpauth://` URI with 16
+/// bullets, returning the result unchanged if the secret can't be
+/// found. Used by every detail-view surface (TUI fullscreen, desktop
+/// app's masked-URI command) so the bullet count is the same on every
+/// platform regardless of whether the secret is 16, 26, or 32 chars
+/// long. Centralising the rule means a future change (different
+/// length, different glyph) lands in one place.
+pub fn mask_otpauth_uri(uri: &str, secret: &str) -> String {
+    if !uri.contains(secret) {
+        return uri.to_string();
+    }
+    uri.replacen(secret, &"•".repeat(16), 1)
+}
+
 /// Build a plain-text URI list for the given entries — one
 /// `otpauth://totp/...` line per entry, no trailing newline. This is the
 /// inverse of `tofa_core::import::parse_text_uris` (Ente Auth's export

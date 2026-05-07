@@ -124,17 +124,20 @@
     <div class="otp-progress" style="width:100%;margin-bottom:var(--s-4);">
       <div class="otp-progress-bar" id="detail-progress-bar"></div>
     </div>
-    <div class="row" style="gap:var(--s-2);margin-bottom:var(--s-5);">
+    <div class="detail-actions">
       <button id="btn-detail-copy" class="btn btn-primary">Copy</button>
-      <button id="btn-detail-copy-uri" class="btn btn-ghost" title="Copy this entry's otpauth:// URI for use in another authenticator">URI</button>
+      <button id="btn-detail-copy-uri" class="btn btn-secondary" title="Copy this entry's otpauth:// URI for use in another authenticator">URI</button>
       <button id="btn-detail-qr"   class="btn btn-secondary">QR</button>
-      <button id="btn-detail-del"  class="btn btn-danger">Delete</button>
     </div>
 
     <!-- Metadata table -->
     <table id="detail-meta" style="width:100%;border-collapse:collapse;font-size:12px;">
       <tbody id="detail-meta-body"></tbody>
     </table>
+
+    <!-- Destructive action lives apart from the primary cluster so it
+         can't be hit by accident. Confirmation is also handled below. -->
+    <button id="btn-detail-del" class="btn btn-ghost detail-danger">Delete account</button>
   </div>
 
   <!-- Reveal secret overlay -->

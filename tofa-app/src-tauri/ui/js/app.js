@@ -293,14 +293,17 @@ function openDetail(id) {
 }
 
 function renderDetailMeta(entry) {
+  // Order goes identifiers first, then technical params, then dates,
+  // then sensitive fields at the bottom (sensitive last so the user's
+  // eye lands on plain metadata before the bullets).
   const rows = [
-    ['Account',   entry.account || '—'],
+    ['ID',        entry.id || '—'],
     ['Issuer',    entry.issuer  || '—'],
+    ['Account',   entry.account || '—'],
     ['Algorithm', entry.algorithm || 'SHA1'],
     ['Digits',    String(entry.digits || 6)],
     ['Period',    `${entry.period || 30}s`],
     ['Added',     entry.created_at || '—'],
-    ['ID',        entry.id || '—'],
     ['Secret',    null],
     ['URI',       null],
   ];

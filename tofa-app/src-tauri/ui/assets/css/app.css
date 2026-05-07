@@ -226,6 +226,37 @@ html, body {
 
 
 
+/* Detail action row — three primary buttons, equal width, single line.
+   Padding is tighter than the global .btn so we don't overflow the
+   320-cell tray width with three buttons + gaps. */
+.detail-actions {
+  display: flex;
+  gap: var(--s-2);
+  margin-bottom: var(--s-5);
+  width: 100%;
+}
+.detail-actions .btn {
+  flex: 1;
+  padding: 8px 0;
+  justify-content: center;
+}
+
+/* Destructive action sits separately below the meta table so it
+   can't be hit on the way to Copy / URI / QR. Quiet by default;
+   colour-only on hover. */
+.detail-danger {
+  margin-top: var(--s-4);
+  width: 100%;
+  justify-content: center;
+  font-size: 12px;
+  padding: 6px 0;
+  color: var(--text-muted);
+}
+.detail-danger:hover {
+  color: var(--danger);
+  background: transparent;
+}
+
 /* Detail metadata table */
 #detail-meta td {
   padding: var(--s-2) 0;
@@ -248,6 +279,18 @@ html, body {
   word-break: break-all;
 }
 #detail-meta tr:last-child td { border-bottom: none; }
+
+/* The body is `user-select: none` globally to keep titlebars / icon
+   buttons from grabbing accidental selections. Re-enable selection
+   on detail content so the user can copy the code, the URI, or any
+   metadata field by dragging. */
+.detail-code,
+#detail-meta td:last-child {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
 .secret-masked {
   cursor: pointer;
   letter-spacing: 0.15em;

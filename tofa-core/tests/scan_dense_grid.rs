@@ -1,7 +1,7 @@
 use image::{ImageBuffer, Luma};
 use qrcode::QrCode;
 use tempfile::NamedTempFile;
-use tofa_core::qr::scan_all_qr_uris;
+use tofa_core::qr::{scan_all_qr_uris, scan_all_qr_uris_with_progress, ScanProgress};
 
 /// Render a single otpauth:// URI to a small QR-code PNG image (Luma) and
 /// return the buffer at the size the qrcode crate produces with 1px modules.
@@ -105,5 +105,47 @@ fn scan_finds_nearly_every_qr_in_a_high_resolution_grid() {
         uris.iter()
             .filter(|u| !found.contains(u))
             .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn scan_with_progress_invokes_callback_per_pass_with_running_count() {
+    // The CLI uses the progress callback to update its spinner: it needs to
+    // see (pass width, running found-count) so it can show "pass @ 1920px •
+    // 7 found". Verify the callback fires at least twice (multi-pass ladder)
+    // and that `found` is monotonically non-decreasing and ends at the
+    // final returned count.
+    let uris = many_uris();
+    let qrs: Vec<_> = uris.iter().map(|u| qr_image(u, 6)).collect();
+    let canvas = tile(&qrs, 8, 40);
+    let tmp = NamedTempFile::with_suffix(".png").expect("tmp");
+    canvas.save(tmp.path()).expect("save");
+
+    let mut events: Vec<ScanProgress> = Vec::new();
+    let found = scan_all_qr_uris_with_progress(tmp.path(), |p| events.push(p))
+        .expect("must decode at least one QR");
+
+    assert!(
+        events.len() >= 2,
+        "expected multiple passes, got {} event(s)",
+        events.len()
+    );
+    for pair in events.windows(2) {
+        assert!(
+            pair[1].found >= pair[0].found,
+            "found count must be monotonic, saw {} → {}",
+            pair[0].found,
+            pair[1].found
+        );
+    }
+    let last = events.last().expect("events non-empty");
+    assert_eq!(
+        last.found,
+        found.len(),
+        "final progress event should match returned URI count"
+    );
+    assert!(
+        last.pass_width > 0,
+        "pass_width should reflect the resize target in pixels"
     );
 }

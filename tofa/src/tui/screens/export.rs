@@ -11,7 +11,8 @@ use tofa_core::store::Vault;
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let box_h = area.height.saturating_sub(4).max(8);
-    let box_w = area.width.min(60);
+    // 78 inner cells fit the full footer hint; clamp to terminal width.
+    let box_w = area.width.min(80);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
     let modal = Rect {
@@ -96,11 +97,26 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         &mut list_state,
     );
 
+    let key = |k: &'static str| Span::styled(k, Style::default().fg(theme::BRAND));
+    let desc = |d: &'static str| Span::styled(d, Style::default().fg(theme::TEXT));
+    let sep = || Span::styled("  ", Style::default());
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            "[ Space ] toggle  [ Enter ] migration QR  [ m ] separate QRs  [ Esc ] back",
-            Style::default().fg(theme::TEXT_MUTED),
-        ))),
+        Paragraph::new(Line::from(vec![
+            key("spc"),
+            desc(" toggle"),
+            sep(),
+            key("⏎"),
+            desc(" migration QR"),
+            sep(),
+            key("m"),
+            desc(" separate QRs"),
+            sep(),
+            key("u"),
+            desc(" show URIs"),
+            sep(),
+            key("esc"),
+            desc(" back"),
+        ])),
         chunks[3],
     );
 }

@@ -40,7 +40,11 @@ pub fn run(args: QrArgs, vault_path: PathBuf) -> CliResult {
         }
         for (i, entry) in entries.iter().enumerate() {
             let uri = tofa_core::qr::build_otpauth_uri(entry);
-            let filename = format!("{:02}-{}.png", i + 1, sanitize_filename(&entry.name));
+            let filename = format!(
+                "{:02}-{}.png",
+                i + 1,
+                tofa_core::qr::sanitize_filename(&entry.name)
+            );
             let path = dir.join(&filename);
             tofa_core::uri_to_qr_png(&uri, &path)
                 .map_err(|e| format!("PNG generation failed for {filename}: {e}"))?;
@@ -72,14 +76,4 @@ pub fn run(args: QrArgs, vault_path: PathBuf) -> CliResult {
         }
     }
     Ok(())
-}
-
-/// Replace path-unsafe characters in an entry name so it can be a filename.
-fn sanitize_filename(name: &str) -> String {
-    name.chars()
-        .map(|c| match c {
-            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' => c,
-            _ => '_',
-        })
-        .collect()
 }

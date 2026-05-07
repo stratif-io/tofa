@@ -10,20 +10,30 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
-use state::{AppState, OtpMetaDisplay, Screen};
+use state::{AppState, Screen};
 use std::{
     io,
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
 use tofa_core::{
-    qr::{parse_input, parse_migration, scan_qr_uri},
-    store::{Vault, VaultEntry},
+    qr::{parse_input, OtpSecret},
+    store::Vault,
     totp::generate_code_now,
     uri_to_qr_lines,
 };
 
-const IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "gif", "bmp", "webp"];
+/// Extensions the file picker exposes. Mirrors the desktop app's drop
+/// handler so users see the same surface across TUI and app. Anything
+/// the unified `tofa_core::import::parse_file` dispatcher can handle
+/// belongs here.
+const SUPPORTED_EXTS: &[&str] = &[
+    // Images: png/jpg/etc. with one or many QRs (otpauth or migration).
+    "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff",
+    // Archive of QR images (round-trips the desktop app's "Save All").
+    "zip", // Other-app exports.
+    "json", "2fas", "csv", "txt",
+];
 use zeroize::Zeroizing;
 
 pub fn default_vault_path() -> PathBuf {
@@ -73,7 +83,25 @@ fn run_app(
         .unwrap_or_else(default_vault_path);
     app_state.is_new_vault = !path.exists();
 
+    // Mouse capture is on by default (set up in `run()` before we get
+    // here) so we can route clicks on the list to copy-code, etc. But
+    // the Fullscreen view shows the URI / secret as plain text and the
+    // user wants to select that text natively — every terminal handles
+    // selection itself when mouse capture is off, so we toggle it
+    // per-screen.
+    let mut mouse_captured = true;
+
     loop {
+        let want_captured = !matches!(app_state.screen, Screen::Fullscreen | Screen::ExportUriList);
+        if want_captured != mouse_captured {
+            if want_captured {
+                execute!(terminal.backend_mut(), EnableMouseCapture)?;
+            } else {
+                execute!(terminal.backend_mut(), DisableMouseCapture)?;
+            }
+            mouse_captured = want_captured;
+        }
+
         terminal.draw(|f| {
             let area = f.area();
             match app_state.screen {
@@ -104,13 +132,6 @@ fn run_app(
                         .expect("vault must be initialized after unlock"),
                 ),
                 Screen::FilePicker => screens::file_picker::render(f, area, &app_state),
-                Screen::OtpDetail => {
-                    let v = vault
-                        .as_ref()
-                        .expect("vault must be initialized after unlock");
-                    screens::list::render(f, area, &app_state, v);
-                    screens::otp_detail::render(f, area, &app_state, v);
-                }
                 Screen::Export => {
                     let v = vault
                         .as_ref()
@@ -122,6 +143,7 @@ fn run_app(
                 Screen::ExportOtpauthList => {
                     screens::export_otpauth_list::render(f, area, &app_state)
                 }
+                Screen::ExportUriList => screens::export_uri_list::render(f, area, &app_state),
                 Screen::ScanningQr => {
                     let v = vault
                         .as_ref()
@@ -167,20 +189,13 @@ fn run_app(
                 PendingVaultAction::AddEntry => {
                     let name = app_state.add_name.trim().to_string();
                     let secret = app_state.add_parsed_secret.clone();
-                    let meta = app_state.add_meta.take();
-                    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-                    v.add_entry(tofa_core::store::VaultEntry {
-                        id: String::new(),
-                        name: name.clone(),
+                    let meta = app_state.add_meta.take().unwrap_or_default();
+                    let today = tofa_core::today_iso();
+                    let otp = OtpSecret {
                         secret: secret.to_string(),
-                        created_at: today,
-                        period: meta.as_ref().and_then(|m| m.period).unwrap_or(30),
-                        digits: meta.as_ref().and_then(|m| m.digits).unwrap_or(6),
-                        algorithm: meta
-                            .as_ref()
-                            .and_then(|m| m.algorithm.clone())
-                            .unwrap_or_else(|| "SHA1".to_string()),
-                    });
+                        meta,
+                    };
+                    v.add_entry(otp.into_vault_entry(name.clone(), today));
                     if save_vault(&mut app_state, v, &path) {
                         app_state.selected_index = v.entries().len().saturating_sub(1);
                         app_state.clear_add_form();
@@ -208,19 +223,16 @@ fn run_app(
         if app_state.screen == Screen::ScanningQr {
             if let Some(fp) = app_state.pending_scan_path.take() {
                 std::thread::sleep(Duration::from_millis(120));
-                let raw = app_state.add_secret_input.trim().to_string();
                 let v = vault
                     .as_mut()
                     .expect("vault must be initialized after unlock");
-                match scan_qr_uri(&fp) {
-                    Ok(uri) if uri.starts_with("otpauth-migration://") => {
-                        try_import_migration(&mut app_state, &uri, v, &path);
-                    }
-                    _ => {
-                        app_state.screen = Screen::AddForm;
-                        try_parse_and_advance(&mut app_state, &raw);
-                    }
-                }
+                // Files always route through the unified dispatcher: image,
+                // zip, json, csv, txt — all bulk-import with auto-derived
+                // names. Typed `otpauth://` URIs still go through the
+                // AddName flow via `try_parse_and_advance` (handled in the
+                // Enter key handler), so the interactive naming UX is
+                // preserved for that case.
+                try_import_file(&mut app_state, &fp, v, &path);
             }
             continue;
         }
@@ -252,13 +264,10 @@ fn run_app(
                                         }
                                     }
                                 }
-                                Screen::Fullscreen => {
-                                    app_state.screen = Screen::List;
-                                }
-                                Screen::OtpDetail => {
-                                    app_state.reset_detail_reveal();
-                                    app_state.screen = Screen::List;
-                                }
+                                // Fullscreen intentionally does NOT close on
+                                // click: mouse capture is disabled there so
+                                // the user can select URI / secret text
+                                // natively. Use Esc / `i` / Space to close.
                                 Screen::Export => {
                                     app_state.screen = Screen::List;
                                 }
@@ -320,13 +329,6 @@ fn run_app(
                                 .expect("vault must be initialized after unlock"),
                             &path,
                         )?,
-                        Screen::OtpDetail => handle_otp_detail_key(
-                            key.code,
-                            &mut app_state,
-                            vault
-                                .as_ref()
-                                .expect("vault must be initialized after unlock"),
-                        ),
                         Screen::Export => handle_export_key(
                             key.code,
                             &mut app_state,
@@ -336,11 +338,14 @@ fn run_app(
                         )?,
                         Screen::ExportQr => {
                             if key.code == KeyCode::Esc {
-                                app_state.screen = Screen::Export;
+                                app_state.screen = app_state.export_qr_back.clone();
                             }
                         }
                         Screen::ExportOtpauthList => {
                             handle_export_otpauth_list_key(key.code, &mut app_state);
+                        }
+                        Screen::ExportUriList => {
+                            handle_export_uri_list_key(key.code, &mut app_state);
                         }
                         Screen::DeleteConfirm => handle_delete_confirm_key(
                             key.code,
@@ -501,7 +506,7 @@ fn handle_list_key(
         }
         KeyCode::Char('i') if !accumulating && len > 0 => {
             state.reset_detail_reveal();
-            state.screen = Screen::OtpDetail;
+            state.screen = Screen::Fullscreen;
         }
         KeyCode::Char('i') if !accumulating => {}
         KeyCode::Char('e') if !accumulating && len > 0 => {
@@ -511,6 +516,9 @@ fn handle_list_key(
         }
         KeyCode::Char('y') if !accumulating => {
             copy_selected_code(state, vault);
+        }
+        KeyCode::Char('u') if !accumulating => {
+            copy_selected_uri(state, vault);
         }
         KeyCode::Char('l') if !accumulating => {
             lock_screen(state);
@@ -539,57 +547,169 @@ fn handle_list_key(
 
 fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
     let len = vault.entries().len();
+
+    // Passphrase reveal sub-mode: while the user types their passphrase
+    // to unmask the secret + URI, intercept everything except Esc /
+    // Backspace / Enter / printable chars so accidental shortcut keys
+    // don't leak into the typed passphrase.
+    if state.detail_revealing {
+        match key {
+            KeyCode::Esc => {
+                state.detail_revealing = false;
+                state.detail_passphrase.clear();
+            }
+            KeyCode::Char(c) => state.detail_passphrase.push(c),
+            KeyCode::Backspace => {
+                state.detail_passphrase.pop();
+            }
+            KeyCode::Enter => {
+                let correct = state
+                    .vault_key_cache
+                    .as_ref()
+                    .and_then(|k| std::str::from_utf8(k).ok())
+                    .map(|k| k == state.detail_passphrase.as_str())
+                    .unwrap_or(false);
+                if correct {
+                    state.detail_secret_visible = true;
+                    state.detail_revealing = false;
+                    state.detail_passphrase.clear();
+                } else {
+                    state.status_message = Some("Wrong passphrase".to_string());
+                    state.status_message_at = Some(std::time::Instant::now());
+                    state.detail_passphrase.clear();
+                }
+            }
+            _ => {}
+        }
+        return;
+    }
+
     match key {
-        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char(' ') => state.screen = Screen::List,
-        KeyCode::Char('i') if len > 0 => {
+        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char(' ') | KeyCode::Char('i') => {
             state.reset_detail_reveal();
-            state.screen = Screen::OtpDetail;
+            state.screen = Screen::List;
         }
         KeyCode::Char('y') => copy_selected_code(state, vault),
+        KeyCode::Char('u') => copy_selected_uri(state, vault),
+        KeyCode::Char('r') => {
+            if let Some(entry) = vault.entries().get(state.selected_index) {
+                let uri = tofa_core::qr::build_otpauth_uri(entry);
+                state.export_qr_lines = uri_to_qr_lines(&uri);
+                state.export_qr_back = Screen::Fullscreen;
+                state.screen = Screen::ExportQr;
+            }
+        }
         KeyCode::Char('l') => lock_screen(state),
+        KeyCode::Char('s') => {
+            if state.detail_secret_visible {
+                state.detail_secret_visible = false;
+            } else {
+                state.detail_revealing = true;
+                state.detail_passphrase.clear();
+            }
+        }
         KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
+            state.reset_detail_reveal();
             state.selected_index -= 1;
         }
         KeyCode::Down | KeyCode::Char('j') if len > 0 && state.selected_index < len - 1 => {
+            state.reset_detail_reveal();
             state.selected_index += 1;
         }
         _ => {}
     }
 }
 
-fn try_import_migration(state: &mut AppState, uri: &str, vault: &mut Vault, path: &Path) {
-    // Always close any modal and return to List, success or failure.
+/// Add already-parsed secrets to the vault with duplicate detection,
+/// save, and surface a status toast. All of TUI's import paths
+/// (file drop, file picker, typed migration URI) funnel through here.
+fn try_import_secrets(
+    state: &mut AppState,
+    secrets: Vec<OtpSecret>,
+    vault: &mut Vault,
+    path: &Path,
+) {
     state.clear_add_form();
     state.fp_query.clear();
     state.screen = Screen::List;
 
-    match parse_migration(uri) {
-        Ok(accounts) => {
-            let count = accounts.len();
-            let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-            for otp in accounts {
-                let name = match (&otp.meta.issuer, &otp.meta.account) {
-                    (Some(i), Some(a)) => format!("{i}:{a}"),
-                    (Some(i), None) => i.clone(),
-                    (None, Some(a)) => a.clone(),
-                    (None, None) => format!("imported-{}", vault.entries().len() + 1),
-                };
-                vault.add_entry(VaultEntry {
-                    id: String::new(),
-                    name,
-                    secret: otp.secret,
-                    created_at: today.clone(),
-                    period: otp.meta.period.unwrap_or(30),
-                    digits: otp.meta.digits.unwrap_or(6),
-                    algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-                });
-            }
-            if save_vault(state, vault, path) {
-                state.status_message = Some(format!("Imported {count} account(s)."));
-            }
+    let today = tofa_core::today_iso();
+    let mut imported = 0usize;
+    let mut skipped = 0usize;
+    for otp in secrets {
+        let name = match (&otp.meta.issuer, &otp.meta.account) {
+            (Some(i), Some(a)) => format!("{i}:{a}"),
+            (Some(i), None) => i.clone(),
+            (None, Some(a)) => a.clone(),
+            (None, None) => format!("imported-{}", vault.entries().len() + 1),
+        };
+        if vault.add_entry_if_unique(otp.into_vault_entry(name, today.clone())) {
+            imported += 1;
+        } else {
+            skipped += 1;
         }
+    }
+    if imported == 0 && skipped > 0 {
+        state.status_message = Some(format!("Already imported ({skipped} duplicate(s))."));
+        return;
+    }
+    if save_vault(state, vault, path) {
+        let mut msg = format!("Imported {imported} account(s).");
+        if skipped > 0 {
+            msg.push_str(&format!(" Skipped {skipped} duplicate(s)."));
+        }
+        state.status_message = Some(msg);
+    }
+}
+
+/// Run the unified file dispatcher (image / zip / json / csv / txt) and
+/// import everything it returns. Used by every TUI surface that takes a
+/// file path: drag-dropped path, file-picker selection, typed path in
+/// the AddForm.
+fn try_import_file(state: &mut AppState, file: &Path, vault: &mut Vault, vault_path: &Path) {
+    match tofa_core::import::parse_file(file) {
+        Ok(secrets) => try_import_secrets(state, secrets, vault, vault_path),
         Err(e) => {
+            state.clear_add_form();
+            state.fp_query.clear();
+            state.screen = Screen::List;
             state.status_message = Some(format!("Import failed: {e}"));
+        }
+    }
+}
+
+/// Bulk variant of `try_import_file`: parses every checked path,
+/// concatenates the resulting OtpSecrets, and runs them through the
+/// shared import-and-save pipeline once. Files that fail to parse are
+/// counted but don't abort the rest — the toast surfaces the
+/// success/failure split.
+fn try_import_files(state: &mut AppState, files: &[PathBuf], vault: &mut Vault, vault_path: &Path) {
+    let mut all: Vec<OtpSecret> = Vec::new();
+    let mut failed = 0usize;
+    for f in files {
+        match tofa_core::import::parse_file(f) {
+            Ok(mut secrets) => all.append(&mut secrets),
+            Err(_) => failed += 1,
+        }
+    }
+    if all.is_empty() {
+        state.clear_add_form();
+        state.fp_query.clear();
+        state.fp_checked.clear();
+        state.screen = Screen::List;
+        state.status_message = Some(format!(
+            "Import failed: no recognisable accounts in {} file(s).",
+            files.len()
+        ));
+        return;
+    }
+    try_import_secrets(state, all, vault, vault_path);
+    state.fp_checked.clear();
+    if failed > 0 {
+        // try_import_secrets has already set a "Imported N" toast;
+        // append the failure count so the user sees both numbers.
+        if let Some(msg) = state.status_message.as_mut() {
+            msg.push_str(&format!(" {failed} file(s) couldn't be parsed."));
         }
     }
 }
@@ -599,19 +719,8 @@ fn try_parse_and_advance(state: &mut AppState, raw: &str) {
         Ok(otp) => {
             state.status_message = None;
             state.add_parsed_secret = Zeroizing::new(otp.secret);
-            state.add_name = match (&otp.meta.issuer, &otp.meta.account) {
-                (Some(i), Some(a)) => format!("{i}:{a}"),
-                (Some(i), None) => i.clone(),
-                (None, Some(a)) => a.clone(),
-                (None, None) => String::new(),
-            };
-            state.add_meta = Some(OtpMetaDisplay {
-                issuer: otp.meta.issuer,
-                account: otp.meta.account,
-                algorithm: otp.meta.algorithm,
-                digits: otp.meta.digits,
-                period: otp.meta.period,
-            });
+            state.add_name = otp.meta.derive_name();
+            state.add_meta = Some(otp.meta);
             state.screen = Screen::AddName;
         }
         Err(e) => {
@@ -656,21 +765,33 @@ fn handle_add_form_key(
         KeyCode::Enter => {
             let raw = state.add_secret_input.trim().to_string();
             if !raw.is_empty() {
-                if raw.starts_with("otpauth-migration://") {
-                    try_import_migration(state, &raw, vault, path);
-                } else {
-                    // Could be a file path containing a migration QR
-                    let fp = std::path::Path::new(&raw);
-                    if fp.is_file() {
-                        match scan_qr_uri(fp) {
-                            Ok(uri) if uri.starts_with("otpauth-migration://") => {
-                                try_import_migration(state, &uri, vault, path);
-                            }
-                            _ => try_parse_and_advance(state, &raw),
+                let fp = std::path::Path::new(&raw);
+                if fp.is_file() {
+                    try_import_file(state, fp, vault, path);
+                } else if raw.starts_with("otpauth-migration://") {
+                    // Pasted Google-Authenticator export URI — bulk import
+                    // every account in one go, no per-entry naming step.
+                    match tofa_core::import::parse_migration_uri(&raw) {
+                        Ok(secrets) => try_import_secrets(state, secrets, vault, path),
+                        Err(e) => {
+                            state.status_message = Some(format!("Import failed: {e}"));
                         }
-                    } else {
-                        try_parse_and_advance(state, &raw);
                     }
+                } else if tofa_core::import::is_multi_otpauth_paste(&raw) {
+                    // Pasted list of otpauth:// URIs (one per line, e.g.
+                    // an Ente Auth export pasted directly into the form).
+                    // Bulk import — single-URI naming UX doesn't fit when
+                    // there are several at once.
+                    match tofa_core::import::parse_text_uris(&raw) {
+                        Ok(secrets) => try_import_secrets(state, secrets, vault, path),
+                        Err(e) => {
+                            state.status_message = Some(format!("Import failed: {e}"));
+                        }
+                    }
+                } else {
+                    // Single otpauth:// URI: keep the interactive AddName
+                    // flow so the user can review and rename before saving.
+                    try_parse_and_advance(state, &raw);
                 }
             }
         }
@@ -754,70 +875,23 @@ fn copy_selected_code(state: &mut AppState, vault: &Vault) {
     }
 }
 
-fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
-    let len = vault.entries().len();
-
-    // Passphrase reveal sub-mode
-    if state.detail_revealing {
-        match key {
-            KeyCode::Esc => {
-                state.detail_revealing = false;
-                state.detail_passphrase.clear();
-            }
-            KeyCode::Char(c) => state.detail_passphrase.push(c),
-            KeyCode::Backspace => {
-                state.detail_passphrase.pop();
-            }
-            KeyCode::Enter => {
-                let correct = state
-                    .vault_key_cache
-                    .as_ref()
-                    .and_then(|k| std::str::from_utf8(k).ok())
-                    .map(|k| k == state.detail_passphrase.as_str())
-                    .unwrap_or(false);
-                if correct {
-                    state.detail_secret_visible = true;
-                    state.detail_revealing = false;
-                    state.detail_passphrase.clear();
-                } else {
-                    state.status_message = Some("Wrong passphrase".to_string());
-                    state.status_message_at = Some(std::time::Instant::now());
-                    state.detail_passphrase.clear();
-                }
-            }
-            _ => {}
-        }
+/// Copy the selected entry's `otpauth://` URI to the clipboard. Useful
+/// for migrating an account to another authenticator without exporting
+/// the whole vault. Bound to `u` in the list and detail screens.
+fn copy_selected_uri(state: &mut AppState, vault: &Vault) {
+    let Some(entry) = vault.entries().get(state.selected_index) else {
         return;
-    }
-
-    match key {
-        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('i') => {
-            state.reset_detail_reveal();
-            state.screen = Screen::List;
+    };
+    let uri = tofa_core::qr::build_otpauth_uri(entry);
+    match arboard::Clipboard::new().and_then(|mut cb| cb.set_text(uri)) {
+        Ok(_) => {
+            state.status_message = Some("URI copied to clipboard".to_string());
+            state.status_message_at = Some(Instant::now());
         }
-        KeyCode::Char(' ') if !state.detail_revealing && len > 0 => {
-            state.reset_detail_reveal();
-            state.screen = Screen::Fullscreen;
+        Err(_) => {
+            state.status_message = Some("Clipboard unavailable".to_string());
+            state.status_message_at = Some(Instant::now());
         }
-        KeyCode::Char('y') => copy_selected_code(state, vault),
-        KeyCode::Char('l') => lock_screen(state),
-        KeyCode::Char('s') => {
-            if state.detail_secret_visible {
-                state.detail_secret_visible = false;
-            } else {
-                state.detail_revealing = true;
-                state.detail_passphrase.clear();
-            }
-        }
-        KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
-            state.reset_detail_reveal();
-            state.selected_index -= 1;
-        }
-        KeyCode::Down | KeyCode::Char('j') if len > 0 && state.selected_index < len - 1 => {
-            state.reset_detail_reveal();
-            state.selected_index += 1;
-        }
-        _ => {}
     }
 }
 
@@ -846,6 +920,7 @@ fn handle_export_key(
             match tofa_core::build_selection_uri(&selection) {
                 Ok(uri) => {
                     state.export_qr_lines = uri_to_qr_lines(&uri);
+                    state.export_qr_back = Screen::Export;
                     state.screen = Screen::ExportQr;
                 }
                 Err(tofa_core::SelectionExportError::Empty) => {
@@ -876,6 +951,26 @@ fn handle_export_key(
             state.otpauth_list_titles = selection.iter().map(|e| e.name.clone()).collect();
             state.otpauth_list_index = 0;
             state.screen = Screen::ExportOtpauthList;
+        }
+        KeyCode::Char('u') => {
+            // 'u' = show the otpauth:// URIs as plain text. Mouse
+            // capture is auto-disabled on the ExportUriList screen so
+            // the user can click-and-drag to select any URI natively;
+            // `y` on that screen copies the whole list at once. To
+            // *save* the URIs to a file, use `tofa export --format uris`
+            // from the CLI.
+            let selection = checked_selection(state, vault);
+            if selection.is_empty() {
+                state.status_message = Some("No accounts selected.".to_string());
+                state.screen = Screen::List;
+                return Ok(());
+            }
+            state.export_uri_list = selection
+                .iter()
+                .map(|e| (e.name.clone(), tofa_core::qr::build_otpauth_uri(e)))
+                .collect();
+            state.export_uri_scroll = 0;
+            state.screen = Screen::ExportUriList;
         }
         _ => {}
     }
@@ -908,11 +1003,46 @@ fn handle_export_otpauth_list_key(key: KeyCode, state: &mut AppState) {
     }
 }
 
+fn handle_export_uri_list_key(key: KeyCode, state: &mut AppState) {
+    match key {
+        KeyCode::Esc => state.screen = Screen::Export,
+        KeyCode::Up | KeyCode::Char('k') => {
+            state.export_uri_scroll = state.export_uri_scroll.saturating_sub(1);
+        }
+        KeyCode::Down | KeyCode::Char('j') => {
+            state.export_uri_scroll = state.export_uri_scroll.saturating_add(1);
+        }
+        KeyCode::Char('y') => {
+            let body = state
+                .export_uri_list
+                .iter()
+                .map(|(_, u)| u.as_str())
+                .collect::<Vec<_>>()
+                .join("\n");
+            match arboard::Clipboard::new().and_then(|mut cb| cb.set_text(body)) {
+                Ok(_) => {
+                    state.status_message = Some(format!(
+                        "Copied {} URI(s) to clipboard",
+                        state.export_uri_list.len()
+                    ));
+                    state.status_message_at = Some(Instant::now());
+                }
+                Err(_) => {
+                    state.status_message = Some("Clipboard unavailable".to_string());
+                    state.status_message_at = Some(Instant::now());
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 fn open_file_picker(state: &mut AppState) {
     let start = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     state.fp_path = start;
     state.fp_selected = 0;
     state.fp_query.clear();
+    state.fp_checked.clear();
     refresh_fp_entries(state);
     state.screen = Screen::FilePicker;
 }
@@ -944,7 +1074,7 @@ fn refresh_fp_entries(state: &mut AppState) {
                     .and_then(|e| e.to_str())
                     .unwrap_or("")
                     .to_lowercase();
-                if IMAGE_EXTS.contains(&ext.as_str()) {
+                if SUPPORTED_EXTS.contains(&ext.as_str()) {
                     files.push(name);
                 }
             }
@@ -970,6 +1100,7 @@ fn handle_file_picker_key(
 
     match key {
         KeyCode::Esc | KeyCode::Tab => {
+            state.fp_checked.clear();
             state.screen = Screen::AddForm;
         }
         KeyCode::Backspace => {
@@ -985,6 +1116,24 @@ fn handle_file_picker_key(
                 state.fp_selected += 1;
             }
         }
+        KeyCode::Char(' ') => {
+            // Toggle the highlighted entry's checked state. Only files
+            // count — checking a directory wouldn't have an obvious
+            // meaning (descend? recursive import?) and the unified
+            // dispatcher already handles zips & multi-QR images
+            // when the user wants bulk content.
+            let visible: Vec<_> = filtered(&state.fp_entries, &state.fp_query);
+            if let Some((name, is_dir)) = visible.get(state.fp_selected).copied() {
+                if !*is_dir {
+                    let full = state.fp_path.join(name);
+                    if let Some(pos) = state.fp_checked.iter().position(|p| p == &full) {
+                        state.fp_checked.remove(pos);
+                    } else {
+                        state.fp_checked.push(full);
+                    }
+                }
+            }
+        }
         KeyCode::Enter => {
             let visible: Vec<_> = filtered(&state.fp_entries, &state.fp_query);
             if let Some((name, is_dir)) = visible.get(state.fp_selected).copied() {
@@ -998,20 +1147,26 @@ fn handle_file_picker_key(
                     state.fp_path = new_path;
                     state.fp_query.clear();
                     refresh_fp_entries(state);
+                } else if !state.fp_checked.is_empty() {
+                    // Honour the multi-selection. Include the cursor's
+                    // file too if it isn't already checked, so Enter
+                    // never silently ignores the highlighted row.
+                    let cursor_file = state.fp_path.join(&name);
+                    let mut files = state.fp_checked.clone();
+                    if !files.contains(&cursor_file) {
+                        files.push(cursor_file);
+                    }
+                    try_import_files(state, &files, vault, path);
                 } else {
                     let file_path = state.fp_path.join(&name);
-                    match scan_qr_uri(&file_path) {
-                        Ok(uri) if uri.starts_with("otpauth-migration://") => {
-                            try_import_migration(state, &uri, vault, path);
-                        }
-                        Ok(_) | Err(_) => {
-                            let raw = file_path.to_string_lossy().to_string();
-                            state.add_secret_input = raw.clone();
-                            state.screen = Screen::AddForm;
-                            try_parse_and_advance(state, &raw);
-                        }
-                    }
+                    try_import_file(state, &file_path, vault, path);
                 }
+            } else if !state.fp_checked.is_empty() {
+                // No row under the cursor (e.g. filtered to nothing)
+                // but the user already checked some files — import
+                // those.
+                let files = state.fp_checked.clone();
+                try_import_files(state, &files, vault, path);
             }
         }
         KeyCode::Char(c) => {
@@ -1046,14 +1201,10 @@ fn list_row_content_width(vault: &Vault) -> usize {
     let max_label_w = entries
         .iter()
         .map(|e| {
-            if let Some(pos) = e.name.find(':') {
-                let issuer = &e.name[..pos];
-                let account = &e.name[pos + 1..];
-                if account.is_empty() {
-                    e.name.chars().count()
-                } else {
-                    issuer.chars().count() + 3 + account.chars().count()
-                }
+            let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&e.name);
+            if !issuer.is_empty() && !account.is_empty() {
+                // " · " separator is 3 visible cells.
+                issuer.chars().count() + 3 + account.chars().count()
             } else {
                 e.name.chars().count()
             }

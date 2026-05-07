@@ -31,7 +31,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
     render_header(f, chunks[0], vault, header_secs);
     render_list(f, chunks[1], state, vault);
-    render_footer(f, chunks[2]);
+    render_footer(f, chunks[2], state);
     super::toast::render(f, area, state);
 }
 
@@ -97,14 +97,9 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     let labels: Vec<String> = entries
         .iter()
         .map(|entry| {
-            if let Some(pos) = entry.name.find(':') {
-                let issuer = &entry.name[..pos];
-                let account = &entry.name[pos + 1..];
-                if account.is_empty() {
-                    entry.name.clone()
-                } else {
-                    format!("{} · {}", issuer, account)
-                }
+            let (issuer, account) = tofa_core::qr::OtpMeta::split_name(&entry.name);
+            if !issuer.is_empty() && !account.is_empty() {
+                format!("{issuer} · {account}")
             } else {
                 entry.name.clone()
             }
@@ -213,7 +208,7 @@ fn render_list(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     f.render_stateful_widget(list, area, &mut list_state);
 }
 
-fn render_footer(f: &mut Frame, area: Rect) {
+fn render_footer(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(
         Block::default()
             .borders(Borders::TOP)
@@ -231,13 +226,14 @@ fn render_footer(f: &mut Frame, area: Rect) {
         desc(" nav"),
         sep(),
         key("spc"),
-        desc(" fullscreen"),
-        sep(),
-        key("i"),
-        desc(" detail"),
+        desc(" view"),
         sep(),
         key("h"),
-        desc(" codes"),
+        desc(if state.show_codes {
+            " hide others"
+        } else {
+            " show others"
+        }),
         sep(),
         key("a"),
         desc(" add"),
@@ -247,6 +243,9 @@ fn render_footer(f: &mut Frame, area: Rect) {
         sep(),
         key("y"),
         desc(" copy"),
+        sep(),
+        key("u"),
+        desc(" URI"),
         sep(),
         key("e"),
         desc(" export"),

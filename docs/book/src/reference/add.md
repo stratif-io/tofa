@@ -53,10 +53,26 @@ all of them at once:
 ```console
 $ tofa add --qr ~/Downloads/migration.png
 Passphrase: ********
-✓ added GitHub:you
-✓ added Discord:you
-✓ added Slack:work
-imported 3 accounts
+Imported 3 account(s).
+```
+
+If the migration QR includes accounts you've already imported, the
+duplicates are skipped silently and the count reflects only the new
+ones:
+
+```console
+$ tofa add --qr ~/Downloads/migration.png
+Passphrase: ********
+Imported 1 account(s) (2 duplicate(s) skipped).
+```
+
+Re-adding an account that's already in the vault errors out instead
+of creating a duplicate row:
+
+```console
+$ tofa add --uri "otpauth://totp/GitHub:you?secret=JBSWY3DPEHPK3PXP&issuer=GitHub"
+Passphrase: ********
+Error: "GitHub:you" is already in the vault.
 ```
 
 ## Notes
@@ -64,10 +80,14 @@ imported 3 accounts
 - Exactly one of `--secret`, `--uri`, or `--qr` is required.
 - `--secret` requires `--name`; `--uri` and `--qr` derive the name themselves
   (override with `--name`).
+- An entry is a duplicate when its **name** *and* **secret** both match a
+  row already in the vault. Rotating the secret (same name, new secret)
+  or filing the same secret under a second name still goes through.
+  This is the same rule the TUI, desktop app, and `tofa import` use.
 - The vault is rewritten atomically: a temp file is written and then renamed,
   so the old vault is never partially overwritten.
 - Exit code `0` on success, non-zero on parse errors, wrong passphrase, or
-  duplicate account ids.
+  an attempt to re-add an exact duplicate.
 
 ## See also
 

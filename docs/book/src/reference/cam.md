@@ -26,13 +26,23 @@ Default camera:
 $ tofa cam
 Passphrase: ********
 Open http://127.0.0.1:54321 in your browser…
-✓ added GitHub:you
+Added GitHub:you
+Current code: 482 913  (21s)
 ```
 
 Pick a specific camera (e.g., the second one):
 
 ```console
 $ tofa cam --camera 1
+```
+
+A migration QR captured with the camera expands into all of its
+accounts in one shot:
+
+```console
+$ tofa cam
+...
+Imported 3 account(s).
 ```
 
 ## Notes
@@ -42,6 +52,10 @@ $ tofa cam --camera 1
 - Grant the browser permission to use the camera when prompted.
 - Once a QR decodes, the page closes itself and `tofa` continues with the
   detected account.
+- Like every TOFA import surface, `cam` dedups on (name, secret).
+  Pointing the camera at a QR you've already imported errors out for
+  a single account, or reports `N duplicate(s) skipped` for a
+  migration QR — never silently double-adds.
 
 ## See also
 

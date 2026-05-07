@@ -32,9 +32,9 @@ These work on every subcommand:
 | [`rename`](./rename.md) | Rename an account. |
 | [`qr`](./qr.md) | Print a QR code for one account or all. |
 | [`rekey`](./rekey.md) | Change the vault passphrase. |
-| [`export`](./export.md) | Dump every account as JSON. |
-| [`import`](./import.md) | Import from JSON or a migration QR. |
-| [`scan`](./scan.md) | Capture the screen and read a visible QR. |
+| [`export`](./export.md) | Dump every account as JSON or as a list of `otpauth://` URIs. |
+| [`import`](./import.md) | Import from any supported file: single- or multi-QR images, migration QRs, JSON / CSV / TXT exports from other authenticators, or a zip archive of any of the above. |
+| [`scan`](./scan.md) | Capture every connected display and import every QR visible on screen. |
 | [`cam`](./cam.md) | Open the webcam and wait for a QR. |
 | [`completions`](./completions.md) | Print shell completions. |
 | [`destroy`](./destroy.md) | Permanently delete the vault. |

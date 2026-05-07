@@ -4,8 +4,8 @@ use clap::Args;
 use std::path::PathBuf;
 use tofa_core::{
     qr::OtpSecret,
-    totp::{generate_code_now, seconds_remaining_now},
-    Vault, VaultEntry,
+    totp::{format_code, generate_code_now, seconds_remaining_now},
+    Vault,
 };
 
 #[derive(Args)]
@@ -34,13 +34,13 @@ pub fn run(args: AddArgs, vault_path: PathBuf) -> CliResult {
             return import_migration(&uri, &mut vault, &vault_path, &pass, &args.name);
         }
         let otp = tofa_core::qr::parse_input(&uri)?;
-        let name = args.name.unwrap_or_else(|| make_name(&otp));
+        let name = args.name.unwrap_or_else(|| otp.meta.derive_name());
         return add_single(&name, otp, &mut vault, &vault_path, &pass);
     }
 
     if let Some(uri) = &args.uri {
         let otp = tofa_core::qr::parse_input(uri)?;
-        let name = args.name.unwrap_or_else(|| make_name(&otp));
+        let name = args.name.unwrap_or_else(|| otp.meta.derive_name());
         return add_single(&name, otp, &mut vault, &vault_path, &pass);
     }
 
@@ -56,15 +56,6 @@ pub fn run(args: AddArgs, vault_path: PathBuf) -> CliResult {
     Err("Provide --secret, --uri, or --qr.".into())
 }
 
-fn make_name(otp: &OtpSecret) -> String {
-    match (&otp.meta.issuer, &otp.meta.account) {
-        (Some(i), Some(a)) => format!("{i}:{a}"),
-        (Some(i), None) => i.clone(),
-        (None, Some(a)) => a.clone(),
-        (None, None) => "unknown".to_string(),
-    }
-}
-
 pub fn add_single(
     name: &str,
     otp: OtpSecret,
@@ -72,26 +63,19 @@ pub fn add_single(
     path: &std::path::Path,
     pass: &str,
 ) -> CliResult {
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let entry = VaultEntry {
-        id: String::new(),
-        name: name.to_string(),
-        secret: otp.secret,
-        created_at: today,
-        period: otp.meta.period.unwrap_or(30),
-        digits: otp.meta.digits.unwrap_or(6),
-        algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-    };
+    let today = tofa_core::today_iso();
+    let entry = otp.into_vault_entry(name.to_string(), today);
     let code = generate_code_now(&entry).unwrap_or_else(|_| "------".into());
     let secs = seconds_remaining_now(&entry);
-    vault.add_entry(entry);
+    if !vault.add_entry_if_unique(entry) {
+        return Err(format!("\"{name}\" is already in the vault.").into());
+    }
     vault.save(path, pass)?;
     println!("{}{}{}", ansi::success(), voice::ADDED_OK, ansi::RESET);
     println!(
-        "{}{} {}{}  {}({}s){}",
+        "{}{}{}  {}({}s){}",
         ansi::brand(),
-        &code[..3],
-        &code[3..],
+        format_code(&code),
         ansi::RESET,
         ansi::muted(),
         secs,
@@ -108,21 +92,23 @@ fn import_migration(
     name_override: &Option<String>,
 ) -> CliResult {
     let accounts = tofa_core::qr::parse_migration(uri)?;
-    let count = accounts.len();
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let total = accounts.len();
+    let today = tofa_core::today_iso();
+    let mut imported = 0usize;
     for otp in accounts {
-        let name = name_override.clone().unwrap_or_else(|| make_name(&otp));
-        vault.add_entry(VaultEntry {
-            id: String::new(),
-            name,
-            secret: otp.secret,
-            created_at: today.clone(),
-            period: otp.meta.period.unwrap_or(30),
-            digits: otp.meta.digits.unwrap_or(6),
-            algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-        });
+        let name = name_override
+            .clone()
+            .unwrap_or_else(|| otp.meta.derive_name());
+        if vault.add_entry_if_unique(otp.into_vault_entry(name, today.clone())) {
+            imported += 1;
+        }
     }
     vault.save(path, pass)?;
-    println!("Imported {count} account(s).");
+    let skipped = total - imported;
+    if skipped > 0 {
+        println!("Imported {imported} account(s) ({skipped} duplicate(s) skipped).");
+    } else {
+        println!("Imported {imported} account(s).");
+    }
     Ok(())
 }

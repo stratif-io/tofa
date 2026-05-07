@@ -98,10 +98,29 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
             } else {
                 theme::TEXT
             };
-            let icon = if *is_dir { "▸ " } else { "  " };
+            // Files: 3-cell checkbox slot ("[✓]"/"[ ]"). Directories
+            // get a 3-cell directional arrow so the indent lines up
+            // visually whether or not the row is checkable.
+            let leading = if *is_dir {
+                Span::styled("▸  ", Style::default().fg(text_col))
+            } else {
+                let full = state.fp_path.join(name);
+                let checked = state.fp_checked.iter().any(|p| p == &full);
+                if checked {
+                    Span::styled(
+                        "[✓]",
+                        Style::default()
+                            .fg(theme::BRAND)
+                            .add_modifier(Modifier::BOLD),
+                    )
+                } else {
+                    Span::styled("[ ]", Style::default().fg(theme::TEXT_MUTED))
+                }
+            };
             ListItem::new(Line::from(vec![
                 Span::styled("▌ ", Style::default().fg(border_col)),
-                Span::styled(icon, Style::default().fg(text_col)),
+                leading,
+                Span::styled(" ", Style::default()),
                 Span::styled(name.clone(), Style::default().fg(text_col)),
             ]))
         })
@@ -117,11 +136,31 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
         &mut list_state,
     );
 
-    f.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            "[ type ] filter  [ ↑↓ ] navigate  [ Enter ] open  [ Esc ] back",
-            Style::default().fg(theme::TEXT_MUTED),
-        ))),
-        chunks[4],
-    );
+    let key = |k: &'static str| Span::styled(k, Style::default().fg(theme::BRAND));
+    let desc = |d: &'static str| Span::styled(d, Style::default().fg(theme::TEXT));
+    let sep = || Span::styled("  ", Style::default());
+    let mut hint = vec![
+        key("↑↓"),
+        desc(" nav"),
+        sep(),
+        key("spc"),
+        desc(" toggle"),
+        sep(),
+        key("⏎"),
+        desc(" open/import"),
+        sep(),
+        key("esc"),
+        desc(" back"),
+    ];
+    let count = state.fp_checked.len();
+    if count > 0 {
+        hint.push(sep());
+        hint.push(Span::styled(
+            format!("({count} selected)"),
+            Style::default()
+                .fg(theme::BRAND)
+                .add_modifier(Modifier::BOLD),
+        ));
+    }
+    f.render_widget(Paragraph::new(Line::from(hint)), chunks[4]);
 }

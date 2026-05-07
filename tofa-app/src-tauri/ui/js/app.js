@@ -293,15 +293,19 @@ function openDetail(id) {
 }
 
 function renderDetailMeta(entry) {
+  // Order goes identifiers first, then technical params, then dates,
+  // then sensitive fields at the bottom (sensitive last so the user's
+  // eye lands on plain metadata before the bullets).
   const rows = [
-    ['Account',   entry.account || '—'],
+    ['ID',        entry.id || '—'],
     ['Issuer',    entry.issuer  || '—'],
+    ['Account',   entry.account || '—'],
     ['Algorithm', entry.algorithm || 'SHA1'],
     ['Digits',    String(entry.digits || 6)],
     ['Period',    `${entry.period || 30}s`],
     ['Added',     entry.created_at || '—'],
-    ['ID',        entry.id || '—'],
     ['Secret',    null],
+    ['URI',       null],
   ];
   const tbody = $('detail-meta-body');
   tbody.innerHTML = '';
@@ -311,6 +315,25 @@ function renderDetailMeta(entry) {
       tr.innerHTML = `<td>${label}</td><td><span class="secret-masked" id="secret-cell" title="Click to reveal">●●●●●●●●●●●●●●●●</span></td>`;
       tbody.appendChild(tr);
       $('secret-cell').addEventListener('click', () => {
+        $('reveal-passphrase').value = '';
+        $('reveal-error').style.display = 'none';
+        $('reveal-overlay').style.display = 'flex';
+        $('reveal-passphrase').focus();
+      });
+    } else if (label === 'URI') {
+      // Same trust boundary as the secret row — bullets by default,
+      // unmasked by the same reveal-overlay passphrase prompt. The
+      // backend hands us a pre-masked URI so we don't need the secret
+      // to render the resting state.
+      tr.innerHTML = `<td>${label}</td>` +
+        `<td><span class="secret-masked" id="uri-cell" ` +
+        `style="word-break:break-all;font-family:var(--font-mono);font-size:11px;" ` +
+        `title="Click to reveal">Loading…</span></td>`;
+      tbody.appendChild(tr);
+      invoke('get_masked_uri', { id: entry.id })
+        .then(uri => { $('uri-cell').textContent = uri; })
+        .catch(_ => { $('uri-cell').textContent = '(unavailable)'; });
+      $('uri-cell').addEventListener('click', () => {
         $('reveal-passphrase').value = '';
         $('reveal-error').style.display = 'none';
         $('reveal-overlay').style.display = 'flex';
@@ -481,14 +504,20 @@ function bindAddListeners() {
   if (btnFile) {
     btnFile.addEventListener('click', async () => {
       loaderStart();
-      showBlocking('Importing file…');
+      showBlocking('Importing files…');
       try {
         const added = await withPopoverPinned(() => invoke('pick_and_import_file'));
         if (added.length === 0) return;
         const data = await invoke('get_entries');
         renderList(data);
         showView('view-list');
-        toast(`Added: ${added.join(', ')}`);
+        // Many-account imports get a count + first-few preview;
+        // single imports keep the original "Added: <name>" form.
+        if (added.length <= 3) {
+          toast(`Added: ${added.join(', ')}`);
+        } else {
+          toast(`Added ${added.length} accounts (${added.slice(0, 3).join(', ')}, …)`);
+        }
       } catch (err) { toast(String(err), true); }
       finally { loaderDone(); hideBlocking(); }
     });
@@ -581,6 +610,14 @@ $('btn-detail-copy').addEventListener('click', async () => {
   try {
     await invoke('copy_code', { id: selectedId });
     toast('Copied!');
+  } catch (err) { toast(String(err), true); }
+});
+
+$('btn-detail-copy-uri').addEventListener('click', async () => {
+  if (!selectedId) return;
+  try {
+    await invoke('copy_uri', { id: selectedId });
+    toast('URI copied to clipboard');
   } catch (err) { toast(String(err), true); }
 });
 
@@ -731,6 +768,21 @@ $('btn-export-qr-generate-multi').addEventListener('click', async () => {
   finally { loaderDone(); }
 });
 
+// Save selected entries as a plain-text URI list. Round-trips through
+// `tofa import <file>.txt` and the desktop app's drop handler. Useful
+// for moving accounts between authenticators when the receiving app
+// can't read a Google-Authenticator migration QR.
+$('btn-export-uri-list').addEventListener('click', async () => {
+  const ids = [...$('export-qr-list').querySelectorAll('input[type=checkbox]:checked')]
+    .map(cb => cb.dataset.id);
+  if (ids.length === 0) { toast('Select at least one account', true); return; }
+  try {
+    await withPopoverPinned(() => invoke('save_uri_list', { ids }));
+    $('export-qr-overlay').style.display = 'none';
+    toast(`Saved ${ids.length} URI${ids.length > 1 ? 's' : ''}`);
+  } catch (err) { toast(String(err), true); }
+});
+
 $('btn-reveal-cancel').addEventListener('click', () => {
   $('reveal-overlay').style.display = 'none';
   $('reveal-passphrase').value = '';
@@ -741,18 +793,35 @@ $('btn-reveal-confirm').addEventListener('click', async () => {
   const errEl = $('reveal-error');
   errEl.style.display = 'none';
   try {
-    const secret = await invoke('get_secret', { id: selectedId, passphrase });
+    // get_full_uri also revalidates the passphrase server-side, so
+    // wrong-passphrase paths surface here before we touch any UI.
+    const [secret, fullUri] = await Promise.all([
+      invoke('get_secret', { id: selectedId, passphrase }),
+      invoke('get_full_uri', { id: selectedId, passphrase }),
+    ]);
     $('reveal-overlay').style.display = 'none';
     $('reveal-passphrase').value = '';
-    // Show secret in cell, truncate after 30s
+    // Show secret + URI in their cells, re-mask both after 30s.
     const cell = $('secret-cell');
     cell.textContent = secret;
     cell.className = '';
     cell.style.color = 'var(--brand)';
+    const uriCell = $('uri-cell');
+    if (uriCell) {
+      uriCell.dataset.masked = uriCell.textContent;
+      uriCell.textContent = fullUri;
+      uriCell.className = '';
+      uriCell.style.color = 'var(--brand)';
+    }
     setTimeout(() => {
       cell.textContent = '●●●●●●●●●●●●●●●●';
       cell.className = 'secret-masked';
       cell.style.color = '';
+      if (uriCell && uriCell.dataset.masked) {
+        uriCell.textContent = uriCell.dataset.masked;
+        uriCell.className = 'secret-masked';
+        uriCell.style.color = '';
+      }
     }, 30000);
   } catch (err) {
     errEl.textContent = String(err);

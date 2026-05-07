@@ -122,3 +122,29 @@ fn code_watch_produces_output() {
         .assert()
         .stdout(is_match(r"\d{3} \d{3}").unwrap());
 }
+
+#[test]
+fn code_uri_flag_prints_otpauth_uri_instead_of_digits() {
+    // `tofa code <name> --uri` is the way to grab a single entry's
+    // otpauth:// URI (e.g. to move it to another authenticator).
+    // It prints the URI to stdout; --copy puts it on the clipboard.
+    let tmp = setup();
+    let out = tofa(&tmp)
+        .args(["code", "GitHub:carlo", "--uri"])
+        .assert()
+        .success();
+    let stdout = String::from_utf8(out.get_output().stdout.clone()).unwrap();
+    let line = stdout.trim();
+    // The label's `:` is percent-encoded per the otpauth spec.
+    assert!(line.starts_with("otpauth://totp/"), "stdout: {line:?}");
+    assert!(
+        line.contains("GitHub%3Acarlo") || line.contains("GitHub:carlo"),
+        "label should include GitHub:carlo (raw or percent-encoded): {line:?}"
+    );
+    assert!(line.contains("CLICODEPRIMARYAA"));
+    // No code digits should appear on stdout — that's the point of --uri.
+    assert!(
+        !is_match(r"\d{3} \d{3}").unwrap().eval(line),
+        "URI mode should not also print the code: {line:?}"
+    );
+}

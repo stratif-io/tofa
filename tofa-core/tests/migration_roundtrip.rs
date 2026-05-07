@@ -2,29 +2,12 @@ use std::path::PathBuf;
 use tofa_core::{
     generate_migration_uri,
     qr::{parse_migration, scan_qr_uri, MigrationAccount, OtpSecret},
-    store::VaultEntry,
 };
 
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures/google_authenticator")
         .join(name)
-}
-
-fn entry_from_otp(otp: &OtpSecret) -> VaultEntry {
-    VaultEntry {
-        id: String::new(),
-        name: String::new(),
-        secret: otp.secret.clone(),
-        created_at: String::new(),
-        period: otp.meta.period.unwrap_or(30),
-        digits: otp.meta.digits.unwrap_or(6),
-        algorithm: otp
-            .meta
-            .algorithm
-            .clone()
-            .unwrap_or_else(|| "SHA1".to_string()),
-    }
 }
 
 fn build_accounts(otps: &[OtpSecret]) -> Vec<(String, String, String, String, u8)> {

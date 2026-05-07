@@ -4542,6 +4542,7 @@ dependencies = [
  "tui-big-text",
  "unicode-width",
  "zeroize",
+ "zip",
 ]
 
 [[package]]
@@ -4573,6 +4574,7 @@ dependencies = [
  "aes-gcm",
  "argon2",
  "base64 0.22.1",
+ "chrono",
  "data-encoding",
  "image",
  "qrcode",
@@ -4584,6 +4586,7 @@ dependencies = [
  "thiserror 1.0.69",
  "totp-rs",
  "zeroize",
+ "zip",
 ]
 
 [[package]]

@@ -7,10 +7,7 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
-use tofa_core::{
-    totp::{generate_code_now, seconds_remaining_now},
-    VaultEntry,
-};
+use tofa_core::totp::{format_code, generate_code_now, seconds_remaining_now};
 
 #[derive(Args)]
 pub struct CamArgs {
@@ -345,51 +342,36 @@ pub fn run(args: CamArgs, vault_path: PathBuf) -> CliResult {
 
     if uri.starts_with("otpauth-migration://") {
         let accounts = tofa_core::qr::parse_migration(&uri)?;
-        let count = accounts.len();
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let total = accounts.len();
+        let today = tofa_core::today_iso();
+        let mut imported = 0usize;
         for otp in accounts {
-            let name = args.name.clone().unwrap_or_else(|| make_name(&otp));
-            vault.add_entry(VaultEntry {
-                id: String::new(),
-                name,
-                secret: otp.secret,
-                created_at: today.clone(),
-                period: otp.meta.period.unwrap_or(30),
-                digits: otp.meta.digits.unwrap_or(6),
-                algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
+            let name = args.name.clone().unwrap_or_else(|| otp.meta.derive_name());
+            if vault.add_entry_if_unique(otp.into_vault_entry(name, today.clone())) {
+                imported += 1;
+            }
         }
         vault.save(&vault_path, &pass)?;
-        println!("Imported {count} account(s).");
+        let skipped = total - imported;
+        if skipped > 0 {
+            println!("Imported {imported} account(s) ({skipped} duplicate(s) skipped).");
+        } else {
+            println!("Imported {imported} account(s).");
+        }
         return Ok(());
     }
 
     let otp = tofa_core::qr::parse_input(&uri)?;
-    let name = args.name.unwrap_or_else(|| make_name(&otp));
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let entry = VaultEntry {
-        id: String::new(),
-        name: name.clone(),
-        secret: otp.secret,
-        created_at: today,
-        period: otp.meta.period.unwrap_or(30),
-        digits: otp.meta.digits.unwrap_or(6),
-        algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-    };
+    let name = args.name.unwrap_or_else(|| otp.meta.derive_name());
+    let today = tofa_core::today_iso();
+    let entry = otp.into_vault_entry(name.clone(), today);
     let code = generate_code_now(&entry).unwrap_or_else(|_| "------".into());
     let secs = seconds_remaining_now(&entry);
-    vault.add_entry(entry);
+    if !vault.add_entry_if_unique(entry) {
+        return Err(format!("\"{name}\" is already in the vault.").into());
+    }
     vault.save(&vault_path, &pass)?;
     println!("Added {name}");
-    println!("Current code: {} {}  ({}s)", &code[..3], &code[3..], secs);
+    println!("Current code: {}  ({}s)", format_code(&code), secs);
     Ok(())
-}
-
-fn make_name(otp: &tofa_core::OtpSecret) -> String {
-    match (&otp.meta.issuer, &otp.meta.account) {
-        (Some(i), Some(a)) => format!("{i}:{a}"),
-        (Some(i), None) => i.clone(),
-        (None, Some(a)) => a.clone(),
-        (None, None) => "unknown".to_string(),
-    }
 }

@@ -719,12 +719,7 @@ fn try_parse_and_advance(state: &mut AppState, raw: &str) {
         Ok(otp) => {
             state.status_message = None;
             state.add_parsed_secret = Zeroizing::new(otp.secret);
-            state.add_name = match (&otp.meta.issuer, &otp.meta.account) {
-                (Some(i), Some(a)) => format!("{i}:{a}"),
-                (Some(i), None) => i.clone(),
-                (None, Some(a)) => a.clone(),
-                (None, None) => String::new(),
-            };
+            state.add_name = otp.meta.derive_name();
             state.add_meta = Some(otp.meta);
             state.screen = Screen::AddName;
         }

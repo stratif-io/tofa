@@ -816,15 +816,7 @@ pub async fn generate_entry_qr(
             .ok_or_else(|| format!("entry '{}' not found", id))?;
 
         let uri = tofa_core::qr::build_otpauth_uri(entry);
-
-        let tmp = std::env::temp_dir().join(format!("tofa_qr_{}.png", entry.id));
-        tofa_core::qr::uri_to_qr_png(&uri, &tmp).map_err(|e| e.to_string())?;
-        let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
-        let _ = std::fs::remove_file(&tmp);
-        Ok(format!(
-            "data:image/png;base64,{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)
-        ))
+        tofa_core::qr::uri_to_qr_data_uri(&uri).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -860,15 +852,7 @@ pub async fn generate_selection_qr(
         }
 
         let uri = tofa_core::build_selection_uri(&selection).map_err(|e| e.to_string())?;
-
-        let tmp = std::env::temp_dir().join("tofa_qr_export.png");
-        tofa_core::qr::uri_to_qr_png(&uri, &tmp).map_err(|e| e.to_string())?;
-        let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
-        let _ = std::fs::remove_file(&tmp);
-        Ok(format!(
-            "data:image/png;base64,{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)
-        ))
+        tofa_core::qr::uri_to_qr_data_uri(&uri).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -915,14 +899,7 @@ pub async fn generate_otpauth_list(
         let mut items = Vec::with_capacity(selection.len());
         for entry in &selection {
             let uri = tofa_core::qr::build_otpauth_uri(entry);
-            let tmp = std::env::temp_dir().join(format!("tofa_qr_list_{}.png", entry.id));
-            tofa_core::qr::uri_to_qr_png(&uri, &tmp).map_err(|e| e.to_string())?;
-            let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
-            let _ = std::fs::remove_file(&tmp);
-            let data_uri = format!(
-                "data:image/png;base64,{}",
-                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)
-            );
+            let data_uri = tofa_core::qr::uri_to_qr_data_uri(&uri).map_err(|e| e.to_string())?;
             items.push(OtpauthQrItem {
                 name: entry.name.clone(),
                 data_uri,

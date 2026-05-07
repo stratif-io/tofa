@@ -948,8 +948,11 @@ fn is_valid_base32(s: &str) -> bool {
 
 pub use crate::import::parse_json_bytes;
 
-pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> {
-    use image::Luma;
+/// Encode `data` as a QR code and return the PNG bytes. Used both by
+/// `uri_to_qr_png` (write-to-disk) and `uri_to_qr_data_uri` (in-memory
+/// data URI for the desktop app).
+pub fn uri_to_qr_png_bytes(data: &str) -> Result<Vec<u8>, QrError> {
+    use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder, Luma};
     let code = QrCode::with_error_correction_level(data.as_bytes(), EcLevel::L)
         .or_else(|_| QrCode::with_error_correction_level(data.as_bytes(), EcLevel::M))
         .map_err(|e| QrError::QrGenerate(e.to_string()))?;
@@ -958,9 +961,26 @@ pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> 
         .quiet_zone(true)
         .module_dimensions(8, 8)
         .build();
-    img.save(path)
+    let mut buf = Vec::new();
+    PngEncoder::new(&mut buf)
+        .write_image(&img, img.width(), img.height(), ExtendedColorType::L8)
         .map_err(|e| QrError::ImageLoad(e.to_string()))?;
+    Ok(buf)
+}
+
+pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> {
+    let bytes = uri_to_qr_png_bytes(data)?;
+    std::fs::write(path, bytes).map_err(|e| QrError::ImageLoad(e.to_string()))?;
     Ok(())
+}
+
+/// Build a `data:image/png;base64,…` URI for this otpauth URI's QR
+/// code. Lets the desktop app embed QRs in the webview without going
+/// through a temp file, and keeps the base64 / data-URI plumbing out
+/// of the frontend (it was duplicated three times in commands.rs).
+pub fn uri_to_qr_data_uri(data: &str) -> Result<String, QrError> {
+    let bytes = uri_to_qr_png_bytes(data)?;
+    Ok(format!("data:image/png;base64,{}", B64.encode(&bytes)))
 }
 
 #[cfg(test)]

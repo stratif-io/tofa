@@ -724,10 +724,19 @@ pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> 
 
 pub fn scan_all_qr_uris_with_progress<F: FnMut(ScanProgress)>(
     path: &std::path::Path,
-    mut on_progress: F,
+    on_progress: F,
 ) -> Result<Vec<String>, QrError> {
     let raw = image::open(path).map_err(|e| QrError::ImageLoad(e.to_string()))?;
+    scan_dynamic_image_with_progress(raw, on_progress)
+}
 
+/// Same as `scan_all_qr_uris_with_progress` but operating on an
+/// already-decoded image. Used by the zip-import path so callers can
+/// scan an image in memory without writing it to a tempfile first.
+pub fn scan_dynamic_image_with_progress<F: FnMut(ScanProgress)>(
+    raw: image::DynamicImage,
+    mut on_progress: F,
+) -> Result<Vec<String>, QrError> {
     // rqrr's grid detector behaves differently at different resolutions. Dense
     // QRs (long URIs) need enough pixels per module; sparse QRs at very high
     // res can carry noise that confuses detection. Cover both ends with a

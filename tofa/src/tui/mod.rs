@@ -519,6 +519,9 @@ fn handle_list_key(
         KeyCode::Char('y') if !accumulating => {
             copy_selected_code(state, vault);
         }
+        KeyCode::Char('u') if !accumulating => {
+            copy_selected_uri(state, vault);
+        }
         KeyCode::Char('l') if !accumulating => {
             lock_screen(state);
         }
@@ -553,6 +556,7 @@ fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
             state.screen = Screen::OtpDetail;
         }
         KeyCode::Char('y') => copy_selected_code(state, vault),
+        KeyCode::Char('u') => copy_selected_uri(state, vault),
         KeyCode::Char('l') => lock_screen(state),
         KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
             state.selected_index -= 1;
@@ -819,6 +823,26 @@ fn copy_selected_code(state: &mut AppState, vault: &Vault) {
     }
 }
 
+/// Copy the selected entry's `otpauth://` URI to the clipboard. Useful
+/// for migrating an account to another authenticator without exporting
+/// the whole vault. Bound to `u` in the list and detail screens.
+fn copy_selected_uri(state: &mut AppState, vault: &Vault) {
+    let Some(entry) = vault.entries().get(state.selected_index) else {
+        return;
+    };
+    let uri = tofa_core::qr::build_otpauth_uri(entry);
+    match arboard::Clipboard::new().and_then(|mut cb| cb.set_text(uri)) {
+        Ok(_) => {
+            state.status_message = Some("URI copied to clipboard".to_string());
+            state.status_message_at = Some(Instant::now());
+        }
+        Err(_) => {
+            state.status_message = Some("Clipboard unavailable".to_string());
+            state.status_message_at = Some(Instant::now());
+        }
+    }
+}
+
 fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
     let len = vault.entries().len();
 
@@ -865,6 +889,7 @@ fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
             state.screen = Screen::Fullscreen;
         }
         KeyCode::Char('y') => copy_selected_code(state, vault),
+        KeyCode::Char('u') => copy_selected_uri(state, vault),
         KeyCode::Char('l') => lock_screen(state),
         KeyCode::Char('s') => {
             if state.detail_secret_visible {
@@ -941,6 +966,38 @@ fn handle_export_key(
             state.otpauth_list_titles = selection.iter().map(|e| e.name.clone()).collect();
             state.otpauth_list_index = 0;
             state.screen = Screen::ExportOtpauthList;
+        }
+        KeyCode::Char('u') => {
+            // 'u' = save URI list to a .txt file. One otpauth:// per
+            // line, the inverse of `tofa import <file>.txt`. File goes
+            // to the user's home dir with a date-stamped name; the
+            // status toast surfaces the absolute path so the user can
+            // locate it.
+            let selection = checked_selection(state, vault);
+            if selection.is_empty() {
+                state.status_message = Some("No accounts selected.".to_string());
+                state.screen = Screen::List;
+                return Ok(());
+            }
+            let body = tofa_core::qr::entries_to_uri_list(&selection);
+            let date = chrono::Local::now().format("%Y-%m-%d");
+            let dir = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+            let out_path = dir.join(format!("tofa-export-{date}.txt"));
+            match std::fs::write(&out_path, body) {
+                Ok(_) => {
+                    state.status_message = Some(format!(
+                        "Saved {} URI(s) to {}",
+                        selection.len(),
+                        out_path.display()
+                    ));
+                    state.status_message_at = Some(Instant::now());
+                    state.screen = Screen::List;
+                }
+                Err(e) => {
+                    state.status_message = Some(format!("Save failed: {e}"));
+                    state.status_message_at = None; // persistent
+                }
+            }
         }
         _ => {}
     }

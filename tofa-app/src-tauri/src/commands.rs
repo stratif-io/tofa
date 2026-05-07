@@ -489,9 +489,21 @@ pub async fn add_from_uri(
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let mut added = Vec::new();
 
-        // Expand migration URIs into individual accounts
+        // The text input accepts: a Google-Authenticator migration URI
+        // (multiple accounts), a multi-line list of `otpauth://` URIs
+        // (Ente-style paste, also multiple accounts), or a single
+        // `otpauth://` URI. Bulk inputs ignore the user-supplied name
+        // since one name can't sensibly cover N entries.
+        let multi_otpauth = uri
+            .lines()
+            .map(str::trim)
+            .filter(|l| l.starts_with("otpauth://"))
+            .count()
+            >= 2;
         let otps: Vec<tofa_core::qr::OtpSecret> = if uri.starts_with("otpauth-migration://") {
-            tofa_core::qr::parse_migration(&uri).map_err(|e| e.to_string())?
+            tofa_core::import::parse_migration_uri(&uri)?
+        } else if multi_otpauth {
+            tofa_core::import::parse_text_uris(&uri)?
         } else {
             vec![tofa_core::qr::parse_input(&uri).map_err(|e| e.to_string())?]
         };

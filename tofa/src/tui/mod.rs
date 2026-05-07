@@ -619,6 +619,18 @@ fn try_import_secrets(
     }
 }
 
+/// Detect whether the AddForm input looks like a multi-line list of
+/// `otpauth://` URIs (Ente-style paste). Two or more lines starting
+/// with `otpauth://` is unambiguous — a single URI never has a newline,
+/// and migration URIs are caught earlier with their own prefix branch.
+fn is_multi_otpauth_paste(raw: &str) -> bool {
+    raw.lines()
+        .map(str::trim)
+        .filter(|l| l.starts_with("otpauth://"))
+        .count()
+        >= 2
+}
+
 /// Run the unified file dispatcher (image / zip / json / csv / txt) and
 /// import everything it returns. Used by every TUI surface that takes a
 /// file path: drag-dropped path, file-picker selection, typed path in
@@ -704,6 +716,17 @@ fn handle_add_form_key(
                     // Pasted Google-Authenticator export URI — bulk import
                     // every account in one go, no per-entry naming step.
                     match tofa_core::import::parse_migration_uri(&raw) {
+                        Ok(secrets) => try_import_secrets(state, secrets, vault, path),
+                        Err(e) => {
+                            state.status_message = Some(format!("Import failed: {e}"));
+                        }
+                    }
+                } else if is_multi_otpauth_paste(&raw) {
+                    // Pasted list of otpauth:// URIs (one per line, e.g.
+                    // an Ente Auth export pasted directly into the form).
+                    // Bulk import — single-URI naming UX doesn't fit when
+                    // there are several at once.
+                    match tofa_core::import::parse_text_uris(&raw) {
                         Ok(secrets) => try_import_secrets(state, secrets, vault, path),
                         Err(e) => {
                             state.status_message = Some(format!("Import failed: {e}"));

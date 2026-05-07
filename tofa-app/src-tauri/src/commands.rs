@@ -331,7 +331,7 @@ pub async fn pick_and_import_file(
         let mut added = Vec::new();
         for otp in all_otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
+            let entry = tofa_core::store::VaultEntry {
                 id: String::new(),
                 name: name.clone(),
                 secret: otp.secret,
@@ -339,8 +339,10 @@ pub async fn pick_and_import_file(
                 period: otp.meta.period.unwrap_or(30),
                 digits: otp.meta.digits.unwrap_or(6),
                 algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            };
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
         vault
             .save(&vault_path, &passphrase)
@@ -507,7 +509,7 @@ pub async fn scan_screen(
 
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
+            let entry = tofa_core::store::VaultEntry {
                 id: String::new(),
                 name: name.clone(),
                 secret: otp.secret,
@@ -515,8 +517,10 @@ pub async fn scan_screen(
                 period: otp.meta.period.unwrap_or(30),
                 digits: otp.meta.digits.unwrap_or(6),
                 algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            };
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
 
         let _ = app_handle.emit("scan-step", "Saving to vault…");
@@ -565,7 +569,7 @@ pub async fn scan_image_bytes(
         let mut added = Vec::new();
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
+            let entry = tofa_core::store::VaultEntry {
                 id: String::new(),
                 name: name.clone(),
                 secret: otp.secret,
@@ -573,8 +577,10 @@ pub async fn scan_image_bytes(
                 period: otp.meta.period.unwrap_or(30),
                 digits: otp.meta.digits.unwrap_or(6),
                 algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            };
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
         vault
             .save(&vault_path, &passphrase)
@@ -636,7 +642,7 @@ pub async fn add_from_uri(
             } else {
                 otp.meta.derive_name()
             };
-            vault.add_entry(tofa_core::store::VaultEntry {
+            let entry = tofa_core::store::VaultEntry {
                 id: String::new(),
                 name: entry_name.clone(),
                 secret: otp.secret,
@@ -644,8 +650,10 @@ pub async fn add_from_uri(
                 period: otp.meta.period.unwrap_or(30),
                 digits: otp.meta.digits.unwrap_or(6),
                 algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(entry_name);
+            };
+            if vault.add_entry_if_unique(entry) {
+                added.push(entry_name);
+            }
         }
 
         vault
@@ -732,7 +740,7 @@ pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String
 
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
+            let entry = tofa_core::store::VaultEntry {
                 id: String::new(),
                 name: name.clone(),
                 secret: otp.secret,
@@ -740,8 +748,10 @@ pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String
                 period: otp.meta.period.unwrap_or(30),
                 digits: otp.meta.digits.unwrap_or(6),
                 algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            };
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
 
         vault
@@ -794,7 +804,7 @@ pub async fn import_file(
         let mut added = Vec::new();
         for otp in otps {
             let name = otp.meta.derive_name();
-            vault.add_entry(tofa_core::store::VaultEntry {
+            let entry = tofa_core::store::VaultEntry {
                 id: String::new(),
                 name: name.clone(),
                 secret: otp.secret,
@@ -802,8 +812,10 @@ pub async fn import_file(
                 period: otp.meta.period.unwrap_or(30),
                 digits: otp.meta.digits.unwrap_or(6),
                 algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-            });
-            added.push(name);
+            };
+            if vault.add_entry_if_unique(entry) {
+                added.push(name);
+            }
         }
         vault
             .save(&vault_path, &passphrase)

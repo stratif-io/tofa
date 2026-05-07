@@ -650,15 +650,7 @@ fn try_import_secrets(
             (None, Some(a)) => a.clone(),
             (None, None) => format!("imported-{}", vault.entries().len() + 1),
         };
-        let dup = vault
-            .entries()
-            .iter()
-            .any(|e| e.name == name && e.secret == otp.secret);
-        if dup {
-            skipped += 1;
-            continue;
-        }
-        vault.add_entry(VaultEntry {
+        let entry = VaultEntry {
             id: String::new(),
             name,
             secret: otp.secret,
@@ -666,8 +658,12 @@ fn try_import_secrets(
             period: otp.meta.period.unwrap_or(30),
             digits: otp.meta.digits.unwrap_or(6),
             algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-        });
-        imported += 1;
+        };
+        if vault.add_entry_if_unique(entry) {
+            imported += 1;
+        } else {
+            skipped += 1;
+        }
     }
     if imported == 0 && skipped > 0 {
         state.status_message = Some(format!("Already imported ({skipped} duplicate(s))."));

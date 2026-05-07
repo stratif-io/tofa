@@ -125,6 +125,31 @@ impl Vault {
         self.data.entries.push(entry);
     }
 
+    /// Add `entry` to the vault unless an existing entry already
+    /// matches both `name` and `secret`. Returns `true` if it was
+    /// inserted, `false` if it was a duplicate. Single source of
+    /// truth for the dedup rule used by every import surface (CLI,
+    /// TUI, desktop app drop / picker / paste).
+    ///
+    /// Why `(name, secret)` and not one or the other:
+    /// - Same name, different secret → user rotated the OTP and
+    ///   wants both rows until the new one is verified.
+    /// - Same secret, different name → user filed the same account
+    ///   under two labels intentionally.
+    /// Both are kept; only an exact duplicate is dropped.
+    pub fn add_entry_if_unique(&mut self, entry: VaultEntry) -> bool {
+        if self
+            .data
+            .entries
+            .iter()
+            .any(|e| e.name == entry.name && e.secret == entry.secret)
+        {
+            return false;
+        }
+        self.add_entry(entry);
+        true
+    }
+
     fn generate_id(&self, name: &str) -> String {
         use std::time::{SystemTime, UNIX_EPOCH};
         let ts = SystemTime::now()

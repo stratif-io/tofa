@@ -27,15 +27,10 @@ pub fn run(args: ImportArgs, vault_path: PathBuf) -> CliResult {
             digits: otp.meta.digits.unwrap_or(6),
             algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
         };
-        let dup = vault
-            .entries()
-            .iter()
-            .any(|e| e.name == entry.name && e.secret == entry.secret);
-        if dup {
-            skipped += 1;
-        } else {
-            vault.add_entry(entry);
+        if vault.add_entry_if_unique(entry) {
             imported += 1;
+        } else {
+            skipped += 1;
         }
     }
 

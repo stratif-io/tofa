@@ -51,7 +51,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         let min_w = if is_8digit { 82u16 } else { 78u16 };
         area.width.min(min_w)
     } else {
-        let min_w = if is_8digit { 60u16 } else { 60u16 };
+        let min_w = 60u16;
         area.width.min(min_w).max(min_w.min(area.width))
     };
     // Height: name(1) + gap(1) + big(4) + gauge(1) + timer(1) + gap(1)

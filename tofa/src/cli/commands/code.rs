@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 use tofa_core::{
     store::VaultEntry,
-    totp::{generate_code_now, seconds_remaining_now},
+    totp::{format_code, generate_code_now, seconds_remaining_now},
 };
 
 #[derive(Args)]
@@ -52,13 +52,7 @@ pub fn run(args: CodeArgs, vault_path: PathBuf) -> CliResult {
     if args.raw {
         println!("{}{}{}", ansi::brand(), code, ansi::RESET);
     } else {
-        println!(
-            "{}{} {}{}",
-            ansi::brand(),
-            &code[..3],
-            &code[3..],
-            ansi::RESET
-        );
+        println!("{}{}{}", ansi::brand(), format_code(&code), ansi::RESET);
     }
     if args.copy {
         copy_to_clipboard(&code, &args.name);
@@ -87,11 +81,10 @@ fn watch_loop(entry: &VaultEntry) -> CliResult {
         let bar = format!("{}{}", "█".repeat(filled), "░".repeat(bar_w - filled));
         let col = ansi::timer(secs);
         let line = format!(
-            "{}{}   {} {}   {bar}   {secs}s{}",
+            "{}{}   {}   {bar}   {secs}s{}",
             col,
             entry.name,
-            &code[..3],
-            &code[3..],
+            format_code(&code),
             ansi::RESET
         );
         print!("\r\x1b[K{line}");

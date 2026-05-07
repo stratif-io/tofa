@@ -7,7 +7,7 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
-use tofa_core::totp::{generate_code_now, seconds_remaining_now};
+use tofa_core::totp::{format_code, generate_code_now, seconds_remaining_now};
 
 #[derive(Args)]
 pub struct CamArgs {
@@ -343,7 +343,7 @@ pub fn run(args: CamArgs, vault_path: PathBuf) -> CliResult {
     if uri.starts_with("otpauth-migration://") {
         let accounts = tofa_core::qr::parse_migration(&uri)?;
         let count = accounts.len();
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         for otp in accounts {
             let name = args.name.clone().unwrap_or_else(|| make_name(&otp));
             vault.add_entry(otp.into_vault_entry(name, today.clone()));
@@ -355,14 +355,14 @@ pub fn run(args: CamArgs, vault_path: PathBuf) -> CliResult {
 
     let otp = tofa_core::qr::parse_input(&uri)?;
     let name = args.name.unwrap_or_else(|| make_name(&otp));
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let today = tofa_core::today_iso();
     let entry = otp.into_vault_entry(name.clone(), today);
     let code = generate_code_now(&entry).unwrap_or_else(|_| "------".into());
     let secs = seconds_remaining_now(&entry);
     vault.add_entry(entry);
     vault.save(&vault_path, &pass)?;
     println!("Added {name}");
-    println!("Current code: {} {}  ({}s)", &code[..3], &code[3..], secs);
+    println!("Current code: {}  ({}s)", format_code(&code), secs);
     Ok(())
 }
 

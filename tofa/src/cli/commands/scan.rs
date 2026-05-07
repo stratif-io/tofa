@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tofa_core::store::Vault;
-use tofa_core::totp::{generate_code_now, seconds_remaining_now};
+use tofa_core::totp::{format_code, generate_code_now, seconds_remaining_now};
 
 /// Tiny stderr braille spinner used around long-ish work (screen capture +
 /// QR scanning). The message slot is shared so the scan loop can update it
@@ -108,12 +108,7 @@ pub fn run(args: ScanArgs, vault_path: PathBuf) -> CliResult {
         let entry = vault.entries().last().expect("just added");
         let code = generate_code_now(entry).unwrap_or_else(|_| "------".into());
         let secs = seconds_remaining_now(entry);
-        let formatted = if code.len() >= 6 {
-            format!("{} {}", &code[..3], &code[3..])
-        } else {
-            code.clone()
-        };
-        println!("Current code: {formatted}  ({secs}s)");
+        println!("Current code: {}  ({secs}s)", format_code(&code));
     }
     Ok(())
 }
@@ -165,7 +160,7 @@ pub fn import_uris_into_vault(
     vault: &mut Vault,
     name_override: Option<&str>,
 ) -> Result<usize, Box<dyn std::error::Error>> {
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let today = tofa_core::today_iso();
 
     // Pre-parse so we know the total count before deciding whether to apply
     // the name override.

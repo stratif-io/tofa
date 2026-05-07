@@ -31,14 +31,42 @@ pub struct VaultEntry {
     pub algorithm: String,
 }
 
+/// Default TOTP period (seconds) used when an import or paste doesn't
+/// specify one. Matches RFC 6238's default and Google Authenticator's
+/// migration protobuf, which has no period field.
+pub const DEFAULT_PERIOD: u32 = 30;
+
+/// Default TOTP digit count used when an import or paste doesn't
+/// specify one. RFC 6238 default; 8 is the only other widely-supported
+/// alternative.
+pub const DEFAULT_DIGITS: u8 = 6;
+
+/// Default TOTP algorithm used when an import or paste doesn't specify
+/// one. Every authenticator we've seen defaults to SHA1; the migration
+/// protobuf encodes 1 = SHA1.
+pub const DEFAULT_ALGORITHM: &str = "SHA1";
+
+/// Format string used for `VaultEntry::created_at`. Centralised so a
+/// future change (e.g. switching to RFC 3339) lands in one place
+/// instead of the dozen-plus call sites that mint timestamps.
+pub const CREATED_AT_FORMAT: &str = "%Y-%m-%d";
+
+/// Today's date in the format `VaultEntry::created_at` expects. Use
+/// this everywhere a new entry is being added so the field is shaped
+/// the same way regardless of which surface (CLI / TUI / app) created
+/// the entry.
+pub fn today_iso() -> String {
+    chrono::Local::now().format(CREATED_AT_FORMAT).to_string()
+}
+
 fn default_period() -> u32 {
-    30
+    DEFAULT_PERIOD
 }
 fn default_digits() -> u8 {
-    6
+    DEFAULT_DIGITS
 }
 fn default_algorithm() -> String {
-    "SHA1".to_string()
+    DEFAULT_ALGORITHM.to_string()
 }
 
 impl Drop for VaultEntry {
@@ -136,6 +164,7 @@ impl Vault {
     ///   wants both rows until the new one is verified.
     /// - Same secret, different name → user filed the same account
     ///   under two labels intentionally.
+    ///
     /// Both are kept; only an exact duplicate is dropped.
     pub fn add_entry_if_unique(&mut self, entry: VaultEntry) -> bool {
         if self

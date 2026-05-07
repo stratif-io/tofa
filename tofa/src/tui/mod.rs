@@ -190,7 +190,7 @@ fn run_app(
                     let name = app_state.add_name.trim().to_string();
                     let secret = app_state.add_parsed_secret.clone();
                     let meta = app_state.add_meta.take().unwrap_or_default();
-                    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+                    let today = tofa_core::today_iso();
                     let otp = OtpSecret {
                         secret: secret.to_string(),
                         meta,
@@ -633,7 +633,7 @@ fn try_import_secrets(
     state.fp_query.clear();
     state.screen = Screen::List;
 
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let today = tofa_core::today_iso();
     let mut imported = 0usize;
     let mut skipped = 0usize;
     for otp in secrets {

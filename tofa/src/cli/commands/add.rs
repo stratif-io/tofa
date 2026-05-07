@@ -4,7 +4,7 @@ use clap::Args;
 use std::path::PathBuf;
 use tofa_core::{
     qr::OtpSecret,
-    totp::{generate_code_now, seconds_remaining_now},
+    totp::{format_code, generate_code_now, seconds_remaining_now},
     Vault,
 };
 
@@ -72,7 +72,7 @@ pub fn add_single(
     path: &std::path::Path,
     pass: &str,
 ) -> CliResult {
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let today = tofa_core::today_iso();
     let entry = otp.into_vault_entry(name.to_string(), today);
     let code = generate_code_now(&entry).unwrap_or_else(|_| "------".into());
     let secs = seconds_remaining_now(&entry);
@@ -80,10 +80,9 @@ pub fn add_single(
     vault.save(path, pass)?;
     println!("{}{}{}", ansi::success(), voice::ADDED_OK, ansi::RESET);
     println!(
-        "{}{} {}{}  {}({}s){}",
+        "{}{}{}  {}({}s){}",
         ansi::brand(),
-        &code[..3],
-        &code[3..],
+        format_code(&code),
         ansi::RESET,
         ansi::muted(),
         secs,
@@ -101,7 +100,7 @@ fn import_migration(
 ) -> CliResult {
     let accounts = tofa_core::qr::parse_migration(uri)?;
     let count = accounts.len();
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let today = tofa_core::today_iso();
     for otp in accounts {
         let name = name_override.clone().unwrap_or_else(|| make_name(&otp));
         vault.add_entry(otp.into_vault_entry(name, today.clone()));

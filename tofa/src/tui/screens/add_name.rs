@@ -8,36 +8,22 @@ use ratatui::{
     Frame,
 };
 use tofa_core::{
-    store::VaultEntry,
+    qr::OtpSecret,
     totp::{format_code, generate_code_now, seconds_remaining_now},
 };
 
 pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_widget(Block::default().style(Style::default().bg(theme::BG)), area);
 
-    // Build a temporary entry to generate a code with the correct params
-    let tmp_entry = {
-        let (period, digits, algorithm) = state
-            .add_meta
-            .as_ref()
-            .map(|m| {
-                (
-                    m.period.unwrap_or(30),
-                    m.digits.unwrap_or(6),
-                    m.algorithm.clone().unwrap_or_else(|| "SHA1".to_string()),
-                )
-            })
-            .unwrap_or((30, 6, "SHA1".to_string()));
-        VaultEntry {
-            id: String::new(),
-            name: String::new(),
-            secret: state.add_parsed_secret.as_str().to_string(),
-            created_at: String::new(),
-            period,
-            digits,
-            algorithm,
-        }
-    };
+    // Build a temporary entry through the shared core helper so the
+    // SHA1 / 6 / 30 defaults match exactly what the AddEntry handler
+    // will write to the vault. Empty name + created_at — they're not
+    // used by generate_code_now / seconds_remaining_now.
+    let tmp_entry = OtpSecret {
+        secret: state.add_parsed_secret.as_str().to_string(),
+        meta: state.add_meta.clone().unwrap_or_default(),
+    }
+    .into_vault_entry(String::new(), String::new());
     let code = generate_code_now(&tmp_entry).unwrap_or_else(|_| "------".to_string());
     let secs = seconds_remaining_now(&tmp_entry);
     let timer_col = crate::theme::palette::timer_color(secs);
@@ -65,13 +51,15 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState) {
                 Span::styled(account.clone(), Style::default().fg(theme::TEXT)),
             ]));
         }
-        let algo = meta.algorithm.as_deref().unwrap_or("SHA1");
-        let digits = meta.digits.unwrap_or(6);
-        let period = meta.period.unwrap_or(30);
+        // Reuse the resolved values from tmp_entry — same defaults
+        // as the actual save path, no second source of truth.
         meta_lines.push(Line::from(vec![
             Span::styled("Algorithm: ", Style::default().fg(theme::TEXT_MUTED)),
             Span::styled(
-                format!("{algo}  {digits} digits  {period}s"),
+                format!(
+                    "{}  {} digits  {}s",
+                    tmp_entry.algorithm, tmp_entry.digits, tmp_entry.period
+                ),
                 Style::default().fg(theme::TEXT_MUTED),
             ),
         ]));

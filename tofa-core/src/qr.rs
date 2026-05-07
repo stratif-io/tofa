@@ -71,14 +71,18 @@ impl OtpSecret {
     /// the defaults can't drift between platforms. The resulting
     /// entry's `id` is left blank; `Vault::add_entry*` generates it.
     pub fn into_vault_entry(self, name: String, created_at: String) -> crate::store::VaultEntry {
+        use crate::store::{DEFAULT_ALGORITHM, DEFAULT_DIGITS, DEFAULT_PERIOD};
         crate::store::VaultEntry {
             id: String::new(),
             name,
             secret: self.secret,
             created_at,
-            period: self.meta.period.unwrap_or(30),
-            digits: self.meta.digits.unwrap_or(6),
-            algorithm: self.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
+            period: self.meta.period.unwrap_or(DEFAULT_PERIOD),
+            digits: self.meta.digits.unwrap_or(DEFAULT_DIGITS),
+            algorithm: self
+                .meta
+                .algorithm
+                .unwrap_or_else(|| DEFAULT_ALGORITHM.to_string()),
         }
     }
 }
@@ -453,13 +457,6 @@ impl std::fmt::Display for SelectionExportError {
 
 impl std::error::Error for SelectionExportError {}
 
-/// Encodes an export selection as a single QR-ready URI, dispatching by
-/// shape:
-/// - **Empty selection** → `Err(Empty)`.
-/// - **Single entry** → `otpauth://...` (preserves all five fields).
-/// - **Multiple all-30s entries** → `otpauth-migration://...` (Google's
-///   migration format; preserves algorithm and digits, period is implicitly 30).
-/// - **Multiple entries containing any non-30s** → `Err(NonStandardPeriod)`.
 /// Replace the `secret` substring in an `otpauth://` URI with 16
 /// bullets, returning the result unchanged if the secret can't be
 /// found. Used by every detail-view surface (TUI fullscreen, desktop
@@ -488,6 +485,13 @@ pub fn entries_to_uri_list(entries: &[crate::store::VaultEntry]) -> String {
         .join("\n")
 }
 
+/// Encodes an export selection as a single QR-ready URI, dispatching by
+/// shape:
+/// - **Empty selection** → `Err(Empty)`.
+/// - **Single entry** → `otpauth://...` (preserves all five fields).
+/// - **Multiple all-30s entries** → `otpauth-migration://...` (Google's
+///   migration format; preserves algorithm and digits, period is implicitly 30).
+/// - **Multiple entries containing any non-30s** → `Err(NonStandardPeriod)`.
 pub fn build_selection_uri(
     entries: &[crate::store::VaultEntry],
 ) -> Result<String, SelectionExportError> {
@@ -822,7 +826,7 @@ pub fn scan_dynamic_image_with_progress<F: FnMut(ScanProgress)>(
         candidates.insert(2, (1920, FilterType::Triangle));
     }
     candidates.retain(|(w, _)| *w > 0 && *w <= raw_w);
-    candidates.sort_by(|a, b| b.0.cmp(&a.0));
+    candidates.sort_by_key(|c| std::cmp::Reverse(c.0));
     candidates.dedup();
 
     let mut seen = std::collections::HashSet::new();

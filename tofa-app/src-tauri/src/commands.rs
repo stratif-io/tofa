@@ -326,7 +326,7 @@ pub async fn pick_and_import_file(
 
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
         for otp in all_otps {
             let name = otp.meta.derive_name();
@@ -483,7 +483,7 @@ pub async fn scan_screen(
     let added = tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
 
         // Expand each scanned URI — migration QRs contain multiple accounts
@@ -548,7 +548,7 @@ pub async fn scan_image_bytes(
     let added = tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
         for otp in otps {
             let name = otp.meta.derive_name();
@@ -589,7 +589,7 @@ pub async fn add_from_uri(
     tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
 
         // The text input accepts: a Google-Authenticator migration URI
@@ -690,7 +690,7 @@ pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String
     tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
 
         let otps: Vec<tofa_core::qr::OtpSecret> = if uri.starts_with("otpauth-migration://") {
@@ -753,7 +753,7 @@ pub async fn import_file(
         let otps = extract_otps_from_bytes(&filename, &bytes)?;
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let today = tofa_core::today_iso();
         let mut added = Vec::new();
         for otp in otps {
             let name = otp.meta.derive_name();
@@ -998,12 +998,12 @@ pub async fn save_uri_list(
     let handle = window.app_handle().clone();
     let path = tokio::task::spawn_blocking(move || {
         use tauri_plugin_dialog::DialogExt;
-        let date = chrono::Local::now().format("%Y-%m-%d");
+        let date = tofa_core::today_iso();
         handle
             .dialog()
             .file()
             .set_title("Save URI list")
-            .set_file_name(&format!("tofa-export-{date}.txt"))
+            .set_file_name(format!("tofa-export-{date}.txt"))
             .add_filter("Text file", &["txt"])
             .blocking_save_file()
     })

@@ -12,7 +12,7 @@ pub fn run(args: ImportArgs, vault_path: PathBuf) -> CliResult {
     let mut vault = open_vault(&vault_path, &pass)?;
 
     let secrets = tofa_core::import::parse_file(&args.file)?;
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let today = tofa_core::today_iso();
     let mut imported = 0;
     let mut skipped = 0;
     for otp in secrets {

@@ -31,7 +31,7 @@ pub fn run(args: ExportArgs, vault_path: PathBuf) -> CliResult {
         ExportFormat::Uris => "txt",
     };
     let out_path = args.output.unwrap_or_else(|| {
-        let date = chrono::Local::now().format("%Y-%m-%d");
+        let date = tofa_core::today_iso();
         PathBuf::from(format!("tofa-export-{date}.{default_ext}"))
     });
 

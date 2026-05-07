@@ -706,7 +706,26 @@ pub fn scan_qr_uri(path: &std::path::Path) -> Result<String, QrError> {
         .ok_or(QrError::NoQrFound)
 }
 
+/// Reports on a single resolution pass during a scan. Emitted after each
+/// pass completes, so callers (CLI spinner, app progress UI) can surface
+/// "pass @ 1920px • 7 found" feedback while the full ladder is still running.
+#[derive(Debug, Clone, Copy)]
+pub struct ScanProgress {
+    /// Width of the image fed to the detector for this pass, in pixels.
+    pub pass_width: u32,
+    /// Total unique URIs decoded so far across all completed passes for
+    /// this image. Monotonically non-decreasing across events.
+    pub found: usize,
+}
+
 pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> {
+    scan_all_qr_uris_with_progress(path, |_| {})
+}
+
+pub fn scan_all_qr_uris_with_progress<F: FnMut(ScanProgress)>(
+    path: &std::path::Path,
+    mut on_progress: F,
+) -> Result<Vec<String>, QrError> {
     let raw = image::open(path).map_err(|e| QrError::ImageLoad(e.to_string()))?;
 
     // rqrr's grid detector behaves differently at different resolutions. Dense
@@ -745,6 +764,10 @@ pub fn scan_all_qr_uris(path: &std::path::Path) -> Result<Vec<String>, QrError> 
                 .to_luma8()
         };
         scan_into(gray, &mut seen, &mut uris);
+        on_progress(ScanProgress {
+            pass_width: w,
+            found: uris.len(),
+        });
         if uris.len() == last_count {
             unproductive += 1;
             if unproductive >= 2 {

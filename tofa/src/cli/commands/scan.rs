@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tofa_core::store::Vault;
 use tofa_core::{
     totp::{generate_code_now, seconds_remaining_now},
@@ -12,23 +12,30 @@ use tofa_core::{
 };
 
 /// Tiny stderr braille spinner used around long-ish work (screen capture +
-/// QR scanning). Stops on Drop so a `?` early-return still clears the line.
+/// QR scanning). The message slot is shared so the scan loop can update it
+/// with progress info without needing to stop and restart the animation.
+/// Stops on Drop so a `?` early-return still clears the line.
 struct Spinner {
+    message: Arc<Mutex<String>>,
     stop: Arc<AtomicBool>,
     handle: Option<std::thread::JoinHandle<()>>,
 }
 
 impl Spinner {
     fn start(message: &str) -> Self {
+        let message = Arc::new(Mutex::new(message.to_string()));
         let stop = Arc::new(AtomicBool::new(false));
         let stop_clone = stop.clone();
-        let msg = message.to_string();
+        let msg_clone = message.clone();
         let handle = std::thread::spawn(move || {
             let frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
             let mut i = 0;
             while !stop_clone.load(Ordering::Relaxed) {
                 let f = frames[i % frames.len()];
-                eprint!("\r{f} {msg}");
+                let m = msg_clone.lock().map(|g| g.clone()).unwrap_or_default();
+                // \x1b[2K clears the whole line so a shorter new message
+                // doesn't leave trailing characters from a longer one.
+                eprint!("\r\x1b[2K{f} {m}");
                 let _ = std::io::stderr().flush();
                 std::thread::sleep(std::time::Duration::from_millis(80));
                 i += 1;
@@ -37,8 +44,15 @@ impl Spinner {
             let _ = std::io::stderr().flush();
         });
         Self {
+            message,
             stop,
             handle: Some(handle),
+        }
+    }
+
+    fn set(&self, message: impl Into<String>) {
+        if let Ok(mut g) = self.message.lock() {
+            *g = message.into();
         }
     }
 }
@@ -68,10 +82,7 @@ pub fn run(args: ScanArgs, vault_path: PathBuf) -> CliResult {
         return Err("No displays available to capture.".into());
     }
 
-    let uris = {
-        let _spin = Spinner::start("Scanning for QR codes…");
-        scan_paths_for_qrs(&captures)
-    };
+    let uris = scan_with_progress(&captures);
     for path in &captures {
         let _ = std::fs::remove_file(path);
     }
@@ -104,11 +115,32 @@ pub fn run(args: ScanArgs, vault_path: PathBuf) -> CliResult {
     Ok(())
 }
 
-fn scan_paths_for_qrs(paths: &[PathBuf]) -> Vec<String> {
+/// Drive a stderr spinner whose message updates after each resolution pass —
+/// so the user sees something like "screen 1/2 • pass @ 3840px • 7 found"
+/// instead of a static label while the multi-second native + rescale ladder
+/// runs. Per-screen and per-pass progress is the only feedback users get for
+/// scans that can take 5–30s on a Retina display.
+fn scan_with_progress(paths: &[PathBuf]) -> Vec<String> {
+    let spin = Spinner::start("Scanning for QR codes…");
     let mut seen: HashSet<String> = HashSet::new();
     let mut uris: Vec<String> = Vec::new();
-    for path in paths {
-        if let Ok(found) = tofa_core::qr::scan_all_qr_uris(path) {
+    let total_screens = paths.len();
+    for (i, path) in paths.iter().enumerate() {
+        let prefix = if total_screens > 1 {
+            format!("screen {}/{} • ", i + 1, total_screens)
+        } else {
+            String::new()
+        };
+        let prior = uris.len();
+        spin.set(format!("{prefix}preparing image…"));
+        let result = tofa_core::qr::scan_all_qr_uris_with_progress(path, |p| {
+            spin.set(format!(
+                "{prefix}pass @ {}px • {} found",
+                p.pass_width,
+                prior + p.found
+            ));
+        });
+        if let Ok(found) = result {
             for uri in found {
                 if seen.insert(uri.clone()) {
                     uris.push(uri);

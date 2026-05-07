@@ -28,9 +28,24 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         "•".repeat(entry.secret.len().max(16))
     };
 
+    // The full otpauth:// URI for this entry. The secret is masked by
+    // default and revealed alongside the secret field when the user
+    // unlocks via `s` — same passphrase prompt, same trust boundary.
+    let full_uri = tofa_core::qr::build_otpauth_uri(entry);
+    let uri_display: String = if state.detail_secret_visible {
+        full_uri.clone()
+    } else {
+        full_uri.replacen(
+            entry.secret.as_str(),
+            &"•".repeat(entry.secret.len().max(16)),
+            1,
+        )
+    };
+
     // Extra rows when the passphrase prompt is active
     let extra_rows: u16 = if state.detail_revealing { 3 } else { 0 };
-    let box_h = (8 + extra_rows).min(area.height.saturating_sub(4));
+    // +2 rows for the URI label and its (potentially wrapped) value.
+    let box_h = (10 + extra_rows).min(area.height.saturating_sub(4));
     let box_w = area.width.min(62);
     let pad_x = (area.width.saturating_sub(box_w)) / 2;
     let pad_y = (area.height.saturating_sub(box_h)) / 2;
@@ -63,7 +78,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         entry.algorithm, entry.digits, entry.period
     );
 
-    // Title row + field rows + optional reveal prompt + help row
+    // Title row + field rows + URI row + optional reveal prompt + help row
     let mut constraints = vec![
         Constraint::Length(1), // title
         Constraint::Length(1), // gap
@@ -72,6 +87,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         Constraint::Length(1), // algorithm · digits · period
         Constraint::Length(1), // secret
         Constraint::Length(1), // created
+        Constraint::Length(2), // URI (wraps to 2 lines for ~120-char URIs)
     ];
     if state.detail_revealing {
         constraints.push(Constraint::Length(1)); // gap
@@ -125,12 +141,27 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
         );
     }
 
+    // URI row — its own paragraph so we can wrap onto a second line
+    // when the URI exceeds the modal width (almost always).
+    use ratatui::widgets::Wrap;
+    f.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(
+                format!("{:<10}", "URI"),
+                Style::default().fg(theme::TEXT_MUTED),
+            ),
+            Span::styled(uri_display.as_str(), Style::default().fg(theme::TEXT)),
+        ]))
+        .wrap(Wrap { trim: false }),
+        chunks[7],
+    );
+
     let help_idx = if state.detail_revealing {
         // render passphrase prompt rows
-        let gap_idx = 7;
-        let label_idx = 8;
-        let input_idx = 9;
-        let help_idx = 10;
+        let gap_idx = 8;
+        let label_idx = 9;
+        let input_idx = 10;
+        let help_idx = 11;
 
         f.render_widget(Paragraph::new(Line::from("")), chunks[gap_idx]);
 
@@ -155,7 +186,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
 
         help_idx
     } else {
-        7
+        8
     };
 
     let reveal_hint = if state.detail_secret_visible {
@@ -165,7 +196,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
     };
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            format!("[ y ] copy · {reveal_hint} · [ ↑↓ ] navigate · [ Esc ] back"),
+            format!("[ y ] copy code · [ u ] copy URI · {reveal_hint} · [ Esc ] back"),
             Style::default().fg(theme::TEXT_MUTED),
         )))
         .alignment(Alignment::Center),

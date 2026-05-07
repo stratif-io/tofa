@@ -67,7 +67,9 @@ pub fn add_single(
     let entry = otp.into_vault_entry(name.to_string(), today);
     let code = generate_code_now(&entry).unwrap_or_else(|_| "------".into());
     let secs = seconds_remaining_now(&entry);
-    vault.add_entry(entry);
+    if !vault.add_entry_if_unique(entry) {
+        return Err(format!("\"{name}\" is already in the vault.").into());
+    }
     vault.save(path, pass)?;
     println!("{}{}{}", ansi::success(), voice::ADDED_OK, ansi::RESET);
     println!(
@@ -90,15 +92,23 @@ fn import_migration(
     name_override: &Option<String>,
 ) -> CliResult {
     let accounts = tofa_core::qr::parse_migration(uri)?;
-    let count = accounts.len();
+    let total = accounts.len();
     let today = tofa_core::today_iso();
+    let mut imported = 0usize;
     for otp in accounts {
         let name = name_override
             .clone()
             .unwrap_or_else(|| otp.meta.derive_name());
-        vault.add_entry(otp.into_vault_entry(name, today.clone()));
+        if vault.add_entry_if_unique(otp.into_vault_entry(name, today.clone())) {
+            imported += 1;
+        }
     }
     vault.save(path, pass)?;
-    println!("Imported {count} account(s).");
+    let skipped = total - imported;
+    if skipped > 0 {
+        println!("Imported {imported} account(s) ({skipped} duplicate(s) skipped).");
+    } else {
+        println!("Imported {imported} account(s).");
+    }
     Ok(())
 }

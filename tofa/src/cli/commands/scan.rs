@@ -97,14 +97,21 @@ pub fn run(args: ScanArgs, vault_path: PathBuf) -> CliResult {
     let pass = read_passphrase("Passphrase: ")?;
     let mut vault = open_vault(&vault_path, &pass)?;
 
-    let count = import_uris_into_vault(&uris, &mut vault, args.name.as_deref())?;
+    let (imported, skipped) = import_uris_into_vault(&uris, &mut vault, args.name.as_deref())?;
     vault.save(&vault_path, &pass)?;
 
-    println!(
-        "Imported {count} account(s) from {} screen(s).",
-        captures.len()
-    );
-    if count == 1 {
+    if skipped > 0 {
+        println!(
+            "Imported {imported} account(s) from {} screen(s) ({skipped} duplicate(s) skipped).",
+            captures.len()
+        );
+    } else {
+        println!(
+            "Imported {imported} account(s) from {} screen(s).",
+            captures.len()
+        );
+    }
+    if imported == 1 {
         let entry = vault.entries().last().expect("just added");
         let code = generate_code_now(entry).unwrap_or_else(|_| "------".into());
         let secs = seconds_remaining_now(entry);
@@ -150,7 +157,8 @@ fn scan_with_progress(paths: &[PathBuf]) -> Vec<String> {
 }
 
 /// Parse each URI (otpauth:// or otpauth-migration://) and add the resulting
-/// account(s) to the vault. Returns the total number of entries added.
+/// account(s) to the vault. Returns `(imported, skipped)` — `skipped` counts
+/// duplicates dropped by `Vault::add_entry_if_unique`.
 ///
 /// `name_override` is applied only when the scan results in exactly one new
 /// entry — `--name` doesn't make sense when one capture yields several
@@ -159,7 +167,7 @@ pub fn import_uris_into_vault(
     uris: &[String],
     vault: &mut Vault,
     name_override: Option<&str>,
-) -> Result<usize, Box<dyn std::error::Error>> {
+) -> Result<(usize, usize), Box<dyn std::error::Error>> {
     let today = tofa_core::today_iso();
 
     // Pre-parse so we know the total count before deciding whether to apply
@@ -173,19 +181,23 @@ pub fn import_uris_into_vault(
         }
     }
 
-    let total = parsed.len();
-    let apply_override = total == 1 && name_override.is_some();
-
+    let apply_override = parsed.len() == 1 && name_override.is_some();
+    let mut imported = 0usize;
+    let mut skipped = 0usize;
     for otp in parsed {
         let name = if apply_override {
             name_override.unwrap().to_string()
         } else {
             otp.meta.derive_name()
         };
-        vault.add_entry(otp.into_vault_entry(name, today.clone()));
+        if vault.add_entry_if_unique(otp.into_vault_entry(name, today.clone())) {
+            imported += 1;
+        } else {
+            skipped += 1;
+        }
     }
 
-    Ok(total)
+    Ok((imported, skipped))
 }
 
 /// Capture every connected display to a PNG (or several PNGs) in the system

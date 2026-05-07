@@ -26,6 +26,14 @@
   <p><em>The TUI: live countdown bars, click any row to copy.</em></p>
 </div>
 
+<details>
+  <summary>📺 <strong>Watch the full tour</strong> — fullscreen view, secret reveal, in-terminal QR, file-picker import, QR export, and CLI commands (~30 s)</summary>
+  <br>
+  <div align="center">
+    <img src="docs/demo-tour.gif" alt="TOFA feature tour" width="780" />
+  </div>
+</details>
+
 <a id="quick-start"></a>
 
 ## ⚡ Quick Start

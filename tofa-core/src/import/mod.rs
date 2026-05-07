@@ -31,25 +31,32 @@ const IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff"
 /// - Plain text: newline-separated `otpauth://` URIs (Ente Auth format),
 ///   or a single `otpauth-migration://` URI.
 pub fn parse_file(path: &Path) -> Result<Vec<OtpSecret>, String> {
-    let ext = path
+    let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
+    let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    parse_bytes(filename, &bytes)
+}
+
+/// Same as `parse_file` but for callers that already have the bytes in
+/// memory (e.g., the desktop app, where dropped files arrive over IPC
+/// as base64). The filename is only used for its extension hint;
+/// nothing is written to disk.
+pub fn parse_bytes(filename: &str, bytes: &[u8]) -> Result<Vec<OtpSecret>, String> {
+    let ext = std::path::Path::new(filename)
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
     match ext.as_str() {
-        "zip" => parse_zip(path),
-        e if IMAGE_EXTS.contains(&e) => parse_image(path),
-        "json" | "2fas" => {
-            let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
-            parse_json_bytes(&bytes)
-        }
+        "zip" => parse_zip_bytes(bytes),
+        e if IMAGE_EXTS.contains(&e) => parse_image_bytes(bytes),
+        "json" | "2fas" => parse_json_bytes(bytes),
         "csv" => {
-            let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
-            parse_csv(&text)
+            let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
+            parse_csv(text)
         }
         "txt" => {
-            let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
-            parse_text_dispatch(&text)
+            let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
+            parse_text_dispatch(text)
         }
         "" => Err("File has no extension; can't determine format.".to_string()),
         other => Err(format!("Unsupported file extension: .{other}")),
@@ -60,54 +67,40 @@ pub fn parse_file(path: &Path) -> Result<Vec<OtpSecret>, String> {
 /// it finds. Each URI may be a single-account `otpauth://` or a
 /// Google-Authenticator `otpauth-migration://` (which expands to several
 /// accounts), so the result is flattened.
-fn parse_image(path: &Path) -> Result<Vec<OtpSecret>, String> {
-    let uris = crate::qr::scan_all_qr_uris(path).map_err(|e| e.to_string())?;
+fn parse_image_bytes(bytes: &[u8]) -> Result<Vec<OtpSecret>, String> {
+    let img = image::load_from_memory(bytes).map_err(|e| e.to_string())?;
+    let uris =
+        crate::qr::scan_dynamic_image_with_progress(img, |_| {}).map_err(|e| e.to_string())?;
     parse_uri_list(&uris)
 }
 
-/// Iterate the zip's entries by index. Slip-path attacks aren't a
-/// concern because we never write extracted files to disk — we decode
-/// each image entry in memory and feed it to the QR scanner. Non-image
-/// entries (a README, etc.) are silently skipped so users don't have to
-/// curate their archive before importing.
-fn parse_zip(path: &Path) -> Result<Vec<OtpSecret>, String> {
-    let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
-    let mut all_uris: Vec<String> = Vec::new();
-    let mut seen = std::collections::HashSet::new();
-
+/// Iterate the zip's entries by index, recursing into each entry through
+/// `parse_bytes` so a zip can contain images, JSON, CSV, text, or even
+/// nested zips. Slip-path attacks aren't a concern because we never
+/// write extracted bytes to disk. Entries we can't parse are silently
+/// skipped so a stray README doesn't fail the whole import.
+fn parse_zip_bytes(bytes: &[u8]) -> Result<Vec<OtpSecret>, String> {
+    let cursor = std::io::Cursor::new(bytes);
+    let mut archive = zip::ZipArchive::new(cursor).map_err(|e| e.to_string())?;
+    let mut out: Vec<OtpSecret> = Vec::new();
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
         if !entry.is_file() {
             continue;
         }
-        let name = entry.name().to_lowercase();
-        let entry_ext = std::path::Path::new(&name)
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("");
-        if !IMAGE_EXTS.contains(&entry_ext) {
+        let name = entry.name().to_string();
+        let mut buf = Vec::with_capacity(entry.size() as usize);
+        if entry.read_to_end(&mut buf).is_err() {
             continue;
         }
-        let mut bytes = Vec::with_capacity(entry.size() as usize);
-        entry.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
-        let img = match image::load_from_memory(&bytes) {
-            Ok(i) => i,
-            Err(_) => continue,
-        };
-        if let Ok(uris) = crate::qr::scan_dynamic_image_with_progress(img, |_| {}) {
-            for u in uris {
-                if seen.insert(u.clone()) {
-                    all_uris.push(u);
-                }
-            }
+        if let Ok(mut secrets) = parse_bytes(&name, &buf) {
+            out.append(&mut secrets);
         }
     }
-
-    if all_uris.is_empty() {
-        return Err("Zip contained no decodable QR codes.".to_string());
+    if out.is_empty() {
+        return Err("Zip contained no recognised entries.".to_string());
     }
-    parse_uri_list(&all_uris)
+    Ok(out)
 }
 
 /// Plain-text dispatch: a `otpauth-migration://` URI on its own gets

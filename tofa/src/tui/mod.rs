@@ -17,13 +17,23 @@ use std::{
     time::{Duration, Instant},
 };
 use tofa_core::{
-    qr::{parse_input, parse_migration, scan_qr_uri},
+    qr::{parse_input, OtpSecret},
     store::{Vault, VaultEntry},
     totp::generate_code_now,
     uri_to_qr_lines,
 };
 
-const IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "gif", "bmp", "webp"];
+/// Extensions the file picker exposes. Mirrors the desktop app's drop
+/// handler so users see the same surface across TUI and app. Anything
+/// the unified `tofa_core::import::parse_file` dispatcher can handle
+/// belongs here.
+const SUPPORTED_EXTS: &[&str] = &[
+    // Images: png/jpg/etc. with one or many QRs (otpauth or migration).
+    "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff",
+    // Archive of QR images (round-trips the desktop app's "Save All").
+    "zip", // Other-app exports.
+    "json", "2fas", "csv", "txt",
+];
 use zeroize::Zeroizing;
 
 pub fn default_vault_path() -> PathBuf {
@@ -208,19 +218,16 @@ fn run_app(
         if app_state.screen == Screen::ScanningQr {
             if let Some(fp) = app_state.pending_scan_path.take() {
                 std::thread::sleep(Duration::from_millis(120));
-                let raw = app_state.add_secret_input.trim().to_string();
                 let v = vault
                     .as_mut()
                     .expect("vault must be initialized after unlock");
-                match scan_qr_uri(&fp) {
-                    Ok(uri) if uri.starts_with("otpauth-migration://") => {
-                        try_import_migration(&mut app_state, &uri, v, &path);
-                    }
-                    _ => {
-                        app_state.screen = Screen::AddForm;
-                        try_parse_and_advance(&mut app_state, &raw);
-                    }
-                }
+                // Files always route through the unified dispatcher: image,
+                // zip, json, csv, txt — all bulk-import with auto-derived
+                // names. Typed `otpauth://` URIs still go through the
+                // AddName flow via `try_parse_and_advance` (handled in the
+                // Enter key handler), so the interactive naming UX is
+                // preserved for that case.
+                try_import_file(&mut app_state, &fp, v, &path);
             }
             continue;
         }
@@ -557,38 +564,72 @@ fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
     }
 }
 
-fn try_import_migration(state: &mut AppState, uri: &str, vault: &mut Vault, path: &Path) {
-    // Always close any modal and return to List, success or failure.
+/// Add already-parsed secrets to the vault with duplicate detection,
+/// save, and surface a status toast. All of TUI's import paths
+/// (file drop, file picker, typed migration URI) funnel through here.
+fn try_import_secrets(
+    state: &mut AppState,
+    secrets: Vec<OtpSecret>,
+    vault: &mut Vault,
+    path: &Path,
+) {
     state.clear_add_form();
     state.fp_query.clear();
     state.screen = Screen::List;
 
-    match parse_migration(uri) {
-        Ok(accounts) => {
-            let count = accounts.len();
-            let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-            for otp in accounts {
-                let name = match (&otp.meta.issuer, &otp.meta.account) {
-                    (Some(i), Some(a)) => format!("{i}:{a}"),
-                    (Some(i), None) => i.clone(),
-                    (None, Some(a)) => a.clone(),
-                    (None, None) => format!("imported-{}", vault.entries().len() + 1),
-                };
-                vault.add_entry(VaultEntry {
-                    id: String::new(),
-                    name,
-                    secret: otp.secret,
-                    created_at: today.clone(),
-                    period: otp.meta.period.unwrap_or(30),
-                    digits: otp.meta.digits.unwrap_or(6),
-                    algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
-                });
-            }
-            if save_vault(state, vault, path) {
-                state.status_message = Some(format!("Imported {count} account(s)."));
-            }
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let mut imported = 0usize;
+    let mut skipped = 0usize;
+    for otp in secrets {
+        let name = match (&otp.meta.issuer, &otp.meta.account) {
+            (Some(i), Some(a)) => format!("{i}:{a}"),
+            (Some(i), None) => i.clone(),
+            (None, Some(a)) => a.clone(),
+            (None, None) => format!("imported-{}", vault.entries().len() + 1),
+        };
+        let dup = vault
+            .entries()
+            .iter()
+            .any(|e| e.name == name && e.secret == otp.secret);
+        if dup {
+            skipped += 1;
+            continue;
         }
+        vault.add_entry(VaultEntry {
+            id: String::new(),
+            name,
+            secret: otp.secret,
+            created_at: today.clone(),
+            period: otp.meta.period.unwrap_or(30),
+            digits: otp.meta.digits.unwrap_or(6),
+            algorithm: otp.meta.algorithm.unwrap_or_else(|| "SHA1".to_string()),
+        });
+        imported += 1;
+    }
+    if imported == 0 && skipped > 0 {
+        state.status_message = Some(format!("Already imported ({skipped} duplicate(s))."));
+        return;
+    }
+    if save_vault(state, vault, path) {
+        let mut msg = format!("Imported {imported} account(s).");
+        if skipped > 0 {
+            msg.push_str(&format!(" Skipped {skipped} duplicate(s)."));
+        }
+        state.status_message = Some(msg);
+    }
+}
+
+/// Run the unified file dispatcher (image / zip / json / csv / txt) and
+/// import everything it returns. Used by every TUI surface that takes a
+/// file path: drag-dropped path, file-picker selection, typed path in
+/// the AddForm.
+fn try_import_file(state: &mut AppState, file: &Path, vault: &mut Vault, vault_path: &Path) {
+    match tofa_core::import::parse_file(file) {
+        Ok(secrets) => try_import_secrets(state, secrets, vault, vault_path),
         Err(e) => {
+            state.clear_add_form();
+            state.fp_query.clear();
+            state.screen = Screen::List;
             state.status_message = Some(format!("Import failed: {e}"));
         }
     }
@@ -656,21 +697,22 @@ fn handle_add_form_key(
         KeyCode::Enter => {
             let raw = state.add_secret_input.trim().to_string();
             if !raw.is_empty() {
-                if raw.starts_with("otpauth-migration://") {
-                    try_import_migration(state, &raw, vault, path);
-                } else {
-                    // Could be a file path containing a migration QR
-                    let fp = std::path::Path::new(&raw);
-                    if fp.is_file() {
-                        match scan_qr_uri(fp) {
-                            Ok(uri) if uri.starts_with("otpauth-migration://") => {
-                                try_import_migration(state, &uri, vault, path);
-                            }
-                            _ => try_parse_and_advance(state, &raw),
+                let fp = std::path::Path::new(&raw);
+                if fp.is_file() {
+                    try_import_file(state, fp, vault, path);
+                } else if raw.starts_with("otpauth-migration://") {
+                    // Pasted Google-Authenticator export URI — bulk import
+                    // every account in one go, no per-entry naming step.
+                    match tofa_core::import::parse_migration_uri(&raw) {
+                        Ok(secrets) => try_import_secrets(state, secrets, vault, path),
+                        Err(e) => {
+                            state.status_message = Some(format!("Import failed: {e}"));
                         }
-                    } else {
-                        try_parse_and_advance(state, &raw);
                     }
+                } else {
+                    // Single otpauth:// URI: keep the interactive AddName
+                    // flow so the user can review and rename before saving.
+                    try_parse_and_advance(state, &raw);
                 }
             }
         }
@@ -944,7 +986,7 @@ fn refresh_fp_entries(state: &mut AppState) {
                     .and_then(|e| e.to_str())
                     .unwrap_or("")
                     .to_lowercase();
-                if IMAGE_EXTS.contains(&ext.as_str()) {
+                if SUPPORTED_EXTS.contains(&ext.as_str()) {
                     files.push(name);
                 }
             }
@@ -1000,17 +1042,7 @@ fn handle_file_picker_key(
                     refresh_fp_entries(state);
                 } else {
                     let file_path = state.fp_path.join(&name);
-                    match scan_qr_uri(&file_path) {
-                        Ok(uri) if uri.starts_with("otpauth-migration://") => {
-                            try_import_migration(state, &uri, vault, path);
-                        }
-                        Ok(_) | Err(_) => {
-                            let raw = file_path.to_string_lossy().to_string();
-                            state.add_secret_input = raw.clone();
-                            state.screen = Screen::AddForm;
-                            try_parse_and_advance(state, &raw);
-                        }
-                    }
+                    try_import_file(state, &file_path, vault, path);
                 }
             }
         }

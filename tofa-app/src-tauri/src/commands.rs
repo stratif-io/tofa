@@ -422,13 +422,10 @@ pub async fn scan_image_bytes(
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(&b64)
         .map_err(|e| e.to_string())?;
-    let tmp = std::env::temp_dir().join(format!("tofa_drop_{}.png", std::process::id()));
-    std::fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
-
-    let uris =
-        tofa_core::qr::scan_all_qr_uris(&tmp).map_err(|_| "No QR code found in image.".to_string());
-    let _ = std::fs::remove_file(&tmp);
-    let uris = uris?;
+    // Bytes from the JS drop handler don't carry a filename; treat them
+    // as PNG so the unified dispatcher routes through the image branch.
+    let otps = extract_otps_from_bytes("drop.png", &bytes)
+        .map_err(|_| "No QR code found in image.".to_string())?;
 
     let (vault_path, passphrase) = {
         let mut s = state.lock().map_err(|e| e.to_string())?;
@@ -444,18 +441,6 @@ pub async fn scan_image_bytes(
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
         let mut added = Vec::new();
-
-        let mut otps: Vec<tofa_core::qr::OtpSecret> = Vec::new();
-        for uri in &uris {
-            if uri.starts_with("otpauth-migration://") {
-                if let Ok(accounts) = tofa_core::qr::parse_migration(uri) {
-                    otps.extend(accounts);
-                }
-            } else if let Ok(otp) = tofa_core::qr::parse_input(uri) {
-                otps.push(otp);
-            }
-        }
-
         for otp in otps {
             let name = otp.meta.derive_name();
             vault.add_entry(tofa_core::store::VaultEntry {
@@ -469,7 +454,6 @@ pub async fn scan_image_bytes(
             });
             added.push(name);
         }
-
         vault
             .save(&vault_path, &passphrase)
             .map_err(|e| e.to_string())?;
@@ -639,92 +623,15 @@ fn cam_html() -> String {
     include_str!("cam.html").to_string()
 }
 
-/// Extract OtpSecret entries from raw bytes + filename hint.
-/// Supports: images (QR), JSON (Aegis / andOTP / plain URI list), TXT (URI lines), ZIP (recursive).
+/// Thin wrapper around the unified `tofa_core::import::parse_bytes`
+/// dispatcher. Kept as a function (rather than inlined at call sites)
+/// because three commands route through it: `pick_and_import_file`,
+/// `import_file`, and the drop handler invoked from JS.
 fn extract_otps_from_bytes(
     filename: &str,
     bytes: &[u8],
 ) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
-    let ext = std::path::Path::new(filename)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
-    match ext.as_str() {
-        "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" | "tiff" => {
-            let tmp =
-                std::env::temp_dir().join(format!("tofa_import_{}.{}", std::process::id(), ext));
-            std::fs::write(&tmp, bytes).map_err(|e| e.to_string())?;
-            let uris = tofa_core::qr::scan_all_qr_uris(&tmp);
-            let _ = std::fs::remove_file(&tmp);
-            let uris = uris.map_err(|_| "No QR code found in image.".to_string())?;
-            collect_otps_from_uris(&uris)
-        }
-        "json" | "2fas" => parse_json_import(bytes),
-        "csv" => {
-            let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
-            tofa_core::import::parse_csv(text)
-        }
-        "txt" => {
-            let text = std::str::from_utf8(bytes).map_err(|e| e.to_string())?;
-            let uris: Vec<String> = text
-                .lines()
-                .map(str::trim)
-                .filter(|l| !l.is_empty())
-                .map(String::from)
-                .collect();
-            collect_otps_from_uris(&uris)
-        }
-        "zip" => {
-            use std::io::Read;
-            let cursor = std::io::Cursor::new(bytes);
-            let mut archive = zip::ZipArchive::new(cursor).map_err(|e| e.to_string())?;
-            let mut all = Vec::new();
-            let names: Vec<String> = (0..archive.len())
-                .filter_map(|i| archive.by_index(i).ok().map(|f| f.name().to_string()))
-                .collect();
-            for name in names {
-                if let Ok(mut file) = archive.by_name(&name) {
-                    let mut buf = Vec::new();
-                    file.read_to_end(&mut buf).ok();
-                    if let Ok(mut otps) = extract_otps_from_bytes(&name, &buf) {
-                        all.append(&mut otps);
-                    }
-                }
-            }
-            if all.is_empty() {
-                Err("No OTP accounts found in ZIP.".to_string())
-            } else {
-                Ok(all)
-            }
-        }
-        _ => Err(format!(
-            "Unsupported file type: .{ext}. Try PNG, JPG, JSON, TXT, or ZIP."
-        )),
-    }
-}
-
-fn collect_otps_from_uris(uris: &[String]) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
-    let mut otps = Vec::new();
-    for uri in uris {
-        if uri.starts_with("otpauth-migration://") {
-            if let Ok(accounts) = tofa_core::qr::parse_migration(uri) {
-                otps.extend(accounts);
-            }
-        } else if let Ok(otp) = tofa_core::qr::parse_input(uri) {
-            otps.push(otp);
-        }
-    }
-    if otps.is_empty() {
-        Err("No valid OTP URIs found.".to_string())
-    } else {
-        Ok(otps)
-    }
-}
-
-fn parse_json_import(bytes: &[u8]) -> Result<Vec<tofa_core::qr::OtpSecret>, String> {
-    tofa_core::qr::parse_json_bytes(bytes)
+    tofa_core::import::parse_bytes(filename, bytes)
 }
 
 #[tauri::command]

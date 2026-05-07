@@ -10,7 +10,6 @@ pub enum Screen {
     AddName,
     DeleteConfirm,
     FilePicker,
-    OtpDetail,
     Export,
     ExportQr,
     ExportOtpauthList,

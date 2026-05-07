@@ -7,7 +7,6 @@ pub mod export_qr;
 pub mod file_picker;
 pub mod fullscreen;
 pub mod list;
-pub mod otp_detail;
 pub mod scanning_qr;
 pub mod toast;
 pub mod unlock;

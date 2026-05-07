@@ -85,13 +85,14 @@ fn run_app(
 
     // Mouse capture is on by default (set up in `run()` before we get
     // here) so we can route clicks on the list to copy-code, etc. But
-    // on the Info modal the user wants to select text natively — every
-    // terminal handles selection itself when mouse capture is off, so
-    // we toggle it per-screen.
+    // the Fullscreen view shows the URI / secret as plain text and the
+    // user wants to select that text natively — every terminal handles
+    // selection itself when mouse capture is off, so we toggle it
+    // per-screen.
     let mut mouse_captured = true;
 
     loop {
-        let want_captured = !matches!(app_state.screen, Screen::OtpDetail);
+        let want_captured = !matches!(app_state.screen, Screen::Fullscreen);
         if want_captured != mouse_captured {
             if want_captured {
                 execute!(terminal.backend_mut(), EnableMouseCapture)?;
@@ -131,13 +132,6 @@ fn run_app(
                         .expect("vault must be initialized after unlock"),
                 ),
                 Screen::FilePicker => screens::file_picker::render(f, area, &app_state),
-                Screen::OtpDetail => {
-                    let v = vault
-                        .as_ref()
-                        .expect("vault must be initialized after unlock");
-                    screens::list::render(f, area, &app_state, v);
-                    screens::otp_detail::render(f, area, &app_state, v);
-                }
                 Screen::Export => {
                     let v = vault
                         .as_ref()
@@ -276,13 +270,10 @@ fn run_app(
                                         }
                                     }
                                 }
-                                Screen::Fullscreen => {
-                                    app_state.screen = Screen::List;
-                                }
-                                // OtpDetail intentionally does NOT close on
+                                // Fullscreen intentionally does NOT close on
                                 // click: mouse capture is disabled there so
                                 // the user can select URI / secret text
-                                // natively. Use Esc / `i` to close.
+                                // natively. Use Esc / `i` / Space to close.
                                 Screen::Export => {
                                     app_state.screen = Screen::List;
                                 }
@@ -344,13 +335,6 @@ fn run_app(
                                 .expect("vault must be initialized after unlock"),
                             &path,
                         )?,
-                        Screen::OtpDetail => handle_otp_detail_key(
-                            key.code,
-                            &mut app_state,
-                            vault
-                                .as_ref()
-                                .expect("vault must be initialized after unlock"),
-                        ),
                         Screen::Export => handle_export_key(
                             key.code,
                             &mut app_state,
@@ -525,7 +509,7 @@ fn handle_list_key(
         }
         KeyCode::Char('i') if !accumulating && len > 0 => {
             state.reset_detail_reveal();
-            state.screen = Screen::OtpDetail;
+            state.screen = Screen::Fullscreen;
         }
         KeyCode::Char('i') if !accumulating => {}
         KeyCode::Char('e') if !accumulating && len > 0 => {
@@ -566,18 +550,65 @@ fn handle_list_key(
 
 fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
     let len = vault.entries().len();
+
+    // Passphrase reveal sub-mode: while the user types their passphrase
+    // to unmask the secret + URI, intercept everything except Esc /
+    // Backspace / Enter / printable chars so accidental shortcut keys
+    // don't leak into the typed passphrase.
+    if state.detail_revealing {
+        match key {
+            KeyCode::Esc => {
+                state.detail_revealing = false;
+                state.detail_passphrase.clear();
+            }
+            KeyCode::Char(c) => state.detail_passphrase.push(c),
+            KeyCode::Backspace => {
+                state.detail_passphrase.pop();
+            }
+            KeyCode::Enter => {
+                let correct = state
+                    .vault_key_cache
+                    .as_ref()
+                    .and_then(|k| std::str::from_utf8(k).ok())
+                    .map(|k| k == state.detail_passphrase.as_str())
+                    .unwrap_or(false);
+                if correct {
+                    state.detail_secret_visible = true;
+                    state.detail_revealing = false;
+                    state.detail_passphrase.clear();
+                } else {
+                    state.status_message = Some("Wrong passphrase".to_string());
+                    state.status_message_at = Some(std::time::Instant::now());
+                    state.detail_passphrase.clear();
+                }
+            }
+            _ => {}
+        }
+        return;
+    }
+
     match key {
-        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char(' ') => state.screen = Screen::List,
-        KeyCode::Char('i') if len > 0 => {
+        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char(' ') | KeyCode::Char('i') => {
             state.reset_detail_reveal();
-            state.screen = Screen::OtpDetail;
+            state.screen = Screen::List;
         }
         KeyCode::Char('y') => copy_selected_code(state, vault),
+        KeyCode::Char('u') => copy_selected_uri(state, vault),
         KeyCode::Char('l') => lock_screen(state),
+        KeyCode::Char('s') => {
+            if state.detail_secret_visible {
+                state.detail_secret_visible = false;
+            } else {
+                state.detail_revealing = true;
+                state.detail_passphrase.clear();
+            }
+        }
         KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
+            state.reset_detail_reveal();
             state.selected_index -= 1;
         }
         KeyCode::Down | KeyCode::Char('j') if len > 0 && state.selected_index < len - 1 => {
+            state.reset_detail_reveal();
             state.selected_index += 1;
         }
         _ => {}
@@ -856,74 +887,6 @@ fn copy_selected_uri(state: &mut AppState, vault: &Vault) {
             state.status_message = Some("Clipboard unavailable".to_string());
             state.status_message_at = Some(Instant::now());
         }
-    }
-}
-
-fn handle_otp_detail_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
-    let len = vault.entries().len();
-
-    // Passphrase reveal sub-mode
-    if state.detail_revealing {
-        match key {
-            KeyCode::Esc => {
-                state.detail_revealing = false;
-                state.detail_passphrase.clear();
-            }
-            KeyCode::Char(c) => state.detail_passphrase.push(c),
-            KeyCode::Backspace => {
-                state.detail_passphrase.pop();
-            }
-            KeyCode::Enter => {
-                let correct = state
-                    .vault_key_cache
-                    .as_ref()
-                    .and_then(|k| std::str::from_utf8(k).ok())
-                    .map(|k| k == state.detail_passphrase.as_str())
-                    .unwrap_or(false);
-                if correct {
-                    state.detail_secret_visible = true;
-                    state.detail_revealing = false;
-                    state.detail_passphrase.clear();
-                } else {
-                    state.status_message = Some("Wrong passphrase".to_string());
-                    state.status_message_at = Some(std::time::Instant::now());
-                    state.detail_passphrase.clear();
-                }
-            }
-            _ => {}
-        }
-        return;
-    }
-
-    match key {
-        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('i') => {
-            state.reset_detail_reveal();
-            state.screen = Screen::List;
-        }
-        KeyCode::Char(' ') if !state.detail_revealing && len > 0 => {
-            state.reset_detail_reveal();
-            state.screen = Screen::Fullscreen;
-        }
-        KeyCode::Char('y') => copy_selected_code(state, vault),
-        KeyCode::Char('u') => copy_selected_uri(state, vault),
-        KeyCode::Char('l') => lock_screen(state),
-        KeyCode::Char('s') => {
-            if state.detail_secret_visible {
-                state.detail_secret_visible = false;
-            } else {
-                state.detail_revealing = true;
-                state.detail_passphrase.clear();
-            }
-        }
-        KeyCode::Up | KeyCode::Char('k') if state.selected_index > 0 => {
-            state.reset_detail_reveal();
-            state.selected_index -= 1;
-        }
-        KeyCode::Down | KeyCode::Char('j') if len > 0 && state.selected_index < len - 1 => {
-            state.reset_detail_reveal();
-            state.selected_index += 1;
-        }
-        _ => {}
     }
 }
 

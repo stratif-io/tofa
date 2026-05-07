@@ -475,6 +475,21 @@ pub fn mask_otpauth_uri(uri: &str, secret: &str) -> String {
 /// `otpauth://totp/...` line per entry, no trailing newline. This is the
 /// inverse of `tofa_core::import::parse_text_uris` (Ente Auth's export
 /// format), so a vault → URI list → vault round trip preserves every
+/// Replace path-unsafe characters in a vault entry name so it can
+/// safely be a filename. Used by every QR-PNG export surface (CLI
+/// `tofa qr --multi`, desktop app print/zip flow) so they all produce
+/// the same filenames and a future change to the rule lands in one
+/// place. Keeps ASCII letters, digits, `-`, `_`, `.`; everything
+/// else (including `:`, `/`, spaces) becomes `_`.
+pub fn sanitize_filename(name: &str) -> String {
+    name.chars()
+        .map(|c| match c {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' => c,
+            _ => '_',
+        })
+        .collect()
+}
+
 /// entry. Used by the CLI (`tofa export --format uris`), TUI (export
 /// screen "save as URI list"), and desktop app ("Save as URI list").
 pub fn entries_to_uri_list(entries: &[crate::store::VaultEntry]) -> String {
@@ -946,4 +961,21 @@ pub fn uri_to_qr_png(data: &str, path: &std::path::Path) -> Result<(), QrError> 
     img.save(path)
         .map_err(|e| QrError::ImageLoad(e.to_string()))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_filename_strips_path_separators_and_colons() {
+        assert_eq!(sanitize_filename("Issuer:account"), "Issuer_account");
+        assert_eq!(sanitize_filename("a/b\\c"), "a_b_c");
+        assert_eq!(sanitize_filename("plain"), "plain");
+        assert_eq!(sanitize_filename("with space"), "with_space");
+        assert_eq!(
+            sanitize_filename("dot.kept-and_under"),
+            "dot.kept-and_under"
+        );
+    }
 }

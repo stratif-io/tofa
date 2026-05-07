@@ -486,15 +486,13 @@ pub async fn scan_screen(
         let today = tofa_core::today_iso();
         let mut added = Vec::new();
 
-        // Expand each scanned URI — migration QRs contain multiple accounts
+        // Expand each scanned URI — migration QRs contain multiple accounts.
+        // Per-URI parse errors are swallowed so a single bad QR on the screen
+        // doesn't sink the whole scan.
         let mut otps: Vec<tofa_core::qr::OtpSecret> = Vec::new();
         for uri in &uris {
-            if uri.starts_with("otpauth-migration://") {
-                if let Ok(accounts) = tofa_core::qr::parse_migration(uri) {
-                    otps.extend(accounts);
-                }
-            } else if let Ok(otp) = tofa_core::qr::parse_input(uri) {
-                otps.push(otp);
+            if let Ok(found) = tofa_core::import::parse_uri(uri) {
+                otps.extend(found);
             }
         }
 
@@ -693,11 +691,7 @@ pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String
         let today = tofa_core::today_iso();
         let mut added = Vec::new();
 
-        let otps: Vec<tofa_core::qr::OtpSecret> = if uri.starts_with("otpauth-migration://") {
-            tofa_core::qr::parse_migration(&uri).map_err(|e| e.to_string())?
-        } else {
-            vec![tofa_core::qr::parse_input(&uri).map_err(|e| e.to_string())?]
-        };
+        let otps = tofa_core::import::parse_uri(&uri)?;
 
         for otp in otps {
             let name = otp.meta.derive_name();
@@ -1064,7 +1058,11 @@ fn build_qr_zip(items: &[QrZipItem]) -> Result<Vec<u8>, String> {
         let png_bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, png)
             .map_err(|e| format!("base64 decode failed for item {}: {}", i, e))?;
 
-        let filename = format!("{:02}-{}.png", i + 1, sanitize_filename_for_zip(&item.name));
+        let filename = format!(
+            "{:02}-{}.png",
+            i + 1,
+            tofa_core::qr::sanitize_filename(&item.name)
+        );
         zip.start_file(&filename, opts).map_err(|e| e.to_string())?;
         zip.write_all(&png_bytes).map_err(|e| e.to_string())?;
         filenames.push((filename, item.name.clone()));
@@ -1077,15 +1075,6 @@ fn build_qr_zip(items: &[QrZipItem]) -> Result<Vec<u8>, String> {
 
     zip.finish().map_err(|e| e.to_string())?;
     Ok(buf.into_inner())
-}
-
-fn sanitize_filename_for_zip(name: &str) -> String {
-    name.chars()
-        .map(|c| match c {
-            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' => c,
-            _ => '_',
-        })
-        .collect()
 }
 
 fn build_print_html(items: &[(String, String)]) -> String {
@@ -1283,15 +1272,5 @@ mod tests {
             data_uri: "data:text/plain;base64,aGVsbG8=".to_string(),
         };
         assert!(build_qr_zip(&[bad]).is_err());
-    }
-
-    #[test]
-    fn sanitize_filename_for_zip_strips_path_separators_and_colons() {
-        assert_eq!(
-            sanitize_filename_for_zip("Issuer:account"),
-            "Issuer_account"
-        );
-        assert_eq!(sanitize_filename_for_zip("a/b\\c"), "a_b_c");
-        assert_eq!(sanitize_filename_for_zip("plain"), "plain");
     }
 }

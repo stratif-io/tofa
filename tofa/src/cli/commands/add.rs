@@ -34,13 +34,13 @@ pub fn run(args: AddArgs, vault_path: PathBuf) -> CliResult {
             return import_migration(&uri, &mut vault, &vault_path, &pass, &args.name);
         }
         let otp = tofa_core::qr::parse_input(&uri)?;
-        let name = args.name.unwrap_or_else(|| make_name(&otp));
+        let name = args.name.unwrap_or_else(|| otp.meta.derive_name());
         return add_single(&name, otp, &mut vault, &vault_path, &pass);
     }
 
     if let Some(uri) = &args.uri {
         let otp = tofa_core::qr::parse_input(uri)?;
-        let name = args.name.unwrap_or_else(|| make_name(&otp));
+        let name = args.name.unwrap_or_else(|| otp.meta.derive_name());
         return add_single(&name, otp, &mut vault, &vault_path, &pass);
     }
 
@@ -54,15 +54,6 @@ pub fn run(args: AddArgs, vault_path: PathBuf) -> CliResult {
     }
 
     Err("Provide --secret, --uri, or --qr.".into())
-}
-
-fn make_name(otp: &OtpSecret) -> String {
-    match (&otp.meta.issuer, &otp.meta.account) {
-        (Some(i), Some(a)) => format!("{i}:{a}"),
-        (Some(i), None) => i.clone(),
-        (None, Some(a)) => a.clone(),
-        (None, None) => "unknown".to_string(),
-    }
 }
 
 pub fn add_single(
@@ -102,7 +93,9 @@ fn import_migration(
     let count = accounts.len();
     let today = tofa_core::today_iso();
     for otp in accounts {
-        let name = name_override.clone().unwrap_or_else(|| make_name(&otp));
+        let name = name_override
+            .clone()
+            .unwrap_or_else(|| otp.meta.derive_name());
         vault.add_entry(otp.into_vault_entry(name, today.clone()));
     }
     vault.save(path, pass)?;

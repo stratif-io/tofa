@@ -196,6 +196,24 @@ pub fn parse_migration_uri(uri: &str) -> Result<Vec<OtpSecret>, String> {
     google_authenticator::parse(uri).map_err(|e| e.to_string())
 }
 
+/// Parse a single URI line — either an `otpauth-migration://` (which
+/// expands to N accounts) or a plain `otpauth://` (one account) — and
+/// return all the `OtpSecret`s it contains. Centralises the
+/// `if uri.starts_with("otpauth-migration://") { parse_migration } else { parse_input }`
+/// dispatch that every scan / paste / drop import surface used to do
+/// inline (CLI scan, CLI cam, CLI add, desktop scan_screen, desktop
+/// scan_image_bytes, TUI paste) so a future scheme addition (e.g.
+/// `otpauth-2fas-export://`) lands in one place.
+pub fn parse_uri(uri: &str) -> Result<Vec<OtpSecret>, String> {
+    if uri.starts_with("otpauth-migration://") {
+        parse_migration_uri(uri)
+    } else {
+        crate::qr::parse_input(uri)
+            .map(|otp| vec![otp])
+            .map_err(|e| e.to_string())
+    }
+}
+
 /// Parse an Ente Auth plain-text export (newline-separated `otpauth://` URIs).
 pub fn parse_text_uris(text: &str) -> Result<Vec<OtpSecret>, String> {
     ente::parse(text)

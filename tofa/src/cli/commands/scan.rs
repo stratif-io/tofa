@@ -163,15 +163,13 @@ pub fn import_uris_into_vault(
     let today = tofa_core::today_iso();
 
     // Pre-parse so we know the total count before deciding whether to apply
-    // the name override.
+    // the name override. `parse_uri` handles both `otpauth://` (one OTP) and
+    // `otpauth-migration://` (N OTPs) so the screen-scan loop doesn't need
+    // to care which kind each captured QR was.
     let mut parsed: Vec<tofa_core::OtpSecret> = Vec::new();
     for uri in uris {
-        if uri.starts_with("otpauth-migration://") {
-            for otp in tofa_core::qr::parse_migration(uri)? {
-                parsed.push(otp);
-            }
-        } else {
-            parsed.push(tofa_core::qr::parse_input(uri)?);
+        for otp in tofa_core::import::parse_uri(uri)? {
+            parsed.push(otp);
         }
     }
 
@@ -182,21 +180,12 @@ pub fn import_uris_into_vault(
         let name = if apply_override {
             name_override.unwrap().to_string()
         } else {
-            make_name(&otp)
+            otp.meta.derive_name()
         };
         vault.add_entry(otp.into_vault_entry(name, today.clone()));
     }
 
     Ok(total)
-}
-
-fn make_name(otp: &tofa_core::OtpSecret) -> String {
-    match (&otp.meta.issuer, &otp.meta.account) {
-        (Some(i), Some(a)) => format!("{i}:{a}"),
-        (Some(i), None) => i.clone(),
-        (None, Some(a)) => a.clone(),
-        (None, None) => "unknown".to_string(),
-    }
 }
 
 /// Capture every connected display to a PNG (or several PNGs) in the system

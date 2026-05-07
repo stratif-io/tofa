@@ -345,7 +345,7 @@ pub fn run(args: CamArgs, vault_path: PathBuf) -> CliResult {
         let count = accounts.len();
         let today = tofa_core::today_iso();
         for otp in accounts {
-            let name = args.name.clone().unwrap_or_else(|| make_name(&otp));
+            let name = args.name.clone().unwrap_or_else(|| otp.meta.derive_name());
             vault.add_entry(otp.into_vault_entry(name, today.clone()));
         }
         vault.save(&vault_path, &pass)?;
@@ -354,7 +354,7 @@ pub fn run(args: CamArgs, vault_path: PathBuf) -> CliResult {
     }
 
     let otp = tofa_core::qr::parse_input(&uri)?;
-    let name = args.name.unwrap_or_else(|| make_name(&otp));
+    let name = args.name.unwrap_or_else(|| otp.meta.derive_name());
     let today = tofa_core::today_iso();
     let entry = otp.into_vault_entry(name.clone(), today);
     let code = generate_code_now(&entry).unwrap_or_else(|_| "------".into());
@@ -364,13 +364,4 @@ pub fn run(args: CamArgs, vault_path: PathBuf) -> CliResult {
     println!("Added {name}");
     println!("Current code: {}  ({}s)", format_code(&code), secs);
     Ok(())
-}
-
-fn make_name(otp: &tofa_core::OtpSecret) -> String {
-    match (&otp.meta.issuer, &otp.meta.account) {
-        (Some(i), Some(a)) => format!("{i}:{a}"),
-        (Some(i), None) => i.clone(),
-        (None, Some(a)) => a.clone(),
-        (None, None) => "unknown".to_string(),
-    }
 }

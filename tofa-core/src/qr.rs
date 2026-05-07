@@ -440,6 +440,20 @@ impl std::error::Error for SelectionExportError {}
 /// - **Multiple all-30s entries** → `otpauth-migration://...` (Google's
 ///   migration format; preserves algorithm and digits, period is implicitly 30).
 /// - **Multiple entries containing any non-30s** → `Err(NonStandardPeriod)`.
+/// Build a plain-text URI list for the given entries — one
+/// `otpauth://totp/...` line per entry, no trailing newline. This is the
+/// inverse of `tofa_core::import::parse_text_uris` (Ente Auth's export
+/// format), so a vault → URI list → vault round trip preserves every
+/// entry. Used by the CLI (`tofa export --format uris`), TUI (export
+/// screen "save as URI list"), and desktop app ("Save as URI list").
+pub fn entries_to_uri_list(entries: &[crate::store::VaultEntry]) -> String {
+    entries
+        .iter()
+        .map(build_otpauth_uri)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 pub fn build_selection_uri(
     entries: &[crate::store::VaultEntry],
 ) -> Result<String, SelectionExportError> {

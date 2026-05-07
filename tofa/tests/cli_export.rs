@@ -61,3 +61,53 @@ fn export_json_is_valid() {
     assert_eq!(parsed.len(), 1);
     assert_eq!(parsed[0]["name"], "GitHub:carlo");
 }
+
+#[test]
+fn export_format_uris_writes_one_otpauth_per_line() {
+    // The new --format uris flag writes a plain-text file that the
+    // unified import dispatcher accepts back via `tofa import`. Round
+    // trip the full vault through it and assert the entry survives.
+    let tmp = setup();
+    let out = tmp.path().join("export.txt");
+    tofa(&tmp)
+        .args([
+            "export",
+            "--format",
+            "uris",
+            "--output",
+            out.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+    let content = std::fs::read_to_string(&out).unwrap();
+    assert!(
+        content.starts_with("otpauth://totp/"),
+        "expected URI list, got: {content:?}"
+    );
+    assert!(content.contains("CLIEXPORTAAAAAAA"));
+
+    // Round-trip: import the .txt into a fresh vault and assert the
+    // entry survives.
+    let tmp2 = TempDir::new().unwrap();
+    Command::cargo_bin("tofa")
+        .unwrap()
+        .env("TOFA_PASSPHRASE", "testpass")
+        .env(
+            "TOFA_VAULT",
+            tmp2.path().join("vault.enc").to_str().unwrap(),
+        )
+        .arg("init")
+        .assert()
+        .success();
+    Command::cargo_bin("tofa")
+        .unwrap()
+        .env("TOFA_PASSPHRASE", "testpass")
+        .env(
+            "TOFA_VAULT",
+            tmp2.path().join("vault.enc").to_str().unwrap(),
+        )
+        .args(["import", out.to_str().unwrap()])
+        .assert()
+        .success()
+        .stdout(contains("Imported 1"));
+}

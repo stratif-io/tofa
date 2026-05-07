@@ -15,8 +15,9 @@ tofa code [FLAGS]
 | Flag | Description |
 |---|---|
 | `--raw <RAW>` | Output bare digits without space (for scripting) |
-| `--copy <COPY>` | Copy code to clipboard |
+| `--copy <COPY>` | Copy to clipboard (the code by default; the otpauth:// URI when --uri is set) |
 | `--watch <WATCH>` | Refresh every second until Ctrl+C |
+| `--uri <URI>` | Print/copy the entry's `otpauth://` URI instead of the current code. Useful for moving an account to another authenticator app or piping into `tofa add --uri` |
 
 <!-- END auto:help -->
 

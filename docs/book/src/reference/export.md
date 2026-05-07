@@ -15,6 +15,7 @@ tofa export [FLAGS]
 | Flag | Description |
 |---|---|
 | `--output <PATH>` | Write to a file instead of stdout |
+| `--format <FORMAT>` | Output format. Defaults to `json` for backwards compatibility |
 
 <!-- END auto:help -->
 

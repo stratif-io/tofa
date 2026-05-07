@@ -302,6 +302,7 @@ function renderDetailMeta(entry) {
     ['Added',     entry.created_at || '—'],
     ['ID',        entry.id || '—'],
     ['Secret',    null],
+    ['URI',       null],
   ];
   const tbody = $('detail-meta-body');
   tbody.innerHTML = '';
@@ -311,6 +312,25 @@ function renderDetailMeta(entry) {
       tr.innerHTML = `<td>${label}</td><td><span class="secret-masked" id="secret-cell" title="Click to reveal">●●●●●●●●●●●●●●●●</span></td>`;
       tbody.appendChild(tr);
       $('secret-cell').addEventListener('click', () => {
+        $('reveal-passphrase').value = '';
+        $('reveal-error').style.display = 'none';
+        $('reveal-overlay').style.display = 'flex';
+        $('reveal-passphrase').focus();
+      });
+    } else if (label === 'URI') {
+      // Same trust boundary as the secret row — bullets by default,
+      // unmasked by the same reveal-overlay passphrase prompt. The
+      // backend hands us a pre-masked URI so we don't need the secret
+      // to render the resting state.
+      tr.innerHTML = `<td>${label}</td>` +
+        `<td><span class="secret-masked" id="uri-cell" ` +
+        `style="word-break:break-all;font-family:var(--font-mono);font-size:11px;" ` +
+        `title="Click to reveal">Loading…</span></td>`;
+      tbody.appendChild(tr);
+      invoke('get_masked_uri', { id: entry.id })
+        .then(uri => { $('uri-cell').textContent = uri; })
+        .catch(_ => { $('uri-cell').textContent = '(unavailable)'; });
+      $('uri-cell').addEventListener('click', () => {
         $('reveal-passphrase').value = '';
         $('reveal-error').style.display = 'none';
         $('reveal-overlay').style.display = 'flex';
@@ -764,18 +784,35 @@ $('btn-reveal-confirm').addEventListener('click', async () => {
   const errEl = $('reveal-error');
   errEl.style.display = 'none';
   try {
-    const secret = await invoke('get_secret', { id: selectedId, passphrase });
+    // get_full_uri also revalidates the passphrase server-side, so
+    // wrong-passphrase paths surface here before we touch any UI.
+    const [secret, fullUri] = await Promise.all([
+      invoke('get_secret', { id: selectedId, passphrase }),
+      invoke('get_full_uri', { id: selectedId, passphrase }),
+    ]);
     $('reveal-overlay').style.display = 'none';
     $('reveal-passphrase').value = '';
-    // Show secret in cell, truncate after 30s
+    // Show secret + URI in their cells, re-mask both after 30s.
     const cell = $('secret-cell');
     cell.textContent = secret;
     cell.className = '';
     cell.style.color = 'var(--brand)';
+    const uriCell = $('uri-cell');
+    if (uriCell) {
+      uriCell.dataset.masked = uriCell.textContent;
+      uriCell.textContent = fullUri;
+      uriCell.className = '';
+      uriCell.style.color = 'var(--brand)';
+    }
     setTimeout(() => {
       cell.textContent = '●●●●●●●●●●●●●●●●';
       cell.className = 'secret-masked';
       cell.style.color = '';
+      if (uriCell && uriCell.dataset.masked) {
+        uriCell.textContent = uriCell.dataset.masked;
+        uriCell.className = 'secret-masked';
+        uriCell.style.color = '';
+      }
     }, 30000);
   } catch (err) {
     errEl.textContent = String(err);

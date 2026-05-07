@@ -121,6 +121,8 @@ pub fn run() {
             commands::get_entries,
             commands::copy_code,
             commands::copy_uri,
+            commands::get_masked_uri,
+            commands::get_full_uri,
             commands::get_settings,
             commands::save_settings,
             commands::get_secret,

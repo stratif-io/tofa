@@ -173,6 +173,57 @@ pub async fn copy_uri(
     Ok(())
 }
 
+/// Build the entry's `otpauth://` URI with the secret portion replaced
+/// by bullets, so it can be displayed in the detail view without
+/// leaking the secret. Uses the cached session passphrase — no
+/// re-prompt — since nothing sensitive is returned.
+#[tauri::command]
+pub async fn get_masked_uri(
+    id: String,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<String, String> {
+    let (vault_path, passphrase) = {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        let p = s
+            .cache
+            .with_passphrase(|p| Zeroizing::new(p.to_string()))
+            .ok_or("locked")?;
+        (s.vault_path.clone(), p)
+    };
+    tokio::task::spawn_blocking(move || {
+        let vault =
+            tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
+        let entry = vault
+            .entry_by_id(&id)
+            .ok_or_else(|| format!("entry '{}' not found", id))?
+            .clone();
+        let uri = tofa_core::qr::build_otpauth_uri(&entry);
+        let masked = uri.replacen(entry.secret.as_str(), &"•".repeat(16), 1);
+        Ok::<String, String>(masked)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Return the full `otpauth://` URI including the unmasked secret.
+/// Requires the user's passphrase, exactly like `get_secret`. The UI
+/// uses this to swap in the real URI after the user passes the reveal
+/// gate, then re-masks after 30s.
+#[tauri::command]
+pub fn get_full_uri(
+    id: String,
+    passphrase: String,
+    state: State<Mutex<AppState>>,
+) -> Result<String, String> {
+    let s = state.lock().map_err(|e| e.to_string())?;
+    let vault = tofa_core::store::Vault::load(&s.vault_path, &passphrase)
+        .map_err(|_| "Wrong passphrase.".to_string())?;
+    let entry = vault
+        .entry_by_id(&id)
+        .ok_or_else(|| format!("Entry '{}' not found.", id))?;
+    Ok(tofa_core::qr::build_otpauth_uri(entry))
+}
+
 #[tauri::command]
 pub fn get_settings() -> Result<Settings, String> {
     let path = settings_path();

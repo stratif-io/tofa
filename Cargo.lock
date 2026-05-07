@@ -4542,6 +4542,7 @@ dependencies = [
  "tui-big-text",
  "unicode-width",
  "zeroize",
+ "zip",
 ]
 
 [[package]]

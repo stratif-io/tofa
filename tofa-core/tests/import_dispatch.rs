@@ -9,7 +9,7 @@ use image::{ImageBuffer, Luma};
 use qrcode::QrCode;
 use std::io::Write;
 use tempfile::NamedTempFile;
-use tofa_core::import::parse_file;
+use tofa_core::import::{parse_bytes, parse_file};
 
 fn qr_image(uri: &str, module_px: u32) -> ImageBuffer<Luma<u8>, Vec<u8>> {
     let code = QrCode::new(uri.as_bytes()).expect("encode QR");
@@ -128,6 +128,86 @@ fn parse_file_rejects_unsupported_extension() {
     let mut f = NamedTempFile::with_suffix(".bin").expect("tmp");
     f.write_all(b"random bytes").expect("write");
     assert!(parse_file(f.path()).is_err());
+}
+
+#[test]
+fn parse_bytes_routes_image_without_touching_disk() {
+    // The desktop app's drop handler arrives with bytes, not a path —
+    // parse_bytes is the entry point for that. Prove it works directly,
+    // not just transitively through parse_file.
+    let img = qr_image(URI_DISCORD, 8);
+    let mut buf = std::io::Cursor::new(Vec::new());
+    img.write_to(&mut buf, image::ImageFormat::Png)
+        .expect("encode");
+    let secrets = parse_bytes("anything.png", &buf.into_inner()).expect("must parse png bytes");
+    assert_eq!(secrets.len(), 1);
+    assert_eq!(secrets[0].secret, "DISCORDFAKEAAAAA");
+}
+
+#[test]
+fn parse_file_text_with_migration_uri_expands_to_all_accounts() {
+    // The .txt branch has a special case: a file whose entire content
+    // is a single `otpauth-migration://` URI should be treated as the
+    // Google-Authenticator export format and expanded into every
+    // account it contains. Without this, a saved migration URL pasted
+    // into a .txt file would be rejected by the Ente parser (it filters
+    // for otpauth://totp/ specifically).
+    //
+    // We don't have a fixed migration URI to assert exact decoding
+    // against here without duplicating the proto encoder, so we use
+    // tofa-core's demo migration generator and expect the dispatcher to
+    // route it through parse_migration_uri.
+    let migration_uri =
+        tofa_core::qr::generate_demo_migration_uri().expect("demo migration must encode");
+
+    let mut f = NamedTempFile::with_suffix(".txt").expect("tmp");
+    f.write_all(migration_uri.as_bytes()).expect("write");
+
+    let secrets = parse_file(f.path()).expect("must expand migration uri from txt");
+    assert!(
+        secrets.len() >= 2,
+        "demo migration encodes multiple accounts; got {}",
+        secrets.len()
+    );
+}
+
+#[test]
+fn parse_file_zip_with_json_entry_is_decoded_recursively() {
+    // The zip path's recursion is what lets a backup archive contain
+    // mixed content — e.g. an Aegis JSON sitting alongside a QR PNG.
+    // Without recursion, only the PNG would be picked up.
+    let zip_file = NamedTempFile::with_suffix(".zip").expect("tmp zip");
+    let mut writer = zip::ZipWriter::new(zip_file.reopen().expect("reopen"));
+    let opts: zip::write::SimpleFileOptions =
+        zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+
+    // A native tofa-format JSON entry: simplest known schema for
+    // parse_json_bytes, no extra fields needed.
+    let json = r#"[{"name":"GitHub:bob","secret":"GITHUBFAKEAAAAAA","created_at":"2026-01-01"}]"#;
+    writer.start_file("backup.json", opts).expect("start");
+    writer.write_all(json.as_bytes()).expect("write json");
+
+    // Plus a QR image for a different account.
+    let img = qr_image(URI_NETLIFY, 8);
+    let mut buf = std::io::Cursor::new(Vec::new());
+    img.write_to(&mut buf, image::ImageFormat::Png)
+        .expect("encode");
+    writer.start_file("netlify.png", opts).expect("start");
+    writer.write_all(&buf.into_inner()).expect("write png");
+
+    writer.finish().expect("finish zip");
+
+    let secrets = parse_file(zip_file.path()).expect("must decode mixed-format zip");
+    let secrets_set: std::collections::HashSet<_> =
+        secrets.iter().map(|s| s.secret.as_str()).collect();
+    assert!(
+        secrets_set.contains("GITHUBFAKEAAAAAA"),
+        "JSON entry must be recursively parsed, got: {secrets_set:?}"
+    );
+    assert!(
+        secrets_set.contains("NETLIFYFAKEAAAAA"),
+        "image entry must still be decoded, got: {secrets_set:?}"
+    );
 }
 
 #[test]

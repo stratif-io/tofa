@@ -112,7 +112,7 @@ pub fn render(f: &mut Frame, area: Rect, state: &AppState, vault: &Vault) {
             desc(" separate QRs"),
             sep(),
             key("u"),
-            desc(" URI list"),
+            desc(" show URIs"),
             sep(),
             key("esc"),
             desc(" back"),

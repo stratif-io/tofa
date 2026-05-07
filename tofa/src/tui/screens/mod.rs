@@ -4,6 +4,7 @@ pub mod delete_confirm;
 pub mod export;
 pub mod export_otpauth_list;
 pub mod export_qr;
+pub mod export_uri_list;
 pub mod file_picker;
 pub mod fullscreen;
 pub mod list;

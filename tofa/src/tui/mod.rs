@@ -92,7 +92,7 @@ fn run_app(
     let mut mouse_captured = true;
 
     loop {
-        let want_captured = !matches!(app_state.screen, Screen::Fullscreen);
+        let want_captured = !matches!(app_state.screen, Screen::Fullscreen | Screen::ExportUriList);
         if want_captured != mouse_captured {
             if want_captured {
                 execute!(terminal.backend_mut(), EnableMouseCapture)?;
@@ -143,6 +143,7 @@ fn run_app(
                 Screen::ExportOtpauthList => {
                     screens::export_otpauth_list::render(f, area, &app_state)
                 }
+                Screen::ExportUriList => screens::export_uri_list::render(f, area, &app_state),
                 Screen::ScanningQr => {
                     let v = vault
                         .as_ref()
@@ -344,11 +345,14 @@ fn run_app(
                         )?,
                         Screen::ExportQr => {
                             if key.code == KeyCode::Esc {
-                                app_state.screen = Screen::Export;
+                                app_state.screen = app_state.export_qr_back.clone();
                             }
                         }
                         Screen::ExportOtpauthList => {
                             handle_export_otpauth_list_key(key.code, &mut app_state);
+                        }
+                        Screen::ExportUriList => {
+                            handle_export_uri_list_key(key.code, &mut app_state);
                         }
                         Screen::DeleteConfirm => handle_delete_confirm_key(
                             key.code,
@@ -594,6 +598,14 @@ fn handle_fullscreen_key(key: KeyCode, state: &mut AppState, vault: &Vault) {
         }
         KeyCode::Char('y') => copy_selected_code(state, vault),
         KeyCode::Char('u') => copy_selected_uri(state, vault),
+        KeyCode::Char('r') => {
+            if let Some(entry) = vault.entries().get(state.selected_index) {
+                let uri = tofa_core::qr::build_otpauth_uri(entry);
+                state.export_qr_lines = uri_to_qr_lines(&uri);
+                state.export_qr_back = Screen::Fullscreen;
+                state.screen = Screen::ExportQr;
+            }
+        }
         KeyCode::Char('l') => lock_screen(state),
         KeyCode::Char('s') => {
             if state.detail_secret_visible {
@@ -915,6 +927,7 @@ fn handle_export_key(
             match tofa_core::build_selection_uri(&selection) {
                 Ok(uri) => {
                     state.export_qr_lines = uri_to_qr_lines(&uri);
+                    state.export_qr_back = Screen::Export;
                     state.screen = Screen::ExportQr;
                 }
                 Err(tofa_core::SelectionExportError::Empty) => {
@@ -947,36 +960,24 @@ fn handle_export_key(
             state.screen = Screen::ExportOtpauthList;
         }
         KeyCode::Char('u') => {
-            // 'u' = save URI list to a .txt file. One otpauth:// per
-            // line, the inverse of `tofa import <file>.txt`. File goes
-            // to the user's home dir with a date-stamped name; the
-            // status toast surfaces the absolute path so the user can
-            // locate it.
+            // 'u' = show the otpauth:// URIs as plain text. Mouse
+            // capture is auto-disabled on the ExportUriList screen so
+            // the user can click-and-drag to select any URI natively;
+            // `y` on that screen copies the whole list at once. To
+            // *save* the URIs to a file, use `tofa export --format uris`
+            // from the CLI.
             let selection = checked_selection(state, vault);
             if selection.is_empty() {
                 state.status_message = Some("No accounts selected.".to_string());
                 state.screen = Screen::List;
                 return Ok(());
             }
-            let body = tofa_core::qr::entries_to_uri_list(&selection);
-            let date = chrono::Local::now().format("%Y-%m-%d");
-            let dir = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
-            let out_path = dir.join(format!("tofa-export-{date}.txt"));
-            match std::fs::write(&out_path, body) {
-                Ok(_) => {
-                    state.status_message = Some(format!(
-                        "Saved {} URI(s) to {}",
-                        selection.len(),
-                        out_path.display()
-                    ));
-                    state.status_message_at = Some(Instant::now());
-                    state.screen = Screen::List;
-                }
-                Err(e) => {
-                    state.status_message = Some(format!("Save failed: {e}"));
-                    state.status_message_at = None; // persistent
-                }
-            }
+            state.export_uri_list = selection
+                .iter()
+                .map(|e| (e.name.clone(), tofa_core::qr::build_otpauth_uri(e)))
+                .collect();
+            state.export_uri_scroll = 0;
+            state.screen = Screen::ExportUriList;
         }
         _ => {}
     }
@@ -1004,6 +1005,40 @@ fn handle_export_otpauth_list_key(key: KeyCode, state: &mut AppState) {
             if total > 0 && state.otpauth_list_index < total - 1 =>
         {
             state.otpauth_list_index += 1;
+        }
+        _ => {}
+    }
+}
+
+fn handle_export_uri_list_key(key: KeyCode, state: &mut AppState) {
+    match key {
+        KeyCode::Esc => state.screen = Screen::Export,
+        KeyCode::Up | KeyCode::Char('k') => {
+            state.export_uri_scroll = state.export_uri_scroll.saturating_sub(1);
+        }
+        KeyCode::Down | KeyCode::Char('j') => {
+            state.export_uri_scroll = state.export_uri_scroll.saturating_add(1);
+        }
+        KeyCode::Char('y') => {
+            let body = state
+                .export_uri_list
+                .iter()
+                .map(|(_, u)| u.as_str())
+                .collect::<Vec<_>>()
+                .join("\n");
+            match arboard::Clipboard::new().and_then(|mut cb| cb.set_text(body)) {
+                Ok(_) => {
+                    state.status_message = Some(format!(
+                        "Copied {} URI(s) to clipboard",
+                        state.export_uri_list.len()
+                    ));
+                    state.status_message_at = Some(Instant::now());
+                }
+                Err(_) => {
+                    state.status_message = Some("Clipboard unavailable".to_string());
+                    state.status_message_at = Some(Instant::now());
+                }
+            }
         }
         _ => {}
     }

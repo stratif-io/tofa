@@ -13,6 +13,7 @@ pub enum Screen {
     Export,
     ExportQr,
     ExportOtpauthList,
+    ExportUriList,
     ScanningQr,
 }
 
@@ -52,10 +53,19 @@ pub struct AppState {
     pub export_checked: Vec<bool>,
     pub export_selected: usize,
     pub export_qr_lines: Vec<String>,
+    /// Where Esc on the ExportQr screen returns to. Defaults to Export
+    /// (multi-account selection flow); set to Fullscreen when the QR
+    /// is opened for the currently-selected entry from the view.
+    pub export_qr_back: Screen,
     // multi-otpauth list export
     pub otpauth_list_qrs: Vec<Vec<String>>,
     pub otpauth_list_titles: Vec<String>,
     pub otpauth_list_index: usize,
+    // URI list export (`u` from the export screen): pairs of
+    // (display name, otpauth:// URI) shown as plain text so the user
+    // can select with the mouse natively or copy all with `y`.
+    pub export_uri_list: Vec<(String, String)>,
+    pub export_uri_scroll: u16,
     // file picker
     pub fp_path: PathBuf,
     pub fp_entries: Vec<(String, bool)>,
@@ -100,9 +110,12 @@ impl AppState {
             export_checked: Vec::new(),
             export_selected: 0,
             export_qr_lines: Vec::new(),
+            export_qr_back: Screen::Export,
             otpauth_list_qrs: Vec::new(),
             otpauth_list_titles: Vec::new(),
             otpauth_list_index: 0,
+            export_uri_list: Vec::new(),
+            export_uri_scroll: 0,
             fp_path: PathBuf::new(),
             fp_entries: Vec::new(),
             fp_selected: 0,

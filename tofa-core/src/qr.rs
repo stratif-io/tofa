@@ -742,12 +742,30 @@ pub fn scan_all_qr_uris_with_progress<F: FnMut(ScanProgress)>(
     // preserves more information than on already-greyscaled pixels (recall
     // on the synthetic dense-grid drops 10/11 → 7/11 when we collapse to
     // luma before resizing).
+    //
+    // Filter-diversity rung: when the source is wide enough that 1920 is a
+    // real resize (not native), insert an extra pass at 1920 using Triangle
+    // alongside the Lanczos one. Lanczos preserves sharper edges but
+    // introduces ringing; Triangle is softer with no ringing. A QR that
+    // lands just below rqrr's detection threshold under one filter often
+    // decodes under the other. Doing this only at 1920 (not at 1280/960)
+    // is deliberate — Triangle's bilinear blur smears dense QRs at small
+    // widths where each module is only 3-4 pixels (recall on the synthetic
+    // dense-grid drops 10/11 → 9/11 if we use Triangle at 960). 1920 is
+    // wide enough to keep modules sharp under either filter.
+    use image::imageops::FilterType;
     let raw_w = raw.width();
-    let mut candidates: Vec<u32> = vec![raw_w.min(3840), 1920, 1280, 960]
-        .into_iter()
-        .filter(|w| *w > 0 && *w <= raw_w)
-        .collect();
-    candidates.sort_unstable_by(|a, b| b.cmp(a));
+    let mut candidates: Vec<(u32, FilterType)> = vec![
+        (raw_w.min(3840), FilterType::Lanczos3),
+        (1920, FilterType::Lanczos3),
+        (1280, FilterType::Lanczos3),
+        (960, FilterType::Lanczos3),
+    ];
+    if raw_w > 1920 {
+        candidates.insert(2, (1920, FilterType::Triangle));
+    }
+    candidates.retain(|(w, _)| *w > 0 && *w <= raw_w);
+    candidates.sort_by(|a, b| b.0.cmp(&a.0));
     candidates.dedup();
 
     let mut seen = std::collections::HashSet::new();
@@ -755,13 +773,12 @@ pub fn scan_all_qr_uris_with_progress<F: FnMut(ScanProgress)>(
     let mut last_count = 0usize;
     let mut unproductive = 0u8;
 
-    for w in candidates {
+    for (w, filter) in candidates.iter().copied() {
         let gray = if w == raw_w {
             raw.to_luma8()
         } else {
             let h = (raw.height() as f32 * (w as f32 / raw_w as f32)) as u32;
-            raw.resize(w, h, image::imageops::FilterType::Lanczos3)
-                .to_luma8()
+            raw.resize(w, h, filter).to_luma8()
         };
         scan_into(gray, &mut seen, &mut uris);
         on_progress(ScanProgress {

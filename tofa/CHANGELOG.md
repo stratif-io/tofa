@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/stratif-io/tofa/compare/v0.8.0...v0.9.0) (2026-05-07)
+
+
+### Miscellaneous
+
+* version bumped to keep the linked-versions group aligned with tofa-core 0.9.0; no tofa code changes since 0.8.0.
+
 ## [0.8.0](https://github.com/stratif-io/tofa/compare/v0.7.0...v0.8.0) (2026-05-07)
 
 

@@ -79,15 +79,16 @@ brew install --cask tofa
 **Get codes in**
 
 - **Click any TUI row to copy.** No memorizing names, no typing. The TUI also shows live countdown bars per code.
-- **Import otpauth URIs.** Paste a standard `otpauth://totp/…` URI from anywhere — `tofa add --uri` or the app's "Paste URI".
+- **Import otpauth URIs.** Paste a single `otpauth://totp/…` URI or a newline-separated list to bulk-import — `tofa add --uri` or the app's "Paste URI".
 - **Import QR images.** Drop a PNG/JPG into the app, or `tofa add --qr screenshot.png` from the CLI.
+- **Scan your screens.** `tofa scan` captures every connected display and imports every QR code it finds — handy for multi-account migration QRs and printout grids (CLI only, experimental).
 - **Import from 9 authenticators.** Aegis, andOTP, 2FAS, Bitwarden, Raivo, Ente, KeePassXC, FreeOTP, and Google Authenticator's migration QR — all parsed directly from their export formats.
 
 **Use TOFA day-to-day**
 
-- **Export to QR.** Re-encode any account (or your whole vault) as scannable QR codes for backup or device transfer.
+- **Export to QR.** Re-encode any account or your whole vault as scannable QR codes — a single migration QR, one PNG per account (`tofa qr --all --multi`), or the app's **Save All** zip with a printable `print.html` one-pager.
 - **Encrypted vault.** AES-256-GCM with an Argon2id-derived key. Auto-locks after 10 min idle, or on demand.
-- **Scriptable.** `tofa code github | pbcopy` works (`xclip -selection clipboard` on Linux). `TOFA_PASSPHRASE` env var unlocks the vault for CI/automation.
+- **Scriptable.** `tofa code github --copy` puts the code on your clipboard on every platform. `TOFA_PASSPHRASE` env var unlocks the vault for CI/automation.
 - **Open source, MIT.** No account, no telemetry, no cloud. Audit the crypto in `tofa-core`.
 
 ## 📥 Migrate from your phone
@@ -152,6 +153,7 @@ password" link, and that's the point.
 - Drop the file in **iCloud Drive**, **Dropbox**, or any folder your OS syncs
 - Run `tofa export` and stash the JSON in a password manager
 - Use `tofa qr <name>` to print a paper backup of any single account
+- Click **Save All** in the macOS app for a zip with one QR PNG per account plus a printable `print.html` one-pager
 
 See the [security model](https://docs.tofa.stratif.io/security.html) for
 the full threat model and crypto choices.

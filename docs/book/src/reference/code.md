@@ -63,6 +63,22 @@ tofa code GitHub:you --raw | pbcopy   # macOS
 tofa code GitHub:you --raw | xclip    # Linux
 ```
 
+Print or copy the entry's `otpauth://` URI instead of the current
+code. Useful for moving one account to another authenticator without
+exporting the whole vault:
+
+```console
+$ tofa code GitHub:you --uri
+otpauth://totp/GitHub%3Ayou?secret=JBSWY3DPEHPK3PXP&issuer=GitHub&algorithm=SHA1&digits=6&period=30
+
+$ tofa code GitHub:you --uri --copy
+otpauth://totp/GitHub%3Ayou?secret=JBSWY3DPEHPK3PXP&issuer=GitHub&algorithm=SHA1&digits=6&period=30
+✓ copied
+```
+
+The URI carries every parameter (period / digits / algorithm), so the
+receiving authenticator gets an exact copy of the entry.
+
 ## Notes
 
 - The first argument is the account **id or name** — partial matches work.
@@ -74,4 +90,6 @@ tofa code GitHub:you --raw | xclip    # Linux
 ## See also
 
 - **[`tofa list`](./list.md)** — see all accounts at once.
+- **[`tofa export --format uris`](./export.md)** — bulk-emit every
+  entry as `otpauth://` URIs in one file.
 - **[Recipe: clipboard](../recipes/clipboard.md)** — copy patterns by platform.

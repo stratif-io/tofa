@@ -43,15 +43,25 @@ tofa add --uri "otpauth://totp/..."
 tofa add --qr ~/Downloads/qr.png
 tofa list                          # show all entries
 tofa code GitHub:you               # print current TOTP code
-tofa code GitHub:you | pbcopy      # copy to clipboard
+tofa code GitHub:you --copy        # copy code to clipboard
+tofa code GitHub:you --uri --copy  # copy the otpauth:// URI instead
 tofa remove GitHub:you
 tofa rename GitHub:you GitHub:me
 tofa rekey                         # change vault passphrase
-tofa export                        # dump vault as JSON
-tofa import accounts.json
+tofa export                        # dump vault as JSON (re-importable)
+tofa export --format uris          # write one otpauth:// per line (.txt)
+tofa import accounts.json          # also: .txt, .csv, .png/.jpg/..., .zip
+tofa scan                          # capture all screens, import every QR
 tofa qr GitHub:you                 # display QR in terminal
 tofa completions zsh               # shell completions
 ```
+
+`tofa import` accepts every format the desktop app accepts — single-QR
+images, multi-QR images (e.g. a printout of a backup), Google
+Authenticator migration QRs, JSON exports from Aegis / andOTP / 2FAS /
+Bitwarden / FreeOTP+ / Raivo, KeePassXC CSV, Ente Auth's plain-text
+URI list, and zip archives containing any of the above (the desktop
+app's "Save All" output round-trips back through it).
 
 The TUI shows all accounts with live countdown bars, violet accent, and mouse support.
 
@@ -74,10 +84,20 @@ cargo tauri build        # → src-tauri/target/release/bundle/macos/tofa.app
 
 | Method | How |
 |--------|-----|
-| **Open file** | QR image (PNG/JPG), Aegis or andOTP JSON export, TXT (one URI per line), or ZIP |
-| **Scan screen** | Captures your screen and detects any QR code on it |
+| **Open file** | Single- or multi-QR images (PNG/JPG/…), Aegis / andOTP / 2FAS / Bitwarden / FreeOTP+ / Raivo JSON, KeePassXC CSV, plain-text URI lists, or zip archives mixing any of the above |
+| **Scan screen** | Captures every connected display and decodes every QR code visible — multi-account migration QRs and printout grids supported |
 | **Camera** | Opens a browser-based QR scanner using your webcam |
-| **Paste URI** | Type or paste an `otpauth://totp/…` URI directly |
+| **Paste URI** | One `otpauth://` or `otpauth-migration://` URI for a single account, or a newline-separated list to bulk-import |
+
+**Exporting accounts:**
+
+| Method | How |
+|--------|-----|
+| **Single QR** | One `otpauth-migration://` QR for selected accounts (compatible with most authenticators) |
+| **List of QRs** | One `otpauth://` QR per entry — paginated viewer; preserves period / digits / algorithm where the migration format can't |
+| **Save URI list** | A `.txt` file with one `otpauth://` URI per line — round-trips through *Open file* |
+| **Save All (.zip)** | Every account as its own QR PNG plus a printable one-pager (`print.html`) |
+| **Per-entry URI** | "URI" button in the detail view copies that account's `otpauth://` URI to the clipboard |
 
 The vault locks after 10 minutes of inactivity or manually from the tray menu. Supports dark/light/auto theme and a configurable vault path.
 

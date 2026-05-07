@@ -1,12 +1,56 @@
 use crate::cli::{open_vault, read_passphrase, CliResult};
 use clap::Args;
 use std::collections::HashSet;
+use std::io::Write;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tofa_core::store::Vault;
 use tofa_core::{
     totp::{generate_code_now, seconds_remaining_now},
     VaultEntry,
 };
+
+/// Tiny stderr braille spinner used around long-ish work (screen capture +
+/// QR scanning). Stops on Drop so a `?` early-return still clears the line.
+struct Spinner {
+    stop: Arc<AtomicBool>,
+    handle: Option<std::thread::JoinHandle<()>>,
+}
+
+impl Spinner {
+    fn start(message: &str) -> Self {
+        let stop = Arc::new(AtomicBool::new(false));
+        let stop_clone = stop.clone();
+        let msg = message.to_string();
+        let handle = std::thread::spawn(move || {
+            let frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+            let mut i = 0;
+            while !stop_clone.load(Ordering::Relaxed) {
+                let f = frames[i % frames.len()];
+                eprint!("\r{f} {msg}");
+                let _ = std::io::stderr().flush();
+                std::thread::sleep(std::time::Duration::from_millis(80));
+                i += 1;
+            }
+            eprint!("\r\x1b[2K");
+            let _ = std::io::stderr().flush();
+        });
+        Self {
+            stop,
+            handle: Some(handle),
+        }
+    }
+}
+
+impl Drop for Spinner {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+        if let Some(h) = self.handle.take() {
+            let _ = h.join();
+        }
+    }
+}
 
 #[derive(Args)]
 pub struct ScanArgs {
@@ -16,12 +60,18 @@ pub struct ScanArgs {
 }
 
 pub fn run(args: ScanArgs, vault_path: PathBuf) -> CliResult {
-    let captures = capture_screens()?;
+    let captures = {
+        let _spin = Spinner::start("Capturing screens…");
+        capture_screens()?
+    };
     if captures.is_empty() {
         return Err("No displays available to capture.".into());
     }
 
-    let uris = scan_paths_for_qrs(&captures);
+    let uris = {
+        let _spin = Spinner::start("Scanning for QR codes…");
+        scan_paths_for_qrs(&captures)
+    };
     for path in &captures {
         let _ = std::fs::remove_file(path);
     }
@@ -145,20 +195,23 @@ fn make_name(otp: &tofa_core::OtpSecret) -> String {
 /// because it finds every QR code in the image regardless of layout.
 #[cfg(target_os = "macos")]
 fn capture_screens() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    use std::process::Stdio;
     let mut paths = Vec::new();
     for n in 1.. {
         let path = std::env::temp_dir().join(format!("tofa-scan-{n}.png"));
+        // Silence stderr — when -D N is out of range, screencapture writes
+        // "Invalid display specified..." which is how we discover we're done.
+        // It's expected control flow, not something the user needs to see.
         let status = std::process::Command::new("screencapture")
             .args(["-x", "-t", "png", "-D", &n.to_string()])
             .arg(&path)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .status()?;
         if !status.success() {
-            // No more displays. screencapture exits non-zero when -D is out
-            // of range, having written nothing.
             let _ = std::fs::remove_file(&path);
             break;
         }
-        // Defensive: if the file wasn't written for some reason, stop.
         if !path.exists() {
             break;
         }
@@ -172,12 +225,17 @@ fn capture_screens() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
 
 #[cfg(target_os = "linux")]
 fn capture_screens() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    use std::process::Stdio;
     let path = std::env::temp_dir().join("tofa-scan.png");
     let session_type = std::env::var("XDG_SESSION_TYPE").unwrap_or_default();
     let is_wayland = session_type == "wayland" || std::env::var("WAYLAND_DISPLAY").is_ok();
 
     if is_wayland {
-        let status = std::process::Command::new("grim").arg(&path).status();
+        let status = std::process::Command::new("grim")
+            .arg(&path)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
         if let Ok(s) = status {
             if s.success() {
                 return Ok(vec![path]);
@@ -186,20 +244,22 @@ fn capture_screens() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         return Err("grim failed; install grim for Wayland multi-monitor screen capture".into());
     }
 
-    // X11: scrot -m captures all monitors into one image.
     let status = std::process::Command::new("scrot")
         .arg("-m")
         .arg(&path)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status();
     if let Ok(s) = status {
         if s.success() {
             return Ok(vec![path]);
         }
     }
-    // Fallback: gnome-screenshot (single display only).
     let status = std::process::Command::new("gnome-screenshot")
         .arg("-f")
         .arg(&path)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()?;
     if !status.success() {
         return Err("screenshot capture failed (install scrot, grim, or gnome-screenshot)".into());

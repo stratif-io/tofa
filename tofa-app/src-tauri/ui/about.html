@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Tofa</title>
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif);
+      background: var(--bg, #1a1a1a);
+      color: var(--fg, #eee);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .app-icon { width: 96px; height: 96px; }
+    .app-title { font-size: 20px; font-weight: 600; margin: 0; }
+    .versions { font-size: 13px; opacity: 0.85; text-align: center; line-height: 1.5; }
+    .status { font-size: 13px; min-height: 1.5em; text-align: center; opacity: 0.9; }
+    .status.error { color: var(--danger, #ff6b6b); }
+    .status.success { color: var(--success, #4ade80); }
+    .actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 200px; }
+    button {
+      padding: 8px 16px;
+      border: 1px solid var(--border, #444);
+      background: var(--bg-elevated, #2a2a2a);
+      color: var(--fg, #eee);
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    button:hover { background: var(--bg-hover, #333); }
+    button.primary {
+      background: var(--brand, #6366f1);
+      border-color: var(--brand, #6366f1);
+      color: #fff;
+    }
+    button.primary:hover { filter: brightness(1.1); }
+    button[hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <img src="assets/svg/icon.png" alt="Tofa" class="app-icon"
+       onerror="this.style.display='none'">
+  <h1 class="app-title">Tofa</h1>
+  <div class="versions">
+    App version: <strong id="app-version">…</strong><br>
+    Core library: <strong id="core-version">…</strong>
+  </div>
+  <div id="status" class="status"></div>
+  <div class="actions">
+    <button id="btn-check" class="primary">Check for updates</button>
+    <button id="btn-download" hidden>Download…</button>
+  </div>
+
+  <script>
+    const { invoke } = window.__TAURI__.core;
+
+    const el = (id) => document.getElementById(id);
+    const statusEl = el('status');
+    const btnCheck = el('btn-check');
+    const btnDownload = el('btn-download');
+    let downloadUrl = null;
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text || '';
+      statusEl.className = 'status' + (kind ? ' ' + kind : '');
+    }
+
+    function applyResult(r) {
+      if (!r) return;
+      if (r.error) {
+        setStatus(r.error, 'error');
+        btnDownload.hidden = true;
+        downloadUrl = null;
+        return;
+      }
+      if (r.update_available && r.latest && r.release_url) {
+        setStatus('Update available: v' + r.latest, 'success');
+        downloadUrl = r.release_url;
+        btnDownload.textContent = 'Download v' + r.latest;
+        btnDownload.hidden = false;
+      } else {
+        setStatus("You're up to date.", '');
+        btnDownload.hidden = true;
+        downloadUrl = null;
+      }
+    }
+
+    (async () => {
+      try {
+        const v = await invoke('get_versions');
+        el('app-version').textContent = v.app;
+        el('core-version').textContent = v.core;
+      } catch (e) {
+        el('app-version').textContent = '?';
+        el('core-version').textContent = '?';
+      }
+      try {
+        const cached = await invoke('get_cached_update_status');
+        if (cached) applyResult(cached);
+      } catch (_) {}
+    })();
+
+    btnCheck.addEventListener('click', async () => {
+      btnCheck.disabled = true;
+      setStatus('Checking…');
+      try {
+        const r = await invoke('check_for_updates');
+        applyResult(r);
+      } catch (e) {
+        setStatus(String(e), 'error');
+      } finally {
+        btnCheck.disabled = false;
+      }
+    });
+
+    btnDownload.addEventListener('click', async () => {
+      if (!downloadUrl) return;
+      try {
+        await invoke('open_release_url', { url: downloadUrl });
+      } catch (e) {
+        setStatus(String(e), 'error');
+      }
+    });
+  </script>
+</body>
+</html>

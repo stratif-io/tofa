@@ -1204,6 +1204,18 @@ pub async fn save_qr_png(
     std::fs::write(&path, &bytes).map_err(|e| e.to_string())
 }
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Whether a tray click requested a download. Read once + cleared by
+/// `take_pending_download` from the About window JS on load.
+#[derive(Default)]
+pub struct PendingDownload(pub AtomicBool);
+
+#[tauri::command]
+pub fn take_pending_download(state: tauri::State<'_, PendingDownload>) -> bool {
+    state.0.swap(false, Ordering::Relaxed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

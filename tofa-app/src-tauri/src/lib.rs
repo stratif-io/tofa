@@ -145,11 +145,13 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Mutex::new(AppState::new()))
+        .manage(crate::commands::PendingDownload::default())
         .invoke_handler(tauri::generate_handler![
             set_popover_pinned,
             commands::get_versions,
             commands::check_for_updates,
             commands::download_and_install,
+            commands::take_pending_download,
             commands::vault_exists,
             commands::create_vault,
             commands::unlock,
@@ -240,6 +242,9 @@ pub fn run() {
                 .on_menu_event(move |app, event| {
                     let action = match event.id.as_ref() {
                         "update-available" => {
+                            use std::sync::atomic::Ordering;
+                            let pending = app.state::<crate::commands::PendingDownload>();
+                            pending.0.store(true, Ordering::Relaxed);
                             crate::about_window::show_or_focus(app);
                             let _ = app.emit("trigger-download", ());
                             return;

@@ -233,7 +233,20 @@
       runDownload();
     });
 
+    async function maybeAutoDownload() {
+      try {
+        const pending = await invoke('take_pending_download');
+        if (pending) {
+          if (!latestVersion) {
+            await runCheck();
+          }
+          runDownload();
+        }
+      } catch (_) { /* missing in older builds — ignore */ }
+    }
+
     loadVersions();
+    maybeAutoDownload();
   </script>
 </body>
 </html>

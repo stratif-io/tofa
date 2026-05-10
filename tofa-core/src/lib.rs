@@ -13,3 +13,11 @@ pub use store::{Vault, VaultEntry};
 pub use totp::{
     generate_code_at, generate_code_now, seconds_remaining, seconds_remaining_now, TotpError,
 };
+
+/// Crate version, surfaced to consumers (e.g. the Mac app's About panel).
+///
+/// ```
+/// assert!(!tofa_core::VERSION.is_empty());
+/// assert_eq!(tofa_core::VERSION.split('.').count(), 3);
+/// ```
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -101,6 +101,45 @@ pub fn pick_latest(releases: &[ReleaseJson], current: &Version) -> UpdateStatus 
     }
 }
 
+const RELEASES_URL: &str = "https://api.github.com/repos/stratif-io/tofa/releases?per_page=30";
+
+/// Issue one HTTP request to the GitHub Releases API, deserialize, and
+/// hand off to `pick_latest`.
+pub async fn fetch_and_check(
+    http: &reqwest::Client,
+    current: &Version,
+) -> Result<UpdateStatus, UpdateError> {
+    let resp = http
+        .get(RELEASES_URL)
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|e| UpdateError::Network(e.to_string()))?;
+
+    if resp.status().as_u16() == 403 {
+        return Err(UpdateError::RateLimited);
+    }
+    if !resp.status().is_success() {
+        return Err(UpdateError::BadResponse(format!("HTTP {}", resp.status())));
+    }
+
+    let releases: Vec<ReleaseJson> = resp
+        .json()
+        .await
+        .map_err(|e| UpdateError::BadResponse(e.to_string()))?;
+
+    Ok(pick_latest(&releases, current))
+}
+
+/// Build the shared `reqwest::Client` used by all updater calls.
+pub fn build_http_client(current: &Version) -> reqwest::Client {
+    reqwest::Client::builder()
+        .user_agent(format!("tofa-app/{}", current))
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .expect("reqwest client builder is infallible with these options")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

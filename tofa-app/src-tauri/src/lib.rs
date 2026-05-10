@@ -233,10 +233,6 @@ pub fn run() {
             let tray_icon = tauri::image::Image::from_bytes(ICON_LOCKED)
                 .unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
 
-            use std::sync::{Arc, Mutex as StdMutex};
-            let update_url: Arc<StdMutex<Option<String>>> = Arc::new(StdMutex::new(None));
-            let update_url_for_click = Arc::clone(&update_url);
-
             let tray = TrayIconBuilder::new()
                 .icon(tray_icon)
                 .menu(&menu)
@@ -249,10 +245,8 @@ pub fn run() {
                 .on_menu_event(move |app, event| {
                     let action = match event.id.as_ref() {
                         "update-available" => {
-                            let url = update_url_for_click.lock().ok().and_then(|g| g.clone());
-                            if let Some(url) = url {
-                                let _ = crate::commands::open_release_url(url);
-                            }
+                            crate::about_window::show_or_focus(app);
+                            let _ = app.emit("trigger-download", ());
                             return;
                         }
                         "about" => {
@@ -286,7 +280,6 @@ pub fn run() {
             let item_quit_l = item_quit.clone();
             let app_for_event = app.handle().clone();
             let tray_id_for_event = tray_id.clone();
-            let update_url_for_event = Arc::clone(&update_url);
 
             // Enable scan/lock items when unlocked, disable when locked
             let ss = item_scan_screen.clone();
@@ -341,20 +334,16 @@ pub fn run() {
             });
 
             app.listen("update-available", move |evt| {
-                let payload: crate::commands::CheckResult =
-                    match serde_json::from_str(evt.payload()) {
-                        Ok(p) => p,
-                        Err(_) => return,
-                    };
-                let (Some(latest), Some(url)) =
-                    (payload.latest.as_ref(), payload.release_url.as_ref())
-                else {
-                    return;
-                };
-                if let Ok(mut g) = update_url_for_event.lock() {
-                    *g = Some(url.clone());
+                #[derive(serde::Deserialize)]
+                struct UpdatePayload {
+                    version: String,
                 }
-                let label = format!("Update available — v{}", latest);
+
+                let payload: UpdatePayload = match serde_json::from_str(evt.payload()) {
+                    Ok(p) => p,
+                    Err(_) => return,
+                };
+                let label = format!("Update available — v{}", payload.version);
                 let update_item = match MenuItem::with_id(
                     &app_for_event,
                     "update-available",

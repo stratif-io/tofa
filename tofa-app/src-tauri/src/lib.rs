@@ -183,9 +183,13 @@ pub fn run() {
             let item_lock = MenuItem::with_id(app, "lock", "Lock", false, None::<&str>)?;
             let item_quit = MenuItem::with_id(app, "quit", "Quit TOFA", true, Some("CmdOrCtrl+Q"))?;
 
+            let item_about = MenuItem::with_id(app, "about", "About Tofa", true, None::<&str>)?;
+
             let menu = Menu::with_items(
                 app,
                 &[
+                    &item_about,
+                    &PredefinedMenuItem::separator(app)?,
                     &item_scan_screen,
                     &item_scan_camera,
                     &MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?,
@@ -213,6 +217,10 @@ pub fn run() {
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {
                     let action = match event.id.as_ref() {
+                        "about" => {
+                            crate::about_window::show_or_focus(app);
+                            return;
+                        }
                         "scan-screen" => "scan-screen",
                         "scan-camera" => "scan-camera",
                         "settings" => "settings",

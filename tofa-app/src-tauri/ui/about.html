@@ -37,8 +37,8 @@
     .about__icon {
       width: 72px;
       height: 72px;
-      border-radius: var(--r-lg);
       display: block;
+      color: var(--brand);
     }
 
     .about__title {
@@ -131,7 +131,9 @@
 </head>
 <body>
   <main class="about" aria-labelledby="about-title">
-    <img src="assets/svg/icon.png" alt="" class="about__icon" onerror="this.style.display='none'">
+    <svg class="about__icon" viewBox="0 0 128 128" aria-hidden="true">
+      <use href="assets/svg/tofa/wink.svg#tofa-wink"/>
+    </svg>
     <h1 id="about-title" class="about__title">Tofa</h1>
 
     <dl class="about__versions" aria-label="Version information">

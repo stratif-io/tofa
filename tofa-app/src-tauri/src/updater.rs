@@ -134,4 +134,61 @@ mod tests {
         );
         assert!(status.is_update_available());
     }
+
+    #[test]
+    fn same_version_is_not_an_update() {
+        let releases = vec![rel("tofa-macos-v0.7.0", false, false)];
+        let status = pick_latest(&releases, &v("0.7.0"));
+        assert_eq!(status.latest, Some(v("0.7.0")));
+        assert!(!status.is_update_available());
+    }
+
+    #[test]
+    fn ignores_cli_tags() {
+        let releases = vec![
+            rel("v1.2.3", false, false),
+            rel("tofa-core-v0.6.0", false, false),
+        ];
+        let status = pick_latest(&releases, &v("0.7.0"));
+        assert_eq!(status.latest, None);
+        assert_eq!(status.release_url, None);
+        assert!(!status.is_update_available());
+    }
+
+    #[test]
+    fn ignores_prereleases_and_drafts() {
+        let releases = vec![
+            rel("tofa-macos-v0.7.0", false, false),
+            rel("tofa-macos-v0.9.0-rc1", true, false),
+            rel("tofa-macos-v1.0.0", false, true),
+        ];
+        let status = pick_latest(&releases, &v("0.7.0"));
+        assert_eq!(status.latest, Some(v("0.7.0")));
+    }
+
+    #[test]
+    fn skips_unparseable_tag_names() {
+        let releases = vec![
+            rel("tofa-macos-vfoo", false, false),
+            rel("tofa-macos-v0.8.0", false, false),
+        ];
+        let status = pick_latest(&releases, &v("0.7.0"));
+        assert_eq!(status.latest, Some(v("0.8.0")));
+    }
+
+    #[test]
+    fn empty_release_list_yields_no_latest() {
+        let releases: Vec<ReleaseJson> = vec![];
+        let status = pick_latest(&releases, &v("0.7.0"));
+        assert_eq!(status.latest, None);
+        assert!(!status.is_update_available());
+    }
+
+    #[test]
+    fn local_newer_than_remote_is_not_an_update() {
+        let releases = vec![rel("tofa-macos-v0.5.0", false, false)];
+        let status = pick_latest(&releases, &v("0.7.0"));
+        assert_eq!(status.latest, Some(v("0.5.0")));
+        assert!(!status.is_update_available());
+    }
 }

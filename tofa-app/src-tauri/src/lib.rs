@@ -417,7 +417,7 @@ pub fn run() {
                     s.in_flight = false;
                     if let Ok(status) = result {
                         let available = status.is_update_available();
-                        let payload = crate::commands::CheckResult::from_status_pub(&status);
+                        let payload = crate::commands::CheckResult::from_status(&status);
                         s.last_status = Some(status);
                         if available {
                             let _ = app.emit("update-available", payload);

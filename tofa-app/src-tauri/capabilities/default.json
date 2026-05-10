@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Default capabilities",
-  "windows": ["popover"],
+  "windows": ["popover", "about"],
   "permissions": [
     "core:default",
     "clipboard-manager:allow-write-text",

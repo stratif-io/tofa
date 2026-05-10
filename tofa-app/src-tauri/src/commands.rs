@@ -1126,6 +1126,88 @@ pub fn get_versions() -> Versions {
     }
 }
 
+use crate::updater::{self, UpdateStatus, UpdaterState};
+use semver::Version;
+
+#[derive(Serialize, Clone)]
+pub struct CheckResult {
+    pub current: String,
+    pub latest: Option<String>,
+    pub release_url: Option<String>,
+    pub update_available: bool,
+    pub error: Option<String>,
+}
+
+impl CheckResult {
+    fn from_status(s: &UpdateStatus) -> Self {
+        Self {
+            current: s.current.to_string(),
+            latest: s.latest.as_ref().map(|v| v.to_string()),
+            release_url: s.release_url.clone(),
+            update_available: s.is_update_available(),
+            error: None,
+        }
+    }
+
+    fn error(current: &Version, msg: String) -> Self {
+        Self {
+            current: current.to_string(),
+            latest: None,
+            release_url: None,
+            update_available: false,
+            error: Some(msg),
+        }
+    }
+}
+
+#[tauri::command]
+pub fn get_cached_update_status(state: State<'_, Mutex<UpdaterState>>) -> Option<CheckResult> {
+    let s = state.lock().ok()?;
+    s.last_status.as_ref().map(CheckResult::from_status)
+}
+
+#[tauri::command]
+pub async fn check_for_updates(
+    state: State<'_, Mutex<UpdaterState>>,
+    app: tauri::AppHandle,
+) -> Result<CheckResult, String> {
+    let current = Version::parse(env!("CARGO_PKG_VERSION"))
+        .map_err(|e| format!("invalid app version: {}", e))?;
+
+    {
+        let mut s = state.lock().map_err(|e| e.to_string())?;
+        if s.in_flight {
+            // Return whatever we have; don't fire a parallel request.
+            return Ok(s
+                .last_status
+                .as_ref()
+                .map(CheckResult::from_status)
+                .unwrap_or_else(|| {
+                    CheckResult::error(&current, "check already in progress".into())
+                }));
+        }
+        s.in_flight = true;
+    }
+
+    let http = updater::build_http_client(&current);
+    let result = updater::fetch_and_check(&http, &current).await;
+
+    let mut s = state.lock().map_err(|e| e.to_string())?;
+    s.in_flight = false;
+
+    match result {
+        Ok(status) => {
+            let payload = CheckResult::from_status(&status);
+            s.last_status = Some(status);
+            if payload.update_available {
+                let _ = app.emit("update-available", payload.clone());
+            }
+            Ok(payload)
+        }
+        Err(e) => Ok(CheckResult::error(&current, e.to_string())),
+    }
+}
+
 /// Save a base64-encoded PNG to a user-chosen location via native save dialog.
 #[tauri::command]
 pub async fn save_qr_png(

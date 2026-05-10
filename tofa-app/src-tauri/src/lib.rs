@@ -118,6 +118,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             set_popover_pinned,
             commands::get_versions,
+            commands::get_cached_update_status,
+            commands::check_for_updates,
             commands::vault_exists,
             commands::create_vault,
             commands::unlock,

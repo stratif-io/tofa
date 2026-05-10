@@ -155,12 +155,13 @@
 
   <script>
     const { invoke } = window.__TAURI__.core;
+    const { listen } = window.__TAURI__.event;
 
     const el = (id) => document.getElementById(id);
     const statusEl = el('status');
     const btnCheck = el('btn-check');
     const btnDownload = el('btn-download');
-    let downloadUrl = null;
+    let latestVersion = null;
 
     function setStatus(text, kind) {
       statusEl.textContent = text || '';
@@ -169,25 +170,19 @@
 
     function applyResult(r) {
       if (!r) return;
-      if (r.error) {
-        setStatus(r.error, 'error');
-        btnDownload.hidden = true;
-        downloadUrl = null;
-        return;
-      }
-      if (r.update_available && r.latest && r.release_url) {
+      if (r.available && r.latest) {
         setStatus('Update available: v' + r.latest, 'success');
-        downloadUrl = r.release_url;
+        latestVersion = r.latest;
         btnDownload.textContent = 'Download v' + r.latest;
         btnDownload.hidden = false;
       } else {
         setStatus("You're up to date.", '');
+        latestVersion = null;
         btnDownload.hidden = true;
-        downloadUrl = null;
       }
     }
 
-    (async () => {
+    async function loadVersions() {
       try {
         const v = await invoke('get_versions');
         el('app-version').textContent = v.app;
@@ -196,33 +191,49 @@
         el('app-version').textContent = '?';
         el('core-version').textContent = '?';
       }
-      try {
-        const cached = await invoke('get_cached_update_status');
-        if (cached) applyResult(cached);
-      } catch (_) {}
-    })();
+    }
 
-    btnCheck.addEventListener('click', async () => {
+    async function runCheck() {
       btnCheck.disabled = true;
       setStatus('Checking…');
       try {
-        const r = await invoke('check_for_updates');
+        const r = await invoke('check_for_updates_v2');
         applyResult(r);
       } catch (e) {
         setStatus(String(e), 'error');
       } finally {
         btnCheck.disabled = false;
       }
-    });
+    }
 
-    btnDownload.addEventListener('click', async () => {
-      if (!downloadUrl) return;
+    async function runDownload() {
+      if (!latestVersion) return;
+      btnCheck.disabled = true;
+      btnDownload.disabled = true;
+      setStatus('Downloading update…');
       try {
-        await invoke('open_release_url', { url: downloadUrl });
+        await invoke('download_and_install');
+        // App will restart on success; this line is unreachable in practice.
       } catch (e) {
         setStatus(String(e), 'error');
+        btnCheck.disabled = false;
+        btnDownload.disabled = false;
       }
+    }
+
+    btnCheck.addEventListener('click', runCheck);
+    btnDownload.addEventListener('click', runDownload);
+
+    // Tray menu's "Update available" item opens this window and fires this
+    // event so the user lands here mid-download rather than on a closed menu.
+    listen('trigger-download', async () => {
+      if (!latestVersion) {
+        await runCheck();
+      }
+      runDownload();
     });
+
+    loadVersions();
   </script>
 </body>
 </html>

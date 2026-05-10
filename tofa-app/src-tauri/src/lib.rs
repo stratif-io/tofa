@@ -1,7 +1,6 @@
 mod about_window;
 mod commands;
 mod state;
-mod updater;
 
 use state::AppState;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -146,14 +145,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Mutex::new(AppState::new()))
-        .manage(std::sync::Mutex::new(updater::UpdaterState::default()))
         .invoke_handler(tauri::generate_handler![
             set_popover_pinned,
             commands::get_versions,
-            commands::get_cached_update_status,
             commands::check_for_updates,
-            commands::open_release_url,
-            commands::check_for_updates_v2,
             commands::download_and_install,
             commands::vault_exists,
             commands::create_vault,

@@ -197,7 +197,7 @@
       btnCheck.disabled = true;
       setStatus('Checking…');
       try {
-        const r = await invoke('check_for_updates_v2');
+        const r = await invoke('check_for_updates');
         applyResult(r);
       } catch (e) {
         setStatus(String(e), 'error');

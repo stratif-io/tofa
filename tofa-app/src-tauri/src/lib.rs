@@ -144,6 +144,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Mutex::new(AppState::new()))
         .manage(std::sync::Mutex::new(updater::UpdaterState::default()))
         .invoke_handler(tauri::generate_handler![

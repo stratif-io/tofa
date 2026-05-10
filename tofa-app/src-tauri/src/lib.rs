@@ -1,5 +1,6 @@
 mod commands;
 mod state;
+mod updater;
 
 use state::AppState;
 use std::sync::atomic::{AtomicBool, Ordering};

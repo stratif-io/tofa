@@ -4800,6 +4800,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-dialog",
+ "thiserror 1.0.69",
  "tofa-core",
  "tokio",
  "zeroize",

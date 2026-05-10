@@ -65,3 +65,73 @@ pub struct UpdaterState {
     pub last_status: Option<UpdateStatus>,
     pub in_flight: bool,
 }
+
+const TAG_PREFIX: &str = "tofa-macos-v";
+
+/// Pick the highest-versioned non-draft, non-prerelease `tofa-macos-vX.Y.Z`
+/// tag from `releases` and compare to `current`.
+pub fn pick_latest(releases: &[ReleaseJson], current: &Version) -> UpdateStatus {
+    let mut best: Option<(Version, &str)> = None;
+    for r in releases {
+        if r.prerelease || r.draft {
+            continue;
+        }
+        let Some(rest) = r.tag_name.strip_prefix(TAG_PREFIX) else {
+            continue;
+        };
+        let Ok(v) = Version::parse(rest) else {
+            continue;
+        };
+        match &best {
+            Some((cur_best, _)) if cur_best >= &v => {}
+            _ => best = Some((v, &r.html_url)),
+        }
+    }
+
+    let (latest, release_url) = match best {
+        Some((v, url)) => (Some(v), Some(url.to_string())),
+        None => (None, None),
+    };
+
+    UpdateStatus {
+        current: current.clone(),
+        latest,
+        release_url,
+        checked_at: Utc::now(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rel(tag: &str, prerelease: bool, draft: bool) -> ReleaseJson {
+        ReleaseJson {
+            tag_name: tag.to_string(),
+            html_url: format!("https://example.test/{}", tag),
+            prerelease,
+            draft,
+        }
+    }
+
+    fn v(s: &str) -> Version {
+        Version::parse(s).unwrap()
+    }
+
+    #[test]
+    fn picks_newer_release() {
+        let releases = vec![
+            rel("tofa-macos-v0.7.0", false, false),
+            rel("tofa-macos-v0.8.0", false, false),
+            rel("tofa-macos-v0.7.5", false, false),
+        ];
+        let status = pick_latest(&releases, &v("0.7.0"));
+        assert_eq!(status.current, v("0.7.0"));
+        assert_eq!(status.latest, Some(v("0.8.0")));
+        assert_eq!(
+            status.release_url.as_deref(),
+            Some("https://example.test/tofa-macos-v0.8.0")
+        );
+        assert!(status.is_update_available());
+    }
+}

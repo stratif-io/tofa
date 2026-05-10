@@ -1112,6 +1112,14 @@ fn html_escape(s: &str) -> String {
         .collect()
 }
 
+#[tauri::command]
+pub fn open_release_url(url: String) -> Result<(), String> {
+    if !url.starts_with("https://github.com/") {
+        return Err("refusing to open non-github URL".into());
+    }
+    open::that(&url).map_err(|e| e.to_string())
+}
+
 #[derive(Serialize)]
 pub struct Versions {
     pub app: String,

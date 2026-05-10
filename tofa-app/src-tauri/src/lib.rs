@@ -120,6 +120,7 @@ pub fn run() {
             commands::get_versions,
             commands::get_cached_update_status,
             commands::check_for_updates,
+            commands::open_release_url,
             commands::vault_exists,
             commands::create_vault,
             commands::unlock,

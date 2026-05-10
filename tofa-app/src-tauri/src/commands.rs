@@ -1137,7 +1137,7 @@ pub fn get_versions() -> Versions {
 use crate::updater::{self, UpdateStatus, UpdaterState};
 use semver::Version;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct CheckResult {
     pub current: String,
     pub latest: Option<String>,

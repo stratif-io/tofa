@@ -7,9 +7,9 @@ use state::AppState;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem},
+    menu::{IsMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Listener, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    Emitter, Listener, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Wry,
 };
 
 /// If true, the popover does NOT auto-hide on focus loss. JS toggles this
@@ -110,6 +110,36 @@ fn show_popover_under_tray(win: &WebviewWindow) {
     position_popover_under_tray(win);
 }
 
+fn build_tray_menu(
+    app: &tauri::AppHandle,
+    item_about: &MenuItem<Wry>,
+    item_scan_screen: &MenuItem<Wry>,
+    item_scan_camera: &MenuItem<Wry>,
+    item_lock: &MenuItem<Wry>,
+    item_quit: &MenuItem<Wry>,
+    update_item: Option<&MenuItem<Wry>>,
+) -> tauri::Result<Menu<Wry>> {
+    let sep1 = PredefinedMenuItem::separator(app)?;
+    let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+    let sep2 = PredefinedMenuItem::separator(app)?;
+    let sep3 = PredefinedMenuItem::separator(app)?;
+
+    let mut items: Vec<&dyn IsMenuItem<Wry>> = vec![item_about];
+    if let Some(u) = update_item {
+        items.push(u);
+    }
+    items.push(&sep1);
+    items.push(item_scan_screen);
+    items.push(item_scan_camera);
+    items.push(&settings_item);
+    items.push(&sep2);
+    items.push(item_lock);
+    items.push(&sep3);
+    items.push(item_quit);
+
+    Menu::with_items(app, &items)
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -184,20 +214,14 @@ pub fn run() {
             let item_quit = MenuItem::with_id(app, "quit", "Quit TOFA", true, Some("CmdOrCtrl+Q"))?;
 
             let item_about = MenuItem::with_id(app, "about", "About Tofa", true, None::<&str>)?;
-
-            let menu = Menu::with_items(
-                app,
-                &[
-                    &item_about,
-                    &PredefinedMenuItem::separator(app)?,
-                    &item_scan_screen,
-                    &item_scan_camera,
-                    &MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?,
-                    &PredefinedMenuItem::separator(app)?,
-                    &item_lock,
-                    &PredefinedMenuItem::separator(app)?,
-                    &item_quit,
-                ],
+            let menu = build_tray_menu(
+                app.handle(),
+                &item_about,
+                &item_scan_screen,
+                &item_scan_camera,
+                &item_lock,
+                &item_quit,
+                None,
             )?;
 
             static ICON_LOCKED: &[u8] = include_bytes!("../icons/tray_icon_locked.png");
@@ -205,6 +229,10 @@ pub fn run() {
 
             let tray_icon = tauri::image::Image::from_bytes(ICON_LOCKED)
                 .unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
+
+            use std::sync::{Arc, Mutex as StdMutex};
+            let update_url: Arc<StdMutex<Option<String>>> = Arc::new(StdMutex::new(None));
+            let update_url_for_click = Arc::clone(&update_url);
 
             let tray = TrayIconBuilder::new()
                 .icon(tray_icon)
@@ -215,8 +243,15 @@ pub fn run() {
                     "TOFA"
                 })
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| {
+                .on_menu_event(move |app, event| {
                     let action = match event.id.as_ref() {
+                        "update-available" => {
+                            let url = update_url_for_click.lock().ok().and_then(|g| g.clone());
+                            if let Some(url) = url {
+                                let _ = crate::commands::open_release_url(url);
+                            }
+                            return;
+                        }
                         "about" => {
                             crate::about_window::show_or_focus(app);
                             return;
@@ -239,6 +274,16 @@ pub fn run() {
                 .build(app)?;
 
             let tray_id = tray.id().clone();
+
+            // Clones the listener uses to rebuild the menu when an update arrives.
+            let item_about_l = item_about.clone();
+            let item_scan_screen_l = item_scan_screen.clone();
+            let item_scan_camera_l = item_scan_camera.clone();
+            let item_lock_l = item_lock.clone();
+            let item_quit_l = item_quit.clone();
+            let app_for_event = app.handle().clone();
+            let tray_id_for_event = tray_id.clone();
+            let update_url_for_event = Arc::clone(&update_url);
 
             // Enable scan/lock items when unlocked, disable when locked
             let ss = item_scan_screen.clone();
@@ -289,6 +334,48 @@ pub fn run() {
                             show_popover_under_tray(&win);
                         }
                     }
+                }
+            });
+
+            app.listen("update-available", move |evt| {
+                let payload: crate::commands::CheckResult =
+                    match serde_json::from_str(evt.payload()) {
+                        Ok(p) => p,
+                        Err(_) => return,
+                    };
+                let (Some(latest), Some(url)) =
+                    (payload.latest.as_ref(), payload.release_url.as_ref())
+                else {
+                    return;
+                };
+                if let Ok(mut g) = update_url_for_event.lock() {
+                    *g = Some(url.clone());
+                }
+                let label = format!("Update available — v{}", latest);
+                let update_item = match MenuItem::with_id(
+                    &app_for_event,
+                    "update-available",
+                    &label,
+                    true,
+                    None::<&str>,
+                ) {
+                    Ok(i) => i,
+                    Err(_) => return,
+                };
+                let new_menu = match build_tray_menu(
+                    &app_for_event,
+                    &item_about_l,
+                    &item_scan_screen_l,
+                    &item_scan_camera_l,
+                    &item_lock_l,
+                    &item_quit_l,
+                    Some(&update_item),
+                ) {
+                    Ok(m) => m,
+                    Err(_) => return,
+                };
+                if let Some(tray) = app_for_event.tray_by_id(&tray_id_for_event) {
+                    let _ = tray.set_menu(Some(new_menu));
                 }
             });
 

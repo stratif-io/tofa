@@ -14,7 +14,7 @@ pub fn show_or_focus(app: &AppHandle) {
     }
     let _ = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::App("about.html".into()))
         .title("About Tofa")
-        .inner_size(360.0, 380.0)
+        .inner_size(340.0, 400.0)
         .resizable(false)
         .minimizable(false)
         .maximizable(false)

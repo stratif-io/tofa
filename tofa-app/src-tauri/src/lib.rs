@@ -116,6 +116,7 @@ pub fn run() {
         .manage(Mutex::new(AppState::new()))
         .invoke_handler(tauri::generate_handler![
             set_popover_pinned,
+            commands::get_versions,
             commands::vault_exists,
             commands::create_vault,
             commands::unlock,

@@ -1112,6 +1112,20 @@ fn html_escape(s: &str) -> String {
         .collect()
 }
 
+#[derive(Serialize)]
+pub struct Versions {
+    pub app: String,
+    pub core: String,
+}
+
+#[tauri::command]
+pub fn get_versions() -> Versions {
+    Versions {
+        app: env!("CARGO_PKG_VERSION").to_string(),
+        core: tofa_core::VERSION.to_string(),
+    }
+}
+
 /// Save a base64-encoded PNG to a user-chosen location via native save dialog.
 #[tauri::command]
 pub async fn save_qr_png(

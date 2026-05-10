@@ -114,6 +114,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(Mutex::new(AppState::new()))
+        .manage(std::sync::Mutex::new(updater::UpdaterState::default()))
         .invoke_handler(tauri::generate_handler![
             set_popover_pinned,
             commands::get_versions,

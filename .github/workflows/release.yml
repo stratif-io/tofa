@@ -116,9 +116,26 @@ jobs:
       - name: Install create-dmg
         run: brew install create-dmg
 
-      - name: Build universal app (app bundle only)
+      - name: Verify Tauri signing secrets are present
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY secret is not set"
+            exit 1
+          fi
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY_PASSWORD secret is not set"
+            exit 1
+          fi
+
+      - name: Build universal app (app + updater)
         working-directory: tofa-app
-        run: cargo tauri build --target universal-apple-darwin --bundles app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: cargo tauri build --target universal-apple-darwin --bundles app,updater
 
       - name: Create custom DMG
         run: |
@@ -149,6 +166,16 @@ jobs:
         with:
           name: app-dmg
           path: ${{ env.DMG_FILE }}
+
+      - name: Upload updater artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-updater
+          path: |
+            target/universal-apple-darwin/release/bundle/macos/Tofa.app.tar.gz
+            target/universal-apple-darwin/release/bundle/macos/Tofa.app.tar.gz.sig
+            target/universal-apple-darwin/release/bundle/macos/latest.json
+          if-no-files-found: error
 
   # ── GitHub Release ──────────────────────────────────────────────────────────
   release:

@@ -283,6 +283,61 @@ pub fn run() {
                 }
             });
 
+            // Background update check: once on launch, then every 24 hours.
+            let bg_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                use std::sync::Mutex;
+                use std::time::Duration;
+                use tauri::Manager;
+
+                let current = match semver::Version::parse(env!("CARGO_PKG_VERSION")) {
+                    Ok(v) => v,
+                    Err(_) => return,
+                };
+                let http = updater::build_http_client(&current);
+
+                async fn run_once(
+                    app: &tauri::AppHandle,
+                    http: &reqwest::Client,
+                    current: &semver::Version,
+                ) {
+                    {
+                        let state = app.state::<Mutex<updater::UpdaterState>>();
+                        let mut s = match state.lock() {
+                            Ok(s) => s,
+                            Err(_) => return,
+                        };
+                        if s.in_flight {
+                            return;
+                        }
+                        s.in_flight = true;
+                    }
+                    let result = updater::fetch_and_check(http, current).await;
+                    let state = app.state::<Mutex<updater::UpdaterState>>();
+                    let mut s = match state.lock() {
+                        Ok(s) => s,
+                        Err(_) => return,
+                    };
+                    s.in_flight = false;
+                    if let Ok(status) = result {
+                        let available = status.is_update_available();
+                        let payload = crate::commands::CheckResult::from_status_pub(&status);
+                        s.last_status = Some(status);
+                        if available {
+                            let _ = app.emit("update-available", payload);
+                        }
+                    }
+                }
+
+                run_once(&bg_handle, &http, &current).await;
+                let mut ticker = tokio::time::interval(Duration::from_secs(24 * 60 * 60));
+                ticker.tick().await; // first tick fires immediately; we already ran above
+                loop {
+                    ticker.tick().await;
+                    run_once(&bg_handle, &http, &current).await;
+                }
+            });
+
             Ok(())
         })
         .on_window_event(|window, event| {

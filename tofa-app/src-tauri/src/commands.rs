@@ -1147,6 +1147,11 @@ pub struct CheckResult {
 }
 
 impl CheckResult {
+    /// Public re-export of `from_status` for use by the background updater task.
+    pub fn from_status_pub(s: &UpdateStatus) -> Self {
+        Self::from_status(s)
+    }
+
     fn from_status(s: &UpdateStatus) -> Self {
         Self {
             current: s.current.to_string(),

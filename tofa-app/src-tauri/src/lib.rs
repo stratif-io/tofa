@@ -1,3 +1,4 @@
+mod about_window;
 mod commands;
 mod state;
 mod updater;

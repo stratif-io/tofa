@@ -201,6 +201,7 @@ jobs:
           files: |
             artifacts/*
           generate_release_notes: true
+          prerelease: ${{ !startsWith(github.ref_name, 'tofa-macos-v') }}
 
       - name: Dispatch Homebrew CLI formula update
         if: startsWith(github.ref_name, 'v')

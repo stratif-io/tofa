@@ -27,3 +27,56 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      - name: Align linked-versions group (tofa ↔ tofa-core)
+        if: steps.rp.outputs.pr != ''
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          TARGET=$(jq -r '."tofa-core"' .release-please-manifest.json)
+          CURRENT=$(jq -r '.tofa' .release-please-manifest.json)
+          if [ "$TARGET" = "$CURRENT" ]; then
+            echo "tofa already aligned at $TARGET — nothing to do"
+            exit 0
+          fi
+          echo "Aligning tofa $CURRENT → $TARGET (to match tofa-core)"
+
+          PR_NUMBER=$(echo '${{ steps.rp.outputs.pr }}' | jq -r '.number')
+          BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName)
+          git fetch origin "$BRANCH"
+          git checkout "$BRANCH"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          jq --arg v "$TARGET" '.tofa = $v' .release-please-manifest.json > .tmp.json
+          mv .tmp.json .release-please-manifest.json
+
+          sed -i.bak -E "s/^version = \"$CURRENT\"$/version = \"$TARGET\"/" tofa/Cargo.toml
+          sed -i.bak -E "s|(tofa-core = \{ path = \"\.\./tofa-core\", version = \")[^\"]+(\".*)|\\1$TARGET\\2|" tofa/Cargo.toml
+          rm tofa/Cargo.toml.bak
+
+          DATE=$(date -u +%Y-%m-%d)
+          {
+            echo "## [$TARGET](https://github.com/stratif-io/tofa/compare/v$CURRENT...v$TARGET) ($DATE)"
+            echo
+            echo
+            echo "### Miscellaneous Chores"
+            echo
+            echo "* align with tofa-core"
+            echo
+            cat tofa/CHANGELOG.md
+          } > tofa/CHANGELOG.md.new
+          mv tofa/CHANGELOG.md.new tofa/CHANGELOG.md
+
+          git add .release-please-manifest.json tofa/Cargo.toml tofa/CHANGELOG.md
+
+          if git diff --cached --quiet; then
+            echo "No changes after edits — bailing out without committing"
+            exit 0
+          fi
+
+          git commit -m "chore(release): align tofa with tofa-core at $TARGET"
+          git push origin "$BRANCH"

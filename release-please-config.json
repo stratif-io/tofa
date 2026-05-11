@@ -13,13 +13,7 @@
       "component": "tofa",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": false,
-      "include-v-in-tag": true,
-      "extra-files": [
-        {
-          "type": "generic",
-          "path": "Cargo.toml"
-        }
-      ]
+      "include-v-in-tag": true
     },
     "tofa-core": {
       "release-type": "rust",

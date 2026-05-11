@@ -95,5 +95,14 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore(release): align tofa with tofa-core at $TARGET"
-          git push origin "$BRANCH"
+          # Fold the alignment INTO the bot's commit and force-push. This
+          # avoids a public broken intermediate state — without the amend,
+          # the bot's first commit (tofa bumped but tofa-core constraint
+          # mismatched) gets a CI run that always fails before the align
+          # step's follow-up push fixes it. Amending keeps a single commit
+          # on the PR whose first CI run is on the already-aligned state.
+          # --force-with-lease is safe: we just fetched/checked out the
+          # branch, so the lease only loses if someone raced us in the
+          # ~seconds since checkout — in which case re-running is correct.
+          git commit --amend --no-edit
+          git push --force-with-lease origin "$BRANCH"

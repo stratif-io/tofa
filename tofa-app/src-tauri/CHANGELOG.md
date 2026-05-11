@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.11.0...tofa-macos-v0.11.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* **app:** disable Scan Screen in tray + custom DMG file icon ([89375f7](https://github.com/stratif-io/tofa/commit/89375f77a3ac7c1118c841a09a534c569cb73d68))
+* **app:** permanently disable Scan Screen in tray menu + custom DMG icon ([63eb700](https://github.com/stratif-io/tofa/commit/63eb7007dac8230f17228ec52e3aece9f98e6716))
+
 ## [0.11.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.10.0...tofa-macos-v0.11.0) (2026-05-11)
 
 

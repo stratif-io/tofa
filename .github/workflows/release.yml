@@ -151,6 +151,7 @@ jobs:
           # canvas while still fitting inside the 260x320 platforms.
           create-dmg \
             --volname "Tofa" \
+            --volicon "tofa-app/src-tauri/icons/dmg_icon.icns" \
             --background "tofa-app/packaging/dmg-background.png" \
             --window-size 1320 800 \
             --icon-size 160 \

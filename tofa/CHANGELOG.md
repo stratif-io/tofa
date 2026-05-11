@@ -1,3 +1,10 @@
+## [0.11.0](https://github.com/stratif-io/tofa/compare/v0.12.0...v0.11.0) (2026-05-11)
+
+
+### Miscellaneous Chores
+
+* align with tofa-core
+
 # Changelog
 
 ## [0.12.0](https://github.com/stratif-io/tofa/compare/v0.11.0...v0.12.0) (2026-05-11)

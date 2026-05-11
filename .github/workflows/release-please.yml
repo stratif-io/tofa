@@ -34,11 +34,13 @@ jobs:
         if: steps.rp.outputs.pr != ''
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          # Pass the PR JSON via env var rather than `'${{...}}'` inline, so
+          # parens/quotes in the CHANGELOG body don't break bash parsing.
+          PR_JSON: ${{ steps.rp.outputs.pr }}
         run: |
           set -euo pipefail
 
-          PR_NUMBER=$(echo '${{ steps.rp.outputs.pr }}' | jq -r '.number')
-          BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName)
+          BRANCH=$(echo "$PR_JSON" | jq -r '.headBranchName')
           git fetch origin "$BRANCH"
           git checkout "$BRANCH"
 

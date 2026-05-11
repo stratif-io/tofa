@@ -167,6 +167,27 @@ jobs:
           name: app-dmg
           path: ${{ env.DMG_FILE }}
 
+      - name: Generate latest.json updater manifest
+        run: |
+          VERSION="${GITHUB_REF_NAME#tofa-macos-v}"
+          VERSION="${VERSION#v}"
+          BUNDLE_DIR=target/universal-apple-darwin/release/bundle/macos
+          SIG=$(cat "$BUNDLE_DIR/Tofa.app.tar.gz.sig")
+          URL="https://github.com/stratif-io/tofa/releases/download/${GITHUB_REF_NAME}/Tofa.app.tar.gz"
+          PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          cat > "$BUNDLE_DIR/latest.json" <<EOF
+          {
+            "version": "$VERSION",
+            "notes": "Tofa $VERSION",
+            "pub_date": "$PUB_DATE",
+            "platforms": {
+              "darwin-aarch64": { "signature": "$SIG", "url": "$URL" },
+              "darwin-x86_64":  { "signature": "$SIG", "url": "$URL" }
+            }
+          }
+          EOF
+          cat "$BUNDLE_DIR/latest.json"
+
       - name: Upload updater artifacts
         uses: actions/upload-artifact@v4
         with:

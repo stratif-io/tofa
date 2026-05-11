@@ -16,6 +16,14 @@ jobs:
       tag_name: ${{ steps.rp.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Use the same PAT for checkout that the align step pushes with.
+          # Without this, `actions/checkout` configures the git remote with
+          # GITHUB_TOKEN credentials, and the bot's push won't trigger
+          # downstream workflows (PR checks, release.yml). With the PAT, the
+          # push on release-please--branches--main re-runs CI so the corrected
+          # workspace state is actually validated before merge.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - uses: googleapis/release-please-action@v4
         id: rp

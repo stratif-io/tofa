@@ -15,6 +15,8 @@ jobs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name: ${{ steps.rp.outputs.tag_name }}
     steps:
+      - uses: actions/checkout@v4
+
       - uses: googleapis/release-please-action@v4
         id: rp
         with:
@@ -35,18 +37,20 @@ jobs:
         run: |
           set -euo pipefail
 
-          TARGET=$(jq -r '."tofa-core"' .release-please-manifest.json)
-          CURRENT=$(jq -r '.tofa' .release-please-manifest.json)
-          if [ "$TARGET" = "$CURRENT" ]; then
-            echo "tofa already aligned at $TARGET — nothing to do"
-            exit 0
-          fi
-          echo "Aligning tofa $CURRENT → $TARGET (to match tofa-core)"
-
           PR_NUMBER=$(echo '${{ steps.rp.outputs.pr }}' | jq -r '.number')
           BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName)
           git fetch origin "$BRANCH"
           git checkout "$BRANCH"
+
+          TARGET=$(jq -r '."tofa-core"' .release-please-manifest.json)
+          CURRENT=$(jq -r '.tofa' .release-please-manifest.json)
+          CONSTRAINT=$(grep -E '^tofa-core = \{' tofa/Cargo.toml | sed -E 's/.*version = "([^"]+)".*/\1/')
+
+          if [ "$TARGET" = "$CURRENT" ] && [ "$TARGET" = "$CONSTRAINT" ]; then
+            echo "Already aligned at $TARGET — nothing to do"
+            exit 0
+          fi
+          echo "Aligning: manifest tofa=$CURRENT → $TARGET, constraint=$CONSTRAINT → $TARGET"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -54,27 +58,30 @@ jobs:
           jq --arg v "$TARGET" '.tofa = $v' .release-please-manifest.json > .tmp.json
           mv .tmp.json .release-please-manifest.json
 
-          sed -i.bak -E "s/^version = \"$CURRENT\"$/version = \"$TARGET\"/" tofa/Cargo.toml
-          sed -i.bak -E "s|(tofa-core = \{ path = \"\.\./tofa-core\", version = \")[^\"]+(\".*)|\\1$TARGET\\2|" tofa/Cargo.toml
+          sed -i.bak -E "s/^version = \"[^\"]+\"$/version = \"$TARGET\"/" tofa/Cargo.toml
+          sed -i.bak -E "s|(tofa-core = \{ path = \"\.\./tofa-core\", version = \")[^\"]+(\".*)|\1$TARGET\2|" tofa/Cargo.toml
           rm tofa/Cargo.toml.bak
 
-          DATE=$(date -u +%Y-%m-%d)
-          {
-            echo "## [$TARGET](https://github.com/stratif-io/tofa/compare/v$CURRENT...v$TARGET) ($DATE)"
-            echo
-            echo
-            echo "### Miscellaneous Chores"
-            echo
-            echo "* align with tofa-core"
-            echo
-            cat tofa/CHANGELOG.md
-          } > tofa/CHANGELOG.md.new
-          mv tofa/CHANGELOG.md.new tofa/CHANGELOG.md
+          if [ "$TARGET" != "$CURRENT" ]; then
+            DATE=$(date -u +%Y-%m-%d)
+            {
+              echo "## [$TARGET](https://github.com/stratif-io/tofa/compare/v$CURRENT...v$TARGET) ($DATE)"
+              echo
+              echo
+              echo "### Miscellaneous Chores"
+              echo
+              echo "* align with tofa-core"
+              echo
+              cat tofa/CHANGELOG.md
+            } > tofa/CHANGELOG.md.new
+            mv tofa/CHANGELOG.md.new tofa/CHANGELOG.md
+            git add tofa/CHANGELOG.md
+          fi
 
-          git add .release-please-manifest.json tofa/Cargo.toml tofa/CHANGELOG.md
+          git add .release-please-manifest.json tofa/Cargo.toml
 
           if git diff --cached --quiet; then
-            echo "No changes after edits — bailing out without committing"
+            echo "No actual changes after edits — nothing to commit"
             exit 0
           fi
 

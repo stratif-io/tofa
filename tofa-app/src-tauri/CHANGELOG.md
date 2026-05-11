@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.9.0...tofa-macos-v0.10.0) (2026-05-11)
+
+
+### Features
+
+* About window + silent auto-update via tauri-plugin-updater ([#76](https://github.com/stratif-io/tofa/pull/76))
+
 ## [0.9.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.8.0...tofa-macos-v0.9.0) (2026-05-07)
 
 

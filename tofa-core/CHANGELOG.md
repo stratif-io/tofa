@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/stratif-io/tofa/compare/tofa-core-v0.9.0...tofa-core-v0.10.0) (2026-05-11)
+
+
+### Features
+
+* expose VERSION constant for downstream consumers ([#76](https://github.com/stratif-io/tofa/pull/76))
+
 ## [0.9.0](https://github.com/stratif-io/tofa/compare/tofa-core-v0.8.0...tofa-core-v0.9.0) (2026-05-07)
 
 

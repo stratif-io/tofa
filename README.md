@@ -68,7 +68,7 @@ brew install --cask tofa
 ```
 
 <div align="center">
-  <img src="docs/demo-app.gif" alt="TOFA macOS menu bar app demo" width="320" />
+  <img src="docs/demo-app.gif" alt="TOFA macOS menu bar app demo" width="640" />
   <p><em>The macOS app: tray icon → popover → click code.</em></p>
 </div>
 

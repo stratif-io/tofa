@@ -65,32 +65,33 @@ const SPEC: MacAppSpec = {
   scene: {
     src: "mac-app.mov",
     durationSec: 58,
-    // Pulse between a soft overview (1.0) and a tighter look at the popover
-    // body (1.25–1.4) as the user moves between flows. Origin keyframes
-    // pan around the popover so each push-in centres on the relevant region.
+    // 1280×800 comp consumes a 1728×1080 crop where the popover sits around
+    // 60% horizontal. Pulse between an overview (1.0) and tighter pushes
+    // (1.5–1.8) so the popover dominates the frame during action moments.
+    // Origin keyframes pan vertically around the popover.
     zoom: [
       [0, 1.0],
-      [2, 1.0],     // overview: menu bar + popover header
-      [6, 1.35],    // push into the unlock form
-      [12, 1.35],
+      [2, 1.0],     // overview: full popover + menu bar context
+      [6, 1.6],     // push into the unlock form
+      [12, 1.6],
       [15, 1.0],    // pull back to show the full account list
       [22, 1.0],
-      [25, 1.4],    // zoom into the live codes
-      [38, 1.4],
+      [25, 1.7],    // zoom onto the live codes
+      [38, 1.7],
       [42, 1.0],    // pull back for the lock + footer moment
       [58, 1.0],
     ],
     pan: [
-      [0, [50, 25]],   // anchor near the popover top (menu-bar reveal)
-      [2, [50, 25]],
-      [6, [50, 55]],   // shift down to the passphrase row
-      [12, [50, 55]],
-      [15, [50, 40]],  // re-centre on the popover body
-      [22, [50, 40]],
-      [25, [50, 50]],  // accounts area
-      [38, [50, 50]],
-      [42, [50, 70]],  // drift down toward the lock button
-      [58, [50, 70]],
+      [0, [60, 30]],   // popover top (menu-bar + header reveal)
+      [2, [60, 30]],
+      [6, [60, 55]],   // shift down to the passphrase row
+      [12, [60, 55]],
+      [15, [60, 45]],  // re-centre on the popover body
+      [22, [60, 45]],
+      [25, [60, 50]],  // accounts area, mid-popover
+      [38, [60, 50]],
+      [42, [60, 75]],  // drift down toward the lock button
+      [58, [60, 75]],
     ],
     callouts: [
       {
@@ -190,12 +191,7 @@ const SceneStage: React.FC = () => {
         <OffthreadVideo
           src={staticFile(SPEC.scene.src)}
           playbackRate={SPEC.speed}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            objectPosition: "center top",
-          }}
+          style={{ width: "100%", height: "100%", objectFit: "contain" }}
         />
       </ZoomLayer>
       {(callouts ?? []).map((c, i) => (

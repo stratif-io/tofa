@@ -21,8 +21,8 @@ export const RemotionRoot: React.FC = () => {
         component={MacAppDemo}
         durationInFrames={MAC_APP_TOTAL_FRAMES}
         fps={30}
-        width={600}
-        height={900}
+        width={1280}
+        height={800}
       />
     </>
   );

@@ -45,10 +45,12 @@ const EDIT = {
   macApp: {
     source: "mac-app-raw.mov",
     output: "mac-app.mov",
-    // Source is a wide screen recording (3448×1284). Crop tightly around
-    // the popover + menu bar; ends just past the Create vault button so the
-    // yellow sticky note that lives at the bottom of the desktop stays out.
-    crop: { x: 2440, y: 0, w: 720, h: 1040 },
+    // Source is a wide screen recording (3448×1284). Take a 1728×1030 window
+    // anchored to the right side so the popover sits at ~60% horizontal with
+    // macOS menu-bar context around it. Height stops just past the Create
+    // vault button so the yellow desktop sticky stays out — the slight
+    // aspect mismatch with 1280×800 letterboxes onto the ink-900 background.
+    crop: { x: 1720, y: 0, w: 1728, h: 1030 },
     segments: [
       { in: 2.0, out: 60.0 },
     ],

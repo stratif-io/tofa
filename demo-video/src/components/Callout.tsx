@@ -1,4 +1,5 @@
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { tokens } from "../theme/tokens";
 
 interface CalloutProps {
   /** Frame (relative to the parent Sequence) when the callout enters. */
@@ -32,7 +33,7 @@ export const Callout: React.FC<CalloutProps> = ({
   const enterSpring = spring({
     fps,
     frame: frame - enterAt,
-    config: { damping: 18, stiffness: 140, mass: 0.6 },
+    config: tokens.spring,
     durationInFrames: 20,
   });
   const exitOpacity = interpolate(frame, [exitAt, exitAt + 10], [1, 0], {
@@ -43,9 +44,9 @@ export const Callout: React.FC<CalloutProps> = ({
   const translateY = interpolate(enterSpring, [0, 1], [16, 0]);
 
   const posStyles: Record<NonNullable<CalloutProps["position"]>, React.CSSProperties> = {
-    "bottom-left": { left: 36, bottom: 36 },
-    "bottom-right": { right: 36, bottom: 36 },
-    "top-right": { right: 36, top: 36 },
+    "bottom-left": { left: tokens.s[6], bottom: tokens.s[6] },
+    "bottom-right": { right: tokens.s[6], bottom: tokens.s[6] },
+    "top-right": { right: tokens.s[6], top: tokens.s[6] },
   };
 
   return (
@@ -56,34 +57,39 @@ export const Callout: React.FC<CalloutProps> = ({
           ...posStyles[position],
           opacity,
           transform: `translateY(${translateY}px)`,
-          background: "rgba(14, 12, 20, 0.86)",
+          background: tokens.color.calloutBackdrop,
           backdropFilter: "blur(8px)",
-          border: "1px solid rgba(184, 158, 255, 0.35)",
-          borderRadius: 10,
-          padding: "12px 18px",
+          border: `1px solid ${tokens.color.borderBrand}`,
+          borderRadius: tokens.r.lg,
+          padding: `${tokens.s[3]}px ${tokens.s[4]}px`,
           maxWidth: 520,
-          fontFamily:
-            "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+          fontFamily: tokens.font.body,
           boxShadow: "0 8px 32px rgba(0, 0, 0, 0.45)",
         }}
       >
         {eyebrow && (
           <div
             style={{
-              color: "#b89eff",
-              fontFamily:
-                "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
-              fontSize: 13,
-              letterSpacing: 1.4,
+              color: tokens.color.brand,
+              fontFamily: tokens.font.mono,
+              fontSize: tokens.type.eyebrow,
+              letterSpacing: 1.5,
               textTransform: "uppercase",
-              marginBottom: 4,
+              marginBottom: tokens.s[1],
               fontWeight: 600,
             }}
           >
             {eyebrow}
           </div>
         )}
-        <div style={{ color: "#f1eef8", fontSize: 20, lineHeight: 1.3, fontWeight: 500 }}>
+        <div
+          style={{
+            color: tokens.color.text,
+            fontSize: tokens.type.body,
+            lineHeight: 1.4,
+            fontWeight: 500,
+          }}
+        >
           {body}
         </div>
       </div>

@@ -11,36 +11,31 @@ import {
 import { BrandCard, type CTAGroup } from "../components/BrandCard";
 import { Callout } from "../components/Callout";
 import { TitleCard } from "../components/TitleCard";
+import { tokens } from "../theme/tokens";
 
 // =============================================================================
-// EDIT SCRIPT — change directorial values here. Everything downstream derives
-// from this object. All time values are in **scene-rush seconds**: the tempo
-// of the source rush as if no speedups or cuts existed. The renderer maps
-// them to composition frames automatically, accounting for cuts, speedups,
-// and tail trims.
+// EDIT SCRIPT — change directorial values here.
+//
+// Editorial cuts and speed changes live in `scripts/cut-rush.mjs` and are
+// baked into `public/<scene>.mov`. After running `npm run cut-rush`, copy the
+// printed clip durations into the `durationSec` field of each scene below.
+//
+// Times in this file are in **clip seconds** — positions in the pre-cut
+// scene clip, not the raw rush.
 // =============================================================================
 
 const FPS = 30;
-const MAX_PLAYBACK_RATE = 16; // Chromium HTMLMediaElement hard cap.
-const RUSH_SRC = staticFile("scan-cam.mov");
 
 type CalloutPosition = "bottom-left" | "bottom-right" | "top-right";
 
 type CalloutSpec = {
-  /** Scene-rush second the callout enters. */
+  /** Clip second the callout enters. */
   enter: number;
-  /** Scene-rush second it starts fading out. Clamped to scene end if needed. */
+  /** Clip second it starts fading out. */
   exit: number;
   eyebrow?: string;
   body: string;
   position?: CalloutPosition;
-};
-
-type SpeedChange = {
-  /** Scene-rush range to retime. */
-  at: readonly [number, number];
-  /** Multiplier on top of base speed. >1 fast-forward, <1 slow-mo. Capped. */
-  factor: number;
 };
 
 type SceneSpec = {
@@ -50,25 +45,21 @@ type SceneSpec = {
     subtitle: string;
     durationSec: number;
   };
-  /** Absolute source-rush window (seconds in scan-cam.mov). */
-  source: readonly [number, number];
-  /** Scene-rush ranges to drop. */
-  cuts?: ReadonlyArray<readonly [number, number]>;
-  /** Scene-rush ranges to retime. */
-  speedChanges?: ReadonlyArray<SpeedChange>;
-  /** Drop this many seconds off the tail of the scene's source. */
-  tailTrimSec?: number;
+  /** staticFile-relative path. Produce with `npm run cut-rush`. */
+  src: string;
+  /** Total length of the pre-cut clip in seconds. Read from cut-rush output. */
+  durationSec: number;
   /** Static transform-origin if no pan keyframes. */
   origin?: string;
-  /** Scale keyframes: [sceneRushSec, scale]. */
+  /** Scale keyframes: [clipSec, scale]. */
   zoom?: ReadonlyArray<readonly [number, number]>;
-  /** Origin keyframes (eased): [sceneRushSec, [x%, y%]]. */
+  /** Origin keyframes (eased): [clipSec, [x%, y%]]. */
   pan?: ReadonlyArray<readonly [number, readonly [number, number]]>;
   callouts?: ReadonlyArray<CalloutSpec>;
 };
 
 type TourSpec = {
-  /** Base playback rate applied to every video segment. */
+  /** Global playback rate applied to every video segment. */
   speed: number;
   intro: { title: string; subtitle: string; durationSec: number };
   scenes: readonly SceneSpec[];
@@ -96,29 +87,27 @@ const SPEC: TourSpec = {
         subtitle: "Capture every QR on every screen at once",
         durationSec: 3,
       },
-      source: [1.0, 32.0],
-      cuts: [[16.2, 19.1]], // skip the passphrase-prompt typing
-      tailTrimSec: 4.7, // drop the trailing `tofa list` admin
+      src: "scan.mov",
+      durationSec: 23.4,
       origin: "95% 0%",
       zoom: [
         [0, 1],
         [0.4, 1.8],
-        [9, 1.88],
-        [10, 1.0],
-        [12 , 1.0],
-        [15, 1.88],
+        [9.25, 1.88],
+        [10.5, 1.0],
+        [14, 1.88],
       ],
       callouts: [
         { enter: 0.4, exit: 5, eyebrow: "On screen", body: "Two QR codes on desktop." },
         {
           enter: 15,
-          exit: 22,
+          exit: 19.1,
           eyebrow: "One command",
-          body: "`tofa scan` captures every display and decodes every QR.",
+          body: "` tofa scan` captures every display and decodes every QR.",
         },
         {
-          enter: 22,
-          exit: 30.5,
+          enter: 19.1,
+          exit: 23.4,
           eyebrow: "Result",
           body: "Imported 2 accounts from 1 screen.",
           position: "bottom-right",
@@ -132,16 +121,15 @@ const SPEC: TourSpec = {
         subtitle: "Scan with your laptop webcam in the browser",
         durationSec: 3,
       },
-      source: [32.0, 63.0],
-      speedChanges: [{ at: [12.2667, 18.2667], factor: 10 }],
+      src: "cam.mov",
+      durationSec: 18.0,
       zoom: [[0, 1.88]],
       pan: [
         [0, [95, 0]],
         [2, [95, 0]],
-        [3.5, [10, 0]],
-        [8, [10, 0]],
-        [10.5, [95, 0]],
-
+        [3.5, [0, 0]],
+        [9, [0, 0]],
+        [11.5, [95, 0]],
       ],
       callouts: [
         {
@@ -151,14 +139,14 @@ const SPEC: TourSpec = {
           body: "`tofa cam` opens a local URL that streams your webcam.",
         },
         {
-          enter: 15,
-          exit: 22,
+          enter: 12.87,
+          exit: 16.6,
           eyebrow: "Detected",
           body: "The third QR is decoded the moment it's centred.",
         },
         {
-          enter: 22,
-          exit: 30.5,
+          enter: 16.6,
+          exit: 25.6,
           eyebrow: "Vault",
           body: "Three accounts now ticking down in your terminal.",
           position: "bottom-right",
@@ -187,103 +175,19 @@ const SPEC: TourSpec = {
 };
 
 // =============================================================================
-// Derivation. Everything below is generated from SPEC — don't tweak by hand.
+// Derivation. Trivial now that cuts and speedups live in the clip.
 // =============================================================================
 
-type PlaybackPiece = {
-  /** Absolute source-rush seconds. */
-  sourceStart: number;
-  sourceEnd: number;
-  /** playbackRate for OffthreadVideo. */
-  rate: number;
-  /** Composition frames this piece occupies. */
-  compFrames: number;
-};
+const secToFrame = (s: number) => Math.round((s * FPS) / SPEC.speed);
 
-/** Decompose a scene into back-to-back playback pieces. */
-function piecesFor(scene: SceneSpec, speed: number): PlaybackPiece[] {
-  const sceneStart = scene.source[0];
-  const sceneEnd = scene.source[1] - (scene.tailTrimSec ?? 0);
-  const toAbs = (s: number) => sceneStart + s;
-
-  type Part = { src: readonly [number, number]; rate: number };
-  let parts: Part[] = [{ src: [sceneStart, sceneEnd], rate: speed }];
-
-  // Remove cut ranges.
-  for (const [c0, c1] of (scene.cuts ?? []).map(
-    ([a, b]) => [toAbs(a), toAbs(b)] as const,
-  )) {
-    parts = parts.flatMap((p) => {
-      const [a, b] = p.src;
-      if (c1 <= a || c0 >= b) return [p];
-      const out: Part[] = [];
-      if (c0 > a) out.push({ src: [a, c0], rate: p.rate });
-      if (c1 < b) out.push({ src: [c1, b], rate: p.rate });
-      return out;
-    });
-  }
-
-  // Apply speed changes (clamping to the browser cap).
-  for (const sc of scene.speedChanges ?? []) {
-    const [s0, s1] = [toAbs(sc.at[0]), toAbs(sc.at[1])];
-    const target = speed * sc.factor;
-    const rate = Math.min(Math.max(target, 0.0625), MAX_PLAYBACK_RATE);
-    parts = parts.flatMap((p) => {
-      const [a, b] = p.src;
-      if (s1 <= a || s0 >= b) return [p];
-      const lo = Math.max(a, s0);
-      const hi = Math.min(b, s1);
-      const out: Part[] = [];
-      if (lo > a) out.push({ src: [a, lo], rate: p.rate });
-      out.push({ src: [lo, hi], rate });
-      if (hi < b) out.push({ src: [hi, b], rate: p.rate });
-      return out;
-    });
-  }
-
-  return parts.map((p) => ({
-    sourceStart: p.src[0],
-    sourceEnd: p.src[1],
-    rate: p.rate,
-    compFrames: Math.max(1, Math.round(((p.src[1] - p.src[0]) * FPS) / p.rate)),
-  }));
-}
-
-/** Map a scene-rush moment to a composition frame within the scene. */
-function sceneSecToFrame(
-  scene: SceneSpec,
-  speed: number,
-  sceneRushSec: number,
-): number {
-  const target = scene.source[0] + sceneRushSec;
-  const ps = piecesFor(scene, speed);
-  let compFrame = 0;
-  for (const p of ps) {
-    if (target <= p.sourceStart) return compFrame;
-    if (target < p.sourceEnd) {
-      return compFrame + Math.round(((target - p.sourceStart) * FPS) / p.rate);
-    }
-    compFrame += p.compFrames;
-  }
-  return compFrame;
-}
-
-const sceneTotalFrames = (scene: SceneSpec, speed: number) =>
-  piecesFor(scene, speed).reduce((a, p) => a + p.compFrames, 0);
-
-const secAtSpeed = (s: number, speed: number) =>
-  Math.round((s * FPS) / speed);
-
-const INTRO_FRAMES = secAtSpeed(SPEC.intro.durationSec, SPEC.speed);
-const OUTRO_FRAMES = secAtSpeed(SPEC.outro.durationSec, SPEC.speed);
+const INTRO_FRAMES = secToFrame(SPEC.intro.durationSec);
+const OUTRO_FRAMES = secToFrame(SPEC.outro.durationSec);
 const SCENES = SPEC.scenes.map((spec) => ({
   spec,
-  pieces: piecesFor(spec, SPEC.speed),
-  totalFrames: sceneTotalFrames(spec, SPEC.speed),
-  titleFrames: secAtSpeed(spec.title.durationSec, SPEC.speed),
+  totalFrames: secToFrame(spec.durationSec),
+  titleFrames: secToFrame(spec.title.durationSec),
 }));
 
-/** Frame offsets for each part of the tour. */
 const OFFSETS = (() => {
   const sceneOffsets: Array<{ title: number; clip: number }> = [];
   let cursor = INTRO_FRAMES;
@@ -298,7 +202,7 @@ export const TOTAL_FRAMES = OFFSETS.outro + OUTRO_FRAMES;
 
 // =============================================================================
 // ZoomLayer: scales + pans the wrapped content using keyframes in comp-frame
-// space. Pan keyframes use ease-in-out so glides feel cinematic.
+// space. Pan keyframes use the design-system ease-out curve.
 // =============================================================================
 
 const ZoomLayer: React.FC<
@@ -321,7 +225,7 @@ const ZoomLayer: React.FC<
     const oFrames = originKeyframes.map(([f]) => f);
     const xs = originKeyframes.map(([, [x]]) => x);
     const ys = originKeyframes.map(([, [, y]]) => y);
-    const ease = Easing.bezier(0.4, 0, 0.2, 1);
+    const ease = Easing.bezier(...tokens.ease.out);
     const x = interpolate(frame, oFrames, xs, {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
@@ -345,8 +249,7 @@ const ZoomLayer: React.FC<
 };
 
 // =============================================================================
-// Scene renderer. Reads SceneSpec and emits the OffthreadVideo segments,
-// ZoomLayer keyframes, and callouts.
+// Scene renderer. One OffthreadVideo per scene; zoom and callouts overlay.
 // =============================================================================
 
 /** Build a keyframe list that's guaranteed to satisfy `interpolate`. */
@@ -366,9 +269,8 @@ const SceneRenderer: React.FC<{ spec: SceneSpec; speed: number }> = ({
   spec,
   speed,
 }) => {
-  const ps = piecesFor(spec, speed);
-  const total = ps.reduce((a, p) => a + p.compFrames, 0);
-  const toFrame = (s: number) => sceneSecToFrame(spec, speed, s);
+  const total = secToFrame(spec.durationSec);
+  const toFrame = (s: number) => Math.round((s * FPS) / speed);
 
   const zoomKfs = withEndpoints(
     (spec.zoom ?? []).map(([s, scale]) => [toFrame(s), scale] as const),
@@ -383,7 +285,6 @@ const SceneRenderer: React.FC<{ spec: SceneSpec; speed: number }> = ({
       )
     : undefined;
 
-  let offset = 0;
   return (
     <>
       <ZoomLayer
@@ -391,21 +292,11 @@ const SceneRenderer: React.FC<{ spec: SceneSpec; speed: number }> = ({
         origin={spec.origin}
         originKeyframes={panKfs}
       >
-        {ps.map((p, i) => {
-          const seq = (
-            <Sequence key={i} from={offset} durationInFrames={p.compFrames}>
-              <OffthreadVideo
-                src={RUSH_SRC}
-                startFrom={Math.round(p.sourceStart * FPS)}
-                endAt={Math.round(p.sourceEnd * FPS)}
-                playbackRate={p.rate}
-                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-              />
-            </Sequence>
-          );
-          offset += p.compFrames;
-          return seq;
-        })}
+        <OffthreadVideo
+          src={staticFile(spec.src)}
+          playbackRate={speed}
+          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        />
       </ZoomLayer>
       {(spec.callouts ?? []).map((c, i) => (
         <Callout
@@ -427,7 +318,7 @@ const SceneRenderer: React.FC<{ spec: SceneSpec; speed: number }> = ({
 
 export const ScanCamTour: React.FC = () => {
   return (
-    <AbsoluteFill style={{ backgroundColor: "#0e0c14" }}>
+    <AbsoluteFill style={{ backgroundColor: tokens.color.bg }}>
       <Sequence from={OFFSETS.intro} durationInFrames={INTRO_FRAMES}>
         <BrandCard title={SPEC.intro.title} subtitle={SPEC.intro.subtitle} />
       </Sequence>

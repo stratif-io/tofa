@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { tokens } from "../theme/tokens";
 
 export type CTACommand = {
   /** Shell command, rendered in monospace. */
@@ -17,6 +18,9 @@ interface BrandCardProps {
   title: string;
   /** Subtitle, one short line. */
   subtitle: string;
+  /** Font face for the wordmark. `display` (Fraunces) for brand titles like
+   *  "TOFA" / "Get TOFA"; `mono` (JetBrains Mono) for command-style titles. */
+  displayFont?: "display" | "mono";
   /** One or more install/usage CTAs. Multiple groups render stacked with an
    *  "OR" separator. Single string accepted for backwards compatibility. */
   cta?: string | CTAGroup[];
@@ -28,14 +32,20 @@ interface BrandCardProps {
  * Intro/outro card with brand-styled big wordmark, subtitle, and optional CTA.
  * Springs in from below, fades out at the tail.
  */
-export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, footer }) => {
+export const BrandCard: React.FC<BrandCardProps> = ({
+  title,
+  subtitle,
+  displayFont = "display",
+  cta,
+  footer,
+}) => {
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
 
   const titleSpring = spring({
     fps,
     frame,
-    config: { damping: 18, stiffness: 110, mass: 0.7 },
+    config: tokens.spring,
     durationInFrames: 24,
   });
   const subtitleFade = interpolate(frame, [12, 26], [0, 1], {
@@ -68,10 +78,15 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
       ? [{ commands: [{ command: cta }] }]
       : cta;
 
+  const titleFontFamily =
+    displayFont === "mono" ? tokens.font.mono : tokens.font.display;
+  // Fraunces benefits from looser tracking; mono titles still tighten slightly.
+  const titleLetterSpacing = displayFont === "mono" ? -1.5 : -1;
+
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: "#0e0c14",
+        backgroundColor: tokens.color.bg,
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
@@ -79,12 +94,11 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
     >
       <div
         style={{
-          color: "#b89eff",
-          fontFamily:
-            "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
-          fontSize: 120,
+          color: tokens.color.brand,
+          fontFamily: titleFontFamily,
+          fontSize: tokens.type.displayXl,
           fontWeight: 700,
-          letterSpacing: -3,
+          letterSpacing: titleLetterSpacing,
           opacity: titleOpacity,
           transform: `scale(${titleScale})`,
         }}
@@ -94,11 +108,10 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
 
       <div
         style={{
-          color: "#cfcbe0",
-          fontSize: 30,
-          marginTop: 20,
-          fontFamily:
-            "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+          color: tokens.color.text,
+          fontSize: tokens.type.subtitle,
+          marginTop: tokens.s[5],
+          fontFamily: tokens.font.body,
           opacity: subtitleFade * fadeOut,
         }}
       >
@@ -108,11 +121,11 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
       {ctaGroups && (
         <div
           style={{
-            marginTop: 40,
+            marginTop: tokens.s[7],
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 14,
+            gap: tokens.s[4],
             opacity: ctaFade * fadeOut,
           }}
         >
@@ -121,10 +134,9 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
               {i > 0 && (
                 <div
                   style={{
-                    color: "#7d7a8a",
-                    fontFamily:
-                      "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
-                    fontSize: 16,
+                    color: tokens.color.textMuted,
+                    fontFamily: tokens.font.mono,
+                    fontSize: tokens.type.eyebrow,
                     letterSpacing: 4,
                     textTransform: "uppercase",
                     fontWeight: 600,
@@ -135,17 +147,17 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
               )}
               <div
                 style={{
-                  padding: "16px 28px",
-                  border: "1px solid rgba(184, 158, 255, 0.4)",
-                  borderRadius: 10,
-                  background: "rgba(184, 158, 255, 0.08)",
-                  color: "#f1eef8",
-                  fontFamily:
-                    "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
-                  fontSize: 24,
+                  padding: `${tokens.s[4]}px ${tokens.s[5]}px`,
+                  border: `1px solid ${tokens.color.borderBrand}`,
+                  borderRadius: tokens.r.lg,
+                  background: tokens.color.brandBg,
+                  color: tokens.color.text,
+                  fontFamily: tokens.font.mono,
+                  fontSize: tokens.type.bodyLg,
+                  fontWeight: 500,
                   display: "flex",
                   flexDirection: "column",
-                  gap: 6,
+                  gap: tokens.s[2],
                   textAlign: "left",
                   minWidth: 520,
                 }}
@@ -157,17 +169,16 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "baseline",
-                      gap: 32,
+                      gap: tokens.s[6],
                     }}
                   >
                     <span>{c.command}</span>
                     {c.note && (
                       <span
                         style={{
-                          color: "#7d7a8a",
-                          fontFamily:
-                            "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-                          fontSize: 16,
+                          color: tokens.color.textMuted,
+                          fontFamily: tokens.font.body,
+                          fontSize: tokens.type.eyebrow,
                           fontStyle: "italic",
                         }}
                       >
@@ -185,11 +196,10 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
       {footer && (
         <div
           style={{
-            color: "#7d7a8a",
-            fontSize: 20,
-            marginTop: 22,
-            fontFamily:
-              "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+            color: tokens.color.textMuted,
+            fontSize: tokens.type.body,
+            marginTop: tokens.s[5],
+            fontFamily: tokens.font.body,
             opacity: footerFade * fadeOut,
           }}
         >

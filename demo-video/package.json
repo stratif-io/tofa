@@ -5,12 +5,14 @@
   "description": "Remotion compositions for the TOFA README demo GIFs/videos",
   "scripts": {
     "studio": "remotion studio src/index.ts",
+    "cut-rush": "node scripts/cut-rush.mjs",
     "build:mp4": "remotion render src/index.ts ScanCamTour ../docs/demo-scan-cam.mp4 --codec=h264 --crf=22",
     "build:gif": "remotion render src/index.ts ScanCamTour ../docs/demo-scan-cam.gif --image-format=jpeg --pixel-format=yuv420p",
-    "build": "npm run build:mp4 && npm run build:gif"
+    "build": "npm run cut-rush && npm run build:mp4 && npm run build:gif"
   },
   "dependencies": {
     "@remotion/cli": "4.0.404",
+    "@remotion/google-fonts": "^4.0.404",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "remotion": "4.0.404"

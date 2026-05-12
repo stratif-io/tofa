@@ -39,14 +39,20 @@ const OUTRO_START = SCENE2_START + CAM_CLIP_FRAMES;
 const RUSH_SRC = staticFile("scan-cam.mov");
 
 /**
- * Subtle Ken-Burns scale wrapper: scales from `from` to `to` over the
- * full Sequence duration. Keeps the focal point fixed.
+ * Scale wrapper that interpolates between an ordered list of `[frame, scale]`
+ * keyframes. Used for brief punch-in zooms that hold then settle back — keeps
+ * most of the scene at scale 1.0 so the GIF palette compression stays cheap.
  */
-const KenBurnsLayer: React.FC<
-  React.PropsWithChildren<{ from: number; to: number; durationInFrames: number; origin?: string }>
-> = ({ from, to, durationInFrames, origin = "center", children }) => {
+const ZoomLayer: React.FC<
+  React.PropsWithChildren<{
+    keyframes: ReadonlyArray<readonly [number, number]>;
+    origin?: string;
+  }>
+> = ({ keyframes, origin = "center", children }) => {
   const frame = useCurrentFrame();
-  const scale = interpolate(frame, [0, durationInFrames], [from, to], {
+  const frames = keyframes.map(([f]) => f);
+  const scales = keyframes.map(([, s]) => s);
+  const scale = interpolate(frame, frames, scales, {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -77,21 +83,29 @@ export const ScanCamTour: React.FC = () => {
         />
       </Sequence>
 
-      {/* Scene 1 footage with subtle zoom + callouts */}
+      {/* Scene 1 footage — punch-in zoom at the top, then static rest of scene */}
       <Sequence from={SCENE1_START} durationInFrames={SCAN_CLIP_FRAMES}>
-        <KenBurnsLayer from={1.0} to={1.0} durationInFrames={SCAN_CLIP_FRAMES}>
+        <ZoomLayer
+          keyframes={[
+            [0, 1.0],
+            [sec(0.4), 1.07],
+            [sec(4.6), 1.07],
+            [sec(5.6), 1.0],
+            [SCAN_CLIP_FRAMES, 1.0],
+          ]}
+        >
           <OffthreadVideo
             src={RUSH_SRC}
             startFrom={sec(RUSH.scanStart)}
             endAt={sec(RUSH.scanEnd)}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
           />
-        </KenBurnsLayer>
+        </ZoomLayer>
         <Callout
           enterAt={sec(0.4)}
           exitAt={sec(5)}
           eyebrow="On screen"
-          body="Two QR codes open in Figma and a screenshot."
+          body="Two QR codes on desktop."
         />
         <Callout
           enterAt={sec(15)}
@@ -117,16 +131,21 @@ export const ScanCamTour: React.FC = () => {
         />
       </Sequence>
 
-      {/* Scene 2 footage with subtle zoom + callouts */}
+      {/* Scene 2 footage — static (matches scan: zoom only at the top of the scene if added later) */}
       <Sequence from={SCENE2_START} durationInFrames={CAM_CLIP_FRAMES}>
-        <KenBurnsLayer from={1.0} to={1.0} durationInFrames={CAM_CLIP_FRAMES}>
+        <ZoomLayer
+          keyframes={[
+            [0, 1.0],
+            [CAM_CLIP_FRAMES, 1.0],
+          ]}
+        >
           <OffthreadVideo
             src={RUSH_SRC}
             startFrom={sec(RUSH.camStart)}
             endAt={sec(RUSH.camEnd)}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
           />
-        </KenBurnsLayer>
+        </ZoomLayer>
         <Callout
           enterAt={sec(0.5)}
           exitAt={sec(7)}

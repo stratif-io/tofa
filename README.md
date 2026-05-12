@@ -38,9 +38,7 @@
   <summary>📷 <strong>Scan from screen or webcam</strong> — <code>tofa scan</code> grabs every QR on every display, <code>tofa cam</code> opens your laptop webcam (~37 s)</summary>
   <br>
   <div align="center">
-    <video src="docs/demo-scan-cam.mp4" autoplay loop muted playsinline width="780">
-      <img src="docs/demo-scan-cam.gif" alt="tofa scan and tofa cam demo" width="780" />
-    </video>
+    <img src="docs/demo-scan-cam.gif" alt="tofa scan and tofa cam demo" width="780" />
   </div>
 </details>
 

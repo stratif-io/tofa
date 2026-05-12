@@ -1,91 +1,292 @@
-import { AbsoluteFill, Easing, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
+import React from "react";
+import {
+  AbsoluteFill,
+  Easing,
+  interpolate,
+  OffthreadVideo,
+  Sequence,
+  staticFile,
+  useCurrentFrame,
+} from "remotion";
 import { BrandCard } from "../components/BrandCard";
 import { Callout } from "../components/Callout";
 import { TitleCard } from "../components/TitleCard";
 
+// =============================================================================
+// EDIT SCRIPT — change directorial values here. Everything downstream derives
+// from this object. All time values are in **scene-rush seconds**: the tempo
+// of the source rush as if no speedups or cuts existed. The renderer maps
+// them to composition frames automatically, accounting for cuts, speedups,
+// and tail trims.
+// =============================================================================
+
 const FPS = 30;
-// Playback multiplier applied to the whole tour. The rush plays at `SPEED`x
-// via OffthreadVideo.playbackRate, and every other duration is divided by
-// the same factor here so cards/callouts stay in sync.
-const SPEED = 2;
-
-// Composition-time frames for a duration expressed in original-tempo seconds.
-// Use for: Sequence durations, callout enter/exit, ZoomLayer keyframes.
-const sec = (s: number) => Math.round((s * FPS) / SPEED);
-
-// Position inside the source rush, expressed in composition frames. Use only
-// for OffthreadVideo `startFrom` / `endAt` (paired with playbackRate=SPEED).
-const src = (s: number) => Math.round(s * FPS);
-
-// Trim points on the source rush. The user types `tofa cam` around 0:32,
-// which is the natural seam between the two scenes.
-const RUSH = {
-  scanStart: 1.0,
-  scanEnd: 32.0,
-  camStart: 32.0,
-  camEnd: 63.0,
-} as const;
-
-// Scan-scene content cuts. Times are scene-relative rush seconds, matching
-// the keyframe scale. Mid-scene cut: skip the passphrase prompt typing.
-// Tail trim: drop the last few seconds (extra `tofa list` admin) so the
-// scene wraps right after the import result has been read.
-const SCAN_CUT_START_SEC = 16.20;
-const SCAN_CUT_END_SEC = 19.10;
-const SCAN_CUT_LEN_SEC = SCAN_CUT_END_SEC - SCAN_CUT_START_SEC;
-const SCAN_TAIL_TRIM_SEC = 4.70;
-const SCAN_TOTAL_SEC =
-  (RUSH.scanEnd - RUSH.scanStart) - SCAN_CUT_LEN_SEC - SCAN_TAIL_TRIM_SEC;
-
-// Cam scene speed-up: time-lapse the webcam-scan moment. Window picked to
-// match the un-sped tour's frames 700 → 790 (scene-rush 12.27s → 18.27s).
-// `CAM_FAST_X` is the requested multiplier on top of `SPEED`; the actual
-// playback rate is clamped to MAX_PLAYBACK_RATE (Chromium's HTMLMediaElement
-// hard limit), so the segment length follows whatever rate we can really set.
-const MAX_PLAYBACK_RATE = 16;
-const CAM_FAST_START_SEC = 12.2667;
-const CAM_FAST_END_SEC = 18.2667;
-const CAM_FAST_X = 10;
-const CAM_FAST_RATE = Math.min(SPEED * CAM_FAST_X, MAX_PLAYBACK_RATE);
-const CAM_FAST_SRC_LEN_SEC = CAM_FAST_END_SEC - CAM_FAST_START_SEC;
-const CAM_PRE_FRAMES = sec(CAM_FAST_START_SEC);
-const CAM_FAST_FRAMES = Math.max(
-  1,
-  Math.round((CAM_FAST_SRC_LEN_SEC * FPS) / CAM_FAST_RATE),
-);
-const CAM_POST_FRAMES = sec(
-  (RUSH.camEnd - RUSH.camStart) - CAM_FAST_END_SEC,
-);
-
-const INTRO_FRAMES = sec(4);
-const SCAN_INTRO_FRAMES = sec(4);
-const SCAN_CLIP_FRAMES = sec(SCAN_TOTAL_SEC);
-const MID_CARD_FRAMES = sec(3);
-const CAM_CLIP_FRAMES = CAM_PRE_FRAMES + CAM_FAST_FRAMES + CAM_POST_FRAMES;
-const OUTRO_FRAMES = sec(3.2);
-
-export const TOTAL_FRAMES =
-  INTRO_FRAMES +
-  SCAN_INTRO_FRAMES +
-  SCAN_CLIP_FRAMES +
-  MID_CARD_FRAMES +
-  CAM_CLIP_FRAMES +
-  OUTRO_FRAMES;
-
-const SCAN_INTRO_START = INTRO_FRAMES;
-const SCENE1_START = SCAN_INTRO_START + SCAN_INTRO_FRAMES;
-const MID_CARD_START = SCENE1_START + SCAN_CLIP_FRAMES;
-const SCENE2_START = MID_CARD_START + MID_CARD_FRAMES;
-const OUTRO_START = SCENE2_START + CAM_CLIP_FRAMES;
-
+const MAX_PLAYBACK_RATE = 16; // Chromium HTMLMediaElement hard cap.
 const RUSH_SRC = staticFile("scan-cam.mov");
 
-/**
- * Scale + pan wrapper. `keyframes` drives scale over time; `originKeyframes`
- * (optional) animates the transform-origin as `[frame, [x%, y%]]`, allowing
- * pans within a held zoom. If only a static `origin` is supplied the pan is
- * skipped. Origin interpolation uses ease-in-out so pans feel cinematic.
- */
+type CalloutPosition = "bottom-left" | "bottom-right" | "top-right";
+
+type CalloutSpec = {
+  /** Scene-rush second the callout enters. */
+  enter: number;
+  /** Scene-rush second it starts fading out. Clamped to scene end if needed. */
+  exit: number;
+  eyebrow?: string;
+  body: string;
+  position?: CalloutPosition;
+};
+
+type SpeedChange = {
+  /** Scene-rush range to retime. */
+  at: readonly [number, number];
+  /** Multiplier on top of base speed. >1 fast-forward, <1 slow-mo. Capped. */
+  factor: number;
+};
+
+type SceneSpec = {
+  title: {
+    eyebrow: string;
+    command: string;
+    subtitle: string;
+    durationSec: number;
+  };
+  /** Absolute source-rush window (seconds in scan-cam.mov). */
+  source: readonly [number, number];
+  /** Scene-rush ranges to drop. */
+  cuts?: ReadonlyArray<readonly [number, number]>;
+  /** Scene-rush ranges to retime. */
+  speedChanges?: ReadonlyArray<SpeedChange>;
+  /** Drop this many seconds off the tail of the scene's source. */
+  tailTrimSec?: number;
+  /** Static transform-origin if no pan keyframes. */
+  origin?: string;
+  /** Scale keyframes: [sceneRushSec, scale]. */
+  zoom?: ReadonlyArray<readonly [number, number]>;
+  /** Origin keyframes (eased): [sceneRushSec, [x%, y%]]. */
+  pan?: ReadonlyArray<readonly [number, readonly [number, number]]>;
+  callouts?: ReadonlyArray<CalloutSpec>;
+};
+
+type TourSpec = {
+  /** Base playback rate applied to every video segment. */
+  speed: number;
+  intro: { title: string; subtitle: string; durationSec: number };
+  scenes: readonly SceneSpec[];
+  outro: {
+    title: string;
+    subtitle: string;
+    cta?: string;
+    footer?: string;
+    durationSec: number;
+  };
+};
+
+const SPEC: TourSpec = {
+  speed: 2,
+  intro: {
+    title: "TOFA",
+    subtitle: "Two ways to capture a QR with CLI",
+    durationSec: 4,
+  },
+  scenes: [
+    {
+      title: {
+        eyebrow: "Step 1 of 2",
+        command: "tofa scan",
+        subtitle: "Capture every QR on every screen at once",
+        durationSec: 4,
+      },
+      source: [1.0, 32.0],
+      cuts: [[16.2, 19.1]], // skip the passphrase-prompt typing
+      tailTrimSec: 4.7, // drop the trailing `tofa list` admin
+      origin: "95% 0%",
+      zoom: [
+        [0, 1],
+        [0.4, 1.8],
+        [7, 1.88],
+        [8, 1.0],
+        [11, 1.0],
+        [15, 1.88],
+      ],
+      callouts: [
+        { enter: 0.4, exit: 5, eyebrow: "On screen", body: "Two QR codes on desktop." },
+        {
+          enter: 15,
+          exit: 22,
+          eyebrow: "One command",
+          body: "`tofa scan` captures every display and decodes every QR.",
+        },
+        {
+          enter: 22,
+          exit: 30.5,
+          eyebrow: "Result",
+          body: "Imported 2 accounts from 1 screen.",
+          position: "bottom-right",
+        },
+      ],
+    },
+    {
+      title: {
+        eyebrow: "Step 2 of 2",
+        command: "tofa cam",
+        subtitle: "Scan with your laptop webcam in the browser",
+        durationSec: 3,
+      },
+      source: [32.0, 63.0],
+      speedChanges: [{ at: [12.2667, 18.2667], factor: 10 }],
+      zoom: [[0, 1.88]],
+      pan: [
+        [0, [95, 0]],
+        [5, [95, 0]],
+        [6.5, [20, 0]],
+      ],
+      callouts: [
+        {
+          enter: 0.5,
+          exit: 7,
+          eyebrow: "Browser",
+          body: "`tofa cam` opens a local URL that streams your webcam.",
+        },
+        {
+          enter: 15,
+          exit: 22,
+          eyebrow: "Detected",
+          body: "The third QR is decoded the moment it's centred.",
+        },
+        {
+          enter: 22,
+          exit: 30.5,
+          eyebrow: "Vault",
+          body: "Three accounts now ticking down in your terminal.",
+          position: "bottom-right",
+        },
+      ],
+    },
+  ],
+  outro: {
+    title: "Get TOFA",
+    subtitle: "Open-source TOTP for your terminal, TUI, and menu bar",
+    cta: "brew install --cask tofa",
+    footer: "docs.tofa.stratif.io",
+    durationSec: 3.2,
+  },
+};
+
+// =============================================================================
+// Derivation. Everything below is generated from SPEC — don't tweak by hand.
+// =============================================================================
+
+type PlaybackPiece = {
+  /** Absolute source-rush seconds. */
+  sourceStart: number;
+  sourceEnd: number;
+  /** playbackRate for OffthreadVideo. */
+  rate: number;
+  /** Composition frames this piece occupies. */
+  compFrames: number;
+};
+
+/** Decompose a scene into back-to-back playback pieces. */
+function piecesFor(scene: SceneSpec, speed: number): PlaybackPiece[] {
+  const sceneStart = scene.source[0];
+  const sceneEnd = scene.source[1] - (scene.tailTrimSec ?? 0);
+  const toAbs = (s: number) => sceneStart + s;
+
+  type Part = { src: readonly [number, number]; rate: number };
+  let parts: Part[] = [{ src: [sceneStart, sceneEnd], rate: speed }];
+
+  // Remove cut ranges.
+  for (const [c0, c1] of (scene.cuts ?? []).map(
+    ([a, b]) => [toAbs(a), toAbs(b)] as const,
+  )) {
+    parts = parts.flatMap((p) => {
+      const [a, b] = p.src;
+      if (c1 <= a || c0 >= b) return [p];
+      const out: Part[] = [];
+      if (c0 > a) out.push({ src: [a, c0], rate: p.rate });
+      if (c1 < b) out.push({ src: [c1, b], rate: p.rate });
+      return out;
+    });
+  }
+
+  // Apply speed changes (clamping to the browser cap).
+  for (const sc of scene.speedChanges ?? []) {
+    const [s0, s1] = [toAbs(sc.at[0]), toAbs(sc.at[1])];
+    const target = speed * sc.factor;
+    const rate = Math.min(Math.max(target, 0.0625), MAX_PLAYBACK_RATE);
+    parts = parts.flatMap((p) => {
+      const [a, b] = p.src;
+      if (s1 <= a || s0 >= b) return [p];
+      const lo = Math.max(a, s0);
+      const hi = Math.min(b, s1);
+      const out: Part[] = [];
+      if (lo > a) out.push({ src: [a, lo], rate: p.rate });
+      out.push({ src: [lo, hi], rate });
+      if (hi < b) out.push({ src: [hi, b], rate: p.rate });
+      return out;
+    });
+  }
+
+  return parts.map((p) => ({
+    sourceStart: p.src[0],
+    sourceEnd: p.src[1],
+    rate: p.rate,
+    compFrames: Math.max(1, Math.round(((p.src[1] - p.src[0]) * FPS) / p.rate)),
+  }));
+}
+
+/** Map a scene-rush moment to a composition frame within the scene. */
+function sceneSecToFrame(
+  scene: SceneSpec,
+  speed: number,
+  sceneRushSec: number,
+): number {
+  const target = scene.source[0] + sceneRushSec;
+  const ps = piecesFor(scene, speed);
+  let compFrame = 0;
+  for (const p of ps) {
+    if (target <= p.sourceStart) return compFrame;
+    if (target < p.sourceEnd) {
+      return compFrame + Math.round(((target - p.sourceStart) * FPS) / p.rate);
+    }
+    compFrame += p.compFrames;
+  }
+  return compFrame;
+}
+
+const sceneTotalFrames = (scene: SceneSpec, speed: number) =>
+  piecesFor(scene, speed).reduce((a, p) => a + p.compFrames, 0);
+
+const secAtSpeed = (s: number, speed: number) =>
+  Math.round((s * FPS) / speed);
+
+const INTRO_FRAMES = secAtSpeed(SPEC.intro.durationSec, SPEC.speed);
+const OUTRO_FRAMES = secAtSpeed(SPEC.outro.durationSec, SPEC.speed);
+const SCENES = SPEC.scenes.map((spec) => ({
+  spec,
+  pieces: piecesFor(spec, SPEC.speed),
+  totalFrames: sceneTotalFrames(spec, SPEC.speed),
+  titleFrames: secAtSpeed(spec.title.durationSec, SPEC.speed),
+}));
+
+/** Frame offsets for each part of the tour. */
+const OFFSETS = (() => {
+  const sceneOffsets: Array<{ title: number; clip: number }> = [];
+  let cursor = INTRO_FRAMES;
+  for (const s of SCENES) {
+    sceneOffsets.push({ title: cursor, clip: cursor + s.titleFrames });
+    cursor += s.titleFrames + s.totalFrames;
+  }
+  return { intro: 0, scenes: sceneOffsets, outro: cursor };
+})();
+
+export const TOTAL_FRAMES = OFFSETS.outro + OUTRO_FRAMES;
+
+// =============================================================================
+// ZoomLayer: scales + pans the wrapped content using keyframes in comp-frame
+// space. Pan keyframes use ease-in-out so glides feel cinematic.
+// =============================================================================
+
 const ZoomLayer: React.FC<
   React.PropsWithChildren<{
     keyframes: ReadonlyArray<readonly [number, number]>;
@@ -121,183 +322,129 @@ const ZoomLayer: React.FC<
   }
 
   return (
-    <AbsoluteFill style={{ transform: `scale(${scale})`, transformOrigin: resolvedOrigin }}>
+    <AbsoluteFill
+      style={{ transform: `scale(${scale})`, transformOrigin: resolvedOrigin }}
+    >
       {children}
     </AbsoluteFill>
   );
 };
 
+// =============================================================================
+// Scene renderer. Reads SceneSpec and emits the OffthreadVideo segments,
+// ZoomLayer keyframes, and callouts.
+// =============================================================================
+
+/** Build a keyframe list that's guaranteed to satisfy `interpolate`. */
+function withEndpoints<T>(
+  kfs: ReadonlyArray<readonly [number, T]>,
+  fallback: T,
+  total: number,
+): Array<readonly [number, T]> {
+  if (kfs.length === 0) return [[0, fallback], [total, fallback]];
+  const out: Array<readonly [number, T]> = [...kfs];
+  if (out[0][0] > 0) out.unshift([0, out[0][1]]);
+  if (out[out.length - 1][0] < total) out.push([total, out[out.length - 1][1]]);
+  return out;
+}
+
+const SceneRenderer: React.FC<{ spec: SceneSpec; speed: number }> = ({
+  spec,
+  speed,
+}) => {
+  const ps = piecesFor(spec, speed);
+  const total = ps.reduce((a, p) => a + p.compFrames, 0);
+  const toFrame = (s: number) => sceneSecToFrame(spec, speed, s);
+
+  const zoomKfs = withEndpoints(
+    (spec.zoom ?? []).map(([s, scale]) => [toFrame(s), scale] as const),
+    1,
+    total,
+  );
+  const panKfs = spec.pan
+    ? withEndpoints(
+        spec.pan.map(([s, o]) => [toFrame(s), o] as const),
+        [50, 50] as readonly [number, number],
+        total,
+      )
+    : undefined;
+
+  let offset = 0;
+  return (
+    <>
+      <ZoomLayer
+        keyframes={zoomKfs}
+        origin={spec.origin}
+        originKeyframes={panKfs}
+      >
+        {ps.map((p, i) => {
+          const seq = (
+            <Sequence key={i} from={offset} durationInFrames={p.compFrames}>
+              <OffthreadVideo
+                src={RUSH_SRC}
+                startFrom={Math.round(p.sourceStart * FPS)}
+                endAt={Math.round(p.sourceEnd * FPS)}
+                playbackRate={p.rate}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </Sequence>
+          );
+          offset += p.compFrames;
+          return seq;
+        })}
+      </ZoomLayer>
+      {(spec.callouts ?? []).map((c, i) => (
+        <Callout
+          key={i}
+          enterAt={Math.max(0, toFrame(c.enter))}
+          exitAt={Math.min(toFrame(c.exit), total - 10)}
+          eyebrow={c.eyebrow}
+          body={c.body}
+          position={c.position}
+        />
+      ))}
+    </>
+  );
+};
+
+// =============================================================================
+// Top-level composition.
+// =============================================================================
+
 export const ScanCamTour: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: "#0e0c14" }}>
-      {/* Intro */}
-      <Sequence from={0} durationInFrames={INTRO_FRAMES}>
-        <BrandCard
-          title="TOFA"
-          subtitle="Two ways to capture a QR with CLI"
-        />
+      <Sequence from={OFFSETS.intro} durationInFrames={INTRO_FRAMES}>
+        <BrandCard title={SPEC.intro.title} subtitle={SPEC.intro.subtitle} />
       </Sequence>
 
-      {/* Scene 1 title card */}
-      <Sequence from={SCAN_INTRO_START} durationInFrames={SCAN_INTRO_FRAMES}>
-        <TitleCard
-          eyebrow="Step 1 of 2"
-          command="tofa scan"
-          subtitle="Capture every QR on every screen at once"
-        />
-      </Sequence>
-
-      {/* Scene 1 footage — terminal-focused zoom: in at start, out at scene-10s,
-          back in at scene-12s, settle at scene-end so the mid card cuts cleanly. */}
-      <Sequence from={SCENE1_START} durationInFrames={SCAN_CLIP_FRAMES}>
-        <ZoomLayer
-          origin="95% 0%"
-          keyframes={[
-            [0, 1],
-            [sec(0.4), 1.8],
-            [sec(7), 1.88 ],
-            [sec(8), 1.0 ],
-            [sec(11 ), 1.0  ],
-            [sec(15.), 1.88 ],
-            [SCAN_CLIP_FRAMES,  1.88],
-          ]}
-        >
-          {/* Part A: rush 1.0 → 17.20 (= scene-rush 0 → 16.20). */}
-          <Sequence from={0} durationInFrames={sec(SCAN_CUT_START_SEC)}>
-            <OffthreadVideo
-              src={RUSH_SRC}
-              startFrom={src(RUSH.scanStart)}
-              endAt={src(RUSH.scanStart + SCAN_CUT_START_SEC)}
-              playbackRate={SPEED}
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
-          </Sequence>
-          {/* Part B: rush 20.10 → (32.0 - tail trim) = scene-rush 16.20 → end. */}
+      {SCENES.map((s, i) => (
+        <React.Fragment key={i}>
           <Sequence
-            from={sec(SCAN_CUT_START_SEC)}
-            durationInFrames={SCAN_CLIP_FRAMES - sec(SCAN_CUT_START_SEC)}
+            from={OFFSETS.scenes[i].title}
+            durationInFrames={s.titleFrames}
           >
-            <OffthreadVideo
-              src={RUSH_SRC}
-              startFrom={src(RUSH.scanStart + SCAN_CUT_END_SEC)}
-              endAt={src(RUSH.scanEnd - SCAN_TAIL_TRIM_SEC)}
-              playbackRate={SPEED}
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            <TitleCard
+              eyebrow={s.spec.title.eyebrow}
+              command={s.spec.title.command}
+              subtitle={s.spec.title.subtitle}
             />
           </Sequence>
-        </ZoomLayer>
-        <Callout
-          enterAt={sec(0.4)}
-          exitAt={sec(5)}
-          eyebrow="On screen"
-          body="Two QR codes on desktop."
-        />
-        <Callout
-          enterAt={sec(15)}
-          exitAt={sec(22 - SCAN_CUT_LEN_SEC)}
-          eyebrow="One command"
-          body="`tofa scan` captures every display and decodes every QR."
-        />
-        <Callout
-          enterAt={sec(22 - SCAN_CUT_LEN_SEC)}
-          exitAt={SCAN_CLIP_FRAMES - 10}
-          eyebrow="Result"
-          body="Imported 2 accounts from 1 screen."
-          position="bottom-right"
-        />
-      </Sequence>
-
-      {/* Scene 2 title card */}
-      <Sequence from={MID_CARD_START} durationInFrames={MID_CARD_FRAMES}>
-        <TitleCard
-          eyebrow="Step 2 of 2"
-          command="tofa cam"
-          subtitle="Scan with your laptop webcam in the browser"
-        />
-      </Sequence>
-
-      {/* Scene 2 footage — static (matches scan: zoom only at the top of the scene if added later) */}
-      <Sequence from={SCENE2_START} durationInFrames={CAM_CLIP_FRAMES}>
-        <ZoomLayer
-          keyframes={[
-            [0, 1.88],
-            [CAM_CLIP_FRAMES, 1.88],
-          ]}
-          originKeyframes={[
-            // Hold on the terminal (top-right) while `tofa cam` is typed and
-            // the browser is opening.
-            [0, [95, 0]],
-            [sec(2), [95, 0]],
-            // Pan over 1.5s to the left, where the browser permission popup
-            // and webcam preview appear. Eased for a smooth glide.
-            [sec(3), [0, 0]],
-            [sec(8), [0, 0]],
-            [sec(10 ), [95, 0]],
-            [CAM_CLIP_FRAMES, [95, 0]],
-          ]}
-        >
-          {/* Pre-fast: rush 32.00 → 44.27. */}
-          <Sequence from={0} durationInFrames={CAM_PRE_FRAMES}>
-            <OffthreadVideo
-              src={RUSH_SRC}
-              startFrom={src(RUSH.camStart)}
-              endAt={src(RUSH.camStart + CAM_FAST_START_SEC)}
-              playbackRate={SPEED}
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
-          </Sequence>
-          {/* Fast: rush 44.27 → 50.27 played at CAM_FAST_RATE (capped at 16x). */}
-          <Sequence from={CAM_PRE_FRAMES} durationInFrames={CAM_FAST_FRAMES}>
-            <OffthreadVideo
-              src={RUSH_SRC}
-              startFrom={src(RUSH.camStart + CAM_FAST_START_SEC)}
-              endAt={src(RUSH.camStart + CAM_FAST_END_SEC)}
-              playbackRate={CAM_FAST_RATE}
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
-          </Sequence>
-          {/* Post-fast: rush 50.27 → 63.00. */}
           <Sequence
-            from={CAM_PRE_FRAMES + CAM_FAST_FRAMES}
-            durationInFrames={CAM_POST_FRAMES}
+            from={OFFSETS.scenes[i].clip}
+            durationInFrames={s.totalFrames}
           >
-            <OffthreadVideo
-              src={RUSH_SRC}
-              startFrom={src(RUSH.camStart + CAM_FAST_END_SEC)}
-              endAt={src(RUSH.camEnd)}
-              playbackRate={SPEED}
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
+            <SceneRenderer spec={s.spec} speed={SPEC.speed} />
           </Sequence>
-        </ZoomLayer>
-        <Callout
-          enterAt={sec(0.5)}
-          exitAt={sec(7)}
-          eyebrow="Browser"
-          body="`tofa cam` opens a local URL that streams your webcam."
-        />
-        <Callout
-          enterAt={sec(15)}
-          exitAt={sec(22)}
-          eyebrow="Detected"
-          body="The third QR is decoded the moment it's centred."
-        />
-        <Callout
-          enterAt={sec(22)}
-          exitAt={Math.min(sec(30.5), CAM_CLIP_FRAMES - 10)}
-          eyebrow="Vault"
-          body="Three accounts now ticking down in your terminal."
-          position="bottom-right"
-        />
-      </Sequence>
+        </React.Fragment>
+      ))}
 
-      {/* Outro */}
-      <Sequence from={OUTRO_START} durationInFrames={OUTRO_FRAMES}>
+      <Sequence from={OFFSETS.outro} durationInFrames={OUTRO_FRAMES}>
         <BrandCard
-          title="Get TOFA"
-          subtitle="Open-source TOTP for your terminal, TUI, and menu bar"
-          cta="brew install --cask tofa"
-          footer="docs.tofa.stratif.io"
+          title={SPEC.outro.title}
+          subtitle={SPEC.outro.subtitle}
+          cta={SPEC.outro.cta}
+          footer={SPEC.outro.footer}
         />
       </Sequence>
     </AbsoluteFill>

@@ -88,7 +88,7 @@ const SPEC: TourSpec = {
         durationSec: 3,
       },
       src: "scan.mov",
-      durationSec: 23.4,
+      durationSec: 25.0,
       origin: "95% 0%",
       zoom: [
         [0, 1],
@@ -122,7 +122,7 @@ const SPEC: TourSpec = {
         durationSec: 3,
       },
       src: "cam.mov",
-      durationSec: 18.0,
+      durationSec: 18.53,
       zoom: [[0, 1.88]],
       pan: [
         [0, [95, 0]],

@@ -7,7 +7,7 @@
     "studio": "remotion studio src/index.ts",
     "cut-rush": "node scripts/cut-rush.mjs",
     "build:mp4": "remotion render src/index.ts ScanCamTour ../docs/demo-scan-cam.mp4 --codec=h264 --crf=22",
-    "build:gif": "remotion render src/index.ts ScanCamTour ../docs/demo-scan-cam.gif --image-format=jpeg --pixel-format=yuv420p",
+    "build:gif": "ffmpeg -y -i ../docs/demo-scan-cam.mp4 -vf \"fps=15,scale=800:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5\" ../docs/demo-scan-cam.gif",
     "build": "npm run cut-rush && npm run build:mp4 && npm run build:gif"
   },
   "dependencies": {

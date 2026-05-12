@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Pre-cut the raw rush into per-scene clips with cuts and speed changes
-// baked in via ffmpeg. Tour.tsx then consumes the resulting clips and only
-// concerns itself with composition timing (titles, callouts, zoom, pan).
+// Pre-cut raw rushes into per-scene clips with cuts, speed changes, and
+// optional cropping baked in via ffmpeg. The compositions in
+// src/compositions/*.tsx consume the resulting clips and only concern
+// themselves with composition timing (titles, callouts, zoom, pan).
 //
 // Re-run with `npm run cut-rush` after editing the EDIT spec below.
 
@@ -12,30 +13,44 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = resolve(__dirname, "..", "public");
-const SOURCE = "scan-cam.mov";
 
 // =============================================================================
-// EDIT — editorial decisions live here. Each scene becomes one output clip.
-// Times are in **source seconds** (positions in scan-cam.mov). The script
+// EDIT — editorial decisions live here. Each entry becomes one output clip.
+//
+// Times are in **source seconds** (positions in the source rush). The script
 // concatenates segments at the requested speeds; speed > 1 fast-forwards,
 // speed < 1 slow-mo's, speed defaults to 1.
+//
+// Optional `crop` { x, y, w, h } applies once to the source before segmenting.
 // =============================================================================
 
 const EDIT = {
   scan: {
+    source: "scan-cam.mov",
     output: "scan.mov",
     segments: [
-      { in: 1.0, out: 9.28 }, // pre-passphrase typing
-      { in: 10.58, out: 27.3}, // pre-passphrase typing
+      { in: 1.0, out: 9.28 },
+      { in: 10.58, out: 27.3 },
     ],
   },
   cam: {
+    source: "scan-cam.mov",
     output: "cam.mov",
     segments: [
       { in: 32.0, out: 44.267 },
       { in: 50.267, out: 54.28 },
       { in: 58.73, out: 61.0 },
-
+    ],
+  },
+  macApp: {
+    source: "mac-app-raw.mov",
+    output: "mac-app.mov",
+    // Source is a wide screen recording (3448×1284). Crop tightly around
+    // the popover + menu bar; ends just past the Create vault button so the
+    // yellow sticky note that lives at the bottom of the desktop stays out.
+    crop: { x: 2440, y: 0, w: 720, h: 1040 },
+    segments: [
+      { in: 2.0, out: 60.0 },
     ],
   },
 };
@@ -54,15 +69,18 @@ const ENCODE_ARGS = [
   "-an",
 ];
 
-// The raw rush is variable-framerate (~11 fps avg). `trim` works on input PTS
-// and produces erratic output durations on VFR sources, so we normalise to a
+// Source rushes may be variable-framerate. `trim` works on input PTS and
+// produces erratic output durations on VFR sources, so we normalise to a
 // constant 30 fps first and split into N branches before trimming.
 const OUTPUT_FPS = 30;
 
-function buildFilterGraph(segments) {
+function buildFilterGraph(segments, crop) {
   const splitLabels = segments.map((_, i) => `[v${i}]`).join("");
+  const prefix = crop
+    ? `[0:v]crop=${crop.w}:${crop.h}:${crop.x}:${crop.y},fps=${OUTPUT_FPS}`
+    : `[0:v]fps=${OUTPUT_FPS}`;
   const lines = [
-    `[0:v]fps=${OUTPUT_FPS},split=${segments.length}${splitLabels}`,
+    `${prefix},split=${segments.length}${splitLabels}`,
   ];
   const concatLabels = [];
   segments.forEach((seg, i) => {
@@ -82,14 +100,14 @@ function clipDuration(segments) {
 }
 
 function cut(name, spec) {
-  const inputPath = resolve(PUBLIC, SOURCE);
+  const inputPath = resolve(PUBLIC, spec.source);
   const outputPath = resolve(PUBLIC, spec.output);
   if (!existsSync(inputPath)) {
     throw new Error(`Source rush not found: ${inputPath}`);
   }
   mkdirSync(dirname(outputPath), { recursive: true });
 
-  const filter = buildFilterGraph(spec.segments);
+  const filter = buildFilterGraph(spec.segments, spec.crop);
   const args = [
     "-y",
     "-i", inputPath,
@@ -100,6 +118,10 @@ function cut(name, spec) {
   ];
 
   console.log(`\nCutting ${name} → ${spec.output}`);
+  console.log(`  source:   ${spec.source}`);
+  if (spec.crop) {
+    console.log(`  crop:     ${spec.crop.w}×${spec.crop.h} at (${spec.crop.x},${spec.crop.y})`);
+  }
   console.log(`  segments: ${spec.segments.length}, expected duration: ${clipDuration(spec.segments).toFixed(2)}s`);
   execFileSync("ffmpeg", args, { stdio: ["ignore", "ignore", "inherit"] });
 
@@ -111,8 +133,18 @@ function cut(name, spec) {
   console.log(`  actual duration:    ${parseFloat(probe).toFixed(2)}s`);
 }
 
-for (const [name, spec] of Object.entries(EDIT)) {
+const only = process.argv[2];
+const entries = only
+  ? Object.entries(EDIT).filter(([name]) => name === only)
+  : Object.entries(EDIT);
+
+if (entries.length === 0) {
+  console.error(`No EDIT entry matches "${only}". Available: ${Object.keys(EDIT).join(", ")}`);
+  process.exit(1);
+}
+
+for (const [name, spec] of entries) {
   cut(name, spec);
 }
 
-console.log("\nDone. Re-run `npm run cut-rush` after editing the EDIT spec.");
+console.log("\nDone. Re-run `npm run cut-rush [name]` after editing the EDIT spec.");

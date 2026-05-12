@@ -4,7 +4,18 @@ import { Callout } from "../components/Callout";
 import { TitleCard } from "../components/TitleCard";
 
 const FPS = 30;
-const sec = (s: number) => Math.round(s * FPS);
+// Playback multiplier applied to the whole tour. The rush plays at `SPEED`x
+// via OffthreadVideo.playbackRate, and every other duration is divided by
+// the same factor here so cards/callouts stay in sync.
+const SPEED = 2;
+
+// Composition-time frames for a duration expressed in original-tempo seconds.
+// Use for: Sequence durations, callout enter/exit, ZoomLayer keyframes.
+const sec = (s: number) => Math.round((s * FPS) / SPEED);
+
+// Position inside the source rush, expressed in composition frames. Use only
+// for OffthreadVideo `startFrom` / `endAt` (paired with playbackRate=SPEED).
+const src = (s: number) => Math.round(s * FPS);
 
 // Trim points on the source rush. The user types `tofa cam` around 0:32,
 // which is the natural seam between the two scenes.
@@ -87,23 +98,24 @@ export const ScanCamTour: React.FC = () => {
           back in at scene-12s, settle at scene-end so the mid card cuts cleanly. */}
       <Sequence from={SCENE1_START} durationInFrames={SCAN_CLIP_FRAMES}>
         <ZoomLayer
-          origin="75% 18%"
+          origin="95% 0%"
           keyframes={[
-            [0, 1.0],
-            [sec(0.4), 1.15],
-            [sec(10), 1.15],
-            [sec(10.5), 1.0],
+            [0, 1],
+            [sec(0.4), 1.8],
+            [sec(10), 1.88],
+            [sec(10.5), 1.88 ],
             [sec(12), 1.0],
-            [sec(12.5), 1.15],
-            [sec(29.5), 1.15],
+            [sec(12.5), 1.0],
+            [sec(29.5), 1.0],
             [sec(30.5), 1.0],
             [SCAN_CLIP_FRAMES, 1.0],
           ]}
         >
           <OffthreadVideo
             src={RUSH_SRC}
-            startFrom={sec(RUSH.scanStart)}
-            endAt={sec(RUSH.scanEnd)}
+            startFrom={src(RUSH.scanStart)}
+            endAt={src(RUSH.scanEnd)}
+            playbackRate={SPEED}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
           />
         </ZoomLayer>
@@ -147,8 +159,9 @@ export const ScanCamTour: React.FC = () => {
         >
           <OffthreadVideo
             src={RUSH_SRC}
-            startFrom={sec(RUSH.camStart)}
-            endAt={sec(RUSH.camEnd)}
+            startFrom={src(RUSH.camStart)}
+            endAt={src(RUSH.camEnd)}
+            playbackRate={SPEED}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
           />
         </ZoomLayer>

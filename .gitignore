@@ -13,6 +13,7 @@ tofa-app/src-tauri/gen/
 !.release-please-manifest.json
 !tofa-app/src-tauri/tauri.conf.json
 !tofa-app/src-tauri/capabilities/*.json
+!demo-video/*.json
 !tofa-core/tests/fixtures/aegis/*.json
 !tofa-core/tests/fixtures/andotp/*.json
 !tofa-core/tests/fixtures/twofas/*.2fas

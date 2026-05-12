@@ -97,6 +97,7 @@ brew install --cask tofa
 - **Export to QR.** Re-encode any account or your whole vault as scannable QR codes — a single migration QR, one PNG per account (`tofa qr --all --multi`), or the app's **Save All** zip with a printable `print.html` one-pager.
 - **Encrypted vault.** AES-256-GCM with an Argon2id-derived key. Auto-locks after 10 min idle, or on demand.
 - **Scriptable.** `tofa code github --copy` puts the code on your clipboard on every platform. `TOFA_PASSPHRASE` env var unlocks the vault for CI/automation.
+- **Auto-updating macOS app.** Checks for a new release on launch and every 24 h, then installs signed updates in place. No reinstall, no second trip through Gatekeeper.
 - **Open source, MIT.** No account, no telemetry, no cloud. Audit the crypto in `tofa-core`.
 
 ## 📥 Migrate from your phone

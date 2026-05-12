@@ -1,12 +1,25 @@
+import React from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+
+export type CTACommand = {
+  /** Shell command, rendered in monospace. */
+  command: string;
+  /** Short label rendered to the right of the command (e.g. "CLI + TUI"). */
+  note?: string;
+};
+
+export type CTAGroup = {
+  commands: CTACommand[];
+};
 
 interface BrandCardProps {
   /** Wordmark, large. */
   title: string;
   /** Subtitle, one short line. */
   subtitle: string;
-  /** Optional install / CTA strip (monospace). */
-  cta?: string;
+  /** One or more install/usage CTAs. Multiple groups render stacked with an
+   *  "OR" separator. Single string accepted for backwards compatibility. */
+  cta?: string | CTAGroup[];
   /** Optional small footer line. */
   footer?: string;
 }
@@ -48,6 +61,13 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
   const titleScale = interpolate(titleSpring, [0, 1], [0.92, 1]);
   const titleOpacity = interpolate(titleSpring, [0, 1], [0, 1]) * fadeOut;
 
+  // Normalise CTA into the structured form.
+  const ctaGroups: CTAGroup[] | undefined = !cta
+    ? undefined
+    : typeof cta === "string"
+      ? [{ commands: [{ command: cta }] }]
+      : cta;
+
   return (
     <AbsoluteFill
       style={{
@@ -85,23 +105,80 @@ export const BrandCard: React.FC<BrandCardProps> = ({ title, subtitle, cta, foot
         {subtitle}
       </div>
 
-      {cta && (
+      {ctaGroups && (
         <div
           style={{
-            marginTop: 48,
-            padding: "16px 28px",
-            border: "1px solid rgba(184, 158, 255, 0.4)",
-            borderRadius: 10,
-            background: "rgba(184, 158, 255, 0.08)",
-            color: "#f1eef8",
-            fontFamily:
-              "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
-            fontSize: 26,
-            letterSpacing: 0,
+            marginTop: 40,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 14,
             opacity: ctaFade * fadeOut,
           }}
         >
-          {cta}
+          {ctaGroups.map((group, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && (
+                <div
+                  style={{
+                    color: "#7d7a8a",
+                    fontFamily:
+                      "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+                    fontSize: 16,
+                    letterSpacing: 4,
+                    textTransform: "uppercase",
+                    fontWeight: 600,
+                  }}
+                >
+                  or
+                </div>
+              )}
+              <div
+                style={{
+                  padding: "16px 28px",
+                  border: "1px solid rgba(184, 158, 255, 0.4)",
+                  borderRadius: 10,
+                  background: "rgba(184, 158, 255, 0.08)",
+                  color: "#f1eef8",
+                  fontFamily:
+                    "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+                  fontSize: 24,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  textAlign: "left",
+                  minWidth: 520,
+                }}
+              >
+                {group.commands.map((c, j) => (
+                  <div
+                    key={j}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      gap: 32,
+                    }}
+                  >
+                    <span>{c.command}</span>
+                    {c.note && (
+                      <span
+                        style={{
+                          color: "#7d7a8a",
+                          fontFamily:
+                            "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+                          fontSize: 16,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        {c.note}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </React.Fragment>
+          ))}
         </div>
       )}
 

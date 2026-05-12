@@ -8,7 +8,7 @@ import {
   staticFile,
   useCurrentFrame,
 } from "remotion";
-import { BrandCard } from "../components/BrandCard";
+import { BrandCard, type CTAGroup } from "../components/BrandCard";
 import { Callout } from "../components/Callout";
 import { TitleCard } from "../components/TitleCard";
 
@@ -75,18 +75,18 @@ type TourSpec = {
   outro: {
     title: string;
     subtitle: string;
-    cta?: string;
+    cta?: string | CTAGroup[];
     footer?: string;
     durationSec: number;
   };
 };
 
 const SPEC: TourSpec = {
-  speed: 2,
+  speed: 1.5,
   intro: {
     title: "TOFA",
     subtitle: "Two ways to capture a QR with CLI",
-    durationSec: 4,
+    durationSec: 3,
   },
   scenes: [
     {
@@ -94,7 +94,7 @@ const SPEC: TourSpec = {
         eyebrow: "Step 1 of 2",
         command: "tofa scan",
         subtitle: "Capture every QR on every screen at once",
-        durationSec: 4,
+        durationSec: 3,
       },
       source: [1.0, 32.0],
       cuts: [[16.2, 19.1]], // skip the passphrase-prompt typing
@@ -103,9 +103,9 @@ const SPEC: TourSpec = {
       zoom: [
         [0, 1],
         [0.4, 1.8],
-        [7, 1.88],
-        [8, 1.0],
-        [11, 1.0],
+        [9, 1.88],
+        [10, 1.0],
+        [12 , 1.0],
         [15, 1.88],
       ],
       callouts: [
@@ -137,8 +137,11 @@ const SPEC: TourSpec = {
       zoom: [[0, 1.88]],
       pan: [
         [0, [95, 0]],
-        [5, [95, 0]],
-        [6.5, [20, 0]],
+        [2, [95, 0]],
+        [3.5, [10, 0]],
+        [8, [10, 0]],
+        [10.5, [95, 0]],
+
       ],
       callouts: [
         {
@@ -166,7 +169,18 @@ const SPEC: TourSpec = {
   outro: {
     title: "Get TOFA",
     subtitle: "Open-source TOTP for your terminal, TUI, and menu bar",
-    cta: "brew install --cask tofa",
+    cta: [
+      {
+        commands: [{ command: "cargo install tofa" }],
+      },
+      {
+        commands: [
+          { command: "brew tap stratif-io/tofa" },
+          { command: "brew install tofa", note: "CLI + TUI" },
+          { command: "brew install --cask tofa", note: "macOS app" },
+        ],
+      },
+    ],
     footer: "docs.tofa.stratif.io",
     durationSec: 3.2,
   },

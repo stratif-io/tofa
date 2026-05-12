@@ -7,6 +7,7 @@ import {
 } from "remotion";
 import { BrandCard, type CTAGroup } from "../components/BrandCard";
 import { Callout } from "../components/Callout";
+import { ZoomLayer, withEndpoints } from "../components/ZoomLayer";
 import { tokens } from "../theme/tokens";
 
 // =============================================================================
@@ -15,6 +16,10 @@ import { tokens } from "../theme/tokens";
 // The clip (public/mac-app.mov) is produced by `npm run cut-rush macApp` and
 // is already cropped, trimmed, and 30 fps. Times in this file are clip
 // seconds; the renderer maps them to comp frames via SPEC.speed.
+//
+// Zoom and pan keyframes follow the same shape as ScanCamTour:
+//   zoom: [clipSec, scale]
+//   pan:  [clipSec, [x%, y%]]  — transform-origin within the clip
 // =============================================================================
 
 const FPS = 30;
@@ -33,6 +38,12 @@ type MacAppSpec = {
   scene: {
     src: string;
     durationSec: number;
+    /** Static transform-origin if no pan keyframes. */
+    origin?: string;
+    /** Scale keyframes: [clipSec, scale]. */
+    zoom?: ReadonlyArray<readonly [number, number]>;
+    /** Origin keyframes (eased): [clipSec, [x%, y%]]. */
+    pan?: ReadonlyArray<readonly [number, readonly [number, number]]>;
     callouts?: ReadonlyArray<CalloutSpec>;
   };
   outro: {
@@ -54,6 +65,33 @@ const SPEC: MacAppSpec = {
   scene: {
     src: "mac-app.mov",
     durationSec: 58,
+    // Pulse between a soft overview (1.0) and a tighter look at the popover
+    // body (1.25–1.4) as the user moves between flows. Origin keyframes
+    // pan around the popover so each push-in centres on the relevant region.
+    zoom: [
+      [0, 1.0],
+      [2, 1.0],     // overview: menu bar + popover header
+      [6, 1.35],    // push into the unlock form
+      [12, 1.35],
+      [15, 1.0],    // pull back to show the full account list
+      [22, 1.0],
+      [25, 1.4],    // zoom into the live codes
+      [38, 1.4],
+      [42, 1.0],    // pull back for the lock + footer moment
+      [58, 1.0],
+    ],
+    pan: [
+      [0, [50, 25]],   // anchor near the popover top (menu-bar reveal)
+      [2, [50, 25]],
+      [6, [50, 55]],   // shift down to the passphrase row
+      [12, [50, 55]],
+      [15, [50, 40]],  // re-centre on the popover body
+      [22, [50, 40]],
+      [25, [50, 50]],  // accounts area
+      [38, [50, 50]],
+      [42, [50, 70]],  // drift down toward the lock button
+      [58, [50, 70]],
+    ],
     callouts: [
       {
         enter: 0.5,
@@ -129,6 +167,51 @@ export const MAC_APP_TOTAL_FRAMES = OFFSETS.outro + OUTRO_FRAMES;
 // Composition.
 // =============================================================================
 
+const SceneStage: React.FC = () => {
+  const { zoom, pan, origin, callouts } = SPEC.scene;
+  const total = SCENE_FRAMES;
+
+  const zoomKfs = withEndpoints(
+    (zoom ?? []).map(([s, scale]) => [secToFrame(s), scale] as const),
+    1,
+    total,
+  );
+  const panKfs = pan
+    ? withEndpoints(
+        pan.map(([s, o]) => [secToFrame(s), o] as const),
+        [50, 50] as readonly [number, number],
+        total,
+      )
+    : undefined;
+
+  return (
+    <>
+      <ZoomLayer keyframes={zoomKfs} origin={origin} originKeyframes={panKfs}>
+        <OffthreadVideo
+          src={staticFile(SPEC.scene.src)}
+          playbackRate={SPEC.speed}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center top",
+          }}
+        />
+      </ZoomLayer>
+      {(callouts ?? []).map((c, i) => (
+        <Callout
+          key={i}
+          enterAt={Math.max(0, secToFrame(c.enter))}
+          exitAt={Math.min(secToFrame(c.exit), total - 10)}
+          eyebrow={c.eyebrow}
+          body={c.body}
+          position={c.position}
+        />
+      ))}
+    </>
+  );
+};
+
 export const MacAppDemo: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: tokens.color.bg }}>
@@ -137,28 +220,7 @@ export const MacAppDemo: React.FC = () => {
       </Sequence>
 
       <Sequence from={OFFSETS.scene} durationInFrames={SCENE_FRAMES}>
-        <AbsoluteFill>
-          <OffthreadVideo
-            src={staticFile(SPEC.scene.src)}
-            playbackRate={SPEC.speed}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center top",
-            }}
-          />
-          {(SPEC.scene.callouts ?? []).map((c, i) => (
-            <Callout
-              key={i}
-              enterAt={Math.max(0, secToFrame(c.enter))}
-              exitAt={Math.min(secToFrame(c.exit), SCENE_FRAMES - 10)}
-              eyebrow={c.eyebrow}
-              body={c.body}
-              position={c.position}
-            />
-          ))}
-        </AbsoluteFill>
+        <SceneStage />
       </Sequence>
 
       <Sequence from={OFFSETS.outro} durationInFrames={OUTRO_FRAMES}>

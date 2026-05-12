@@ -37,11 +37,26 @@ const SCAN_TAIL_TRIM_SEC = 4.70;
 const SCAN_TOTAL_SEC =
   (RUSH.scanEnd - RUSH.scanStart) - SCAN_CUT_LEN_SEC - SCAN_TAIL_TRIM_SEC;
 
+// Cam scene speed-up: time-lapse the webcam-scan moment at 10x. Window picked
+// to match the un-sped tour's frames 700 → 790 (scene-rush 12.27s → 18.27s).
+const CAM_FAST_START_SEC = 12.2667;
+const CAM_FAST_END_SEC = 18.2667;
+const CAM_FAST_X = 10;
+const CAM_FAST_SRC_LEN_SEC = CAM_FAST_END_SEC - CAM_FAST_START_SEC;
+const CAM_PRE_FRAMES = sec(CAM_FAST_START_SEC);
+const CAM_FAST_FRAMES = Math.max(
+  1,
+  Math.round((CAM_FAST_SRC_LEN_SEC * FPS) / (SPEED * CAM_FAST_X)),
+);
+const CAM_POST_FRAMES = sec(
+  (RUSH.camEnd - RUSH.camStart) - CAM_FAST_END_SEC,
+);
+
 const INTRO_FRAMES = sec(4);
 const SCAN_INTRO_FRAMES = sec(4);
 const SCAN_CLIP_FRAMES = sec(SCAN_TOTAL_SEC);
 const MID_CARD_FRAMES = sec(3);
-const CAM_CLIP_FRAMES = sec(RUSH.camEnd - RUSH.camStart);
+const CAM_CLIP_FRAMES = CAM_PRE_FRAMES + CAM_FAST_FRAMES + CAM_POST_FRAMES;
 const OUTRO_FRAMES = sec(3.2);
 
 export const TOTAL_FRAMES =
@@ -207,20 +222,48 @@ export const ScanCamTour: React.FC = () => {
             // Hold on the terminal (top-right) while `tofa cam` is typed and
             // the browser is opening.
             [0, [95, 0]],
-            [sec(5), [95, 0]],
+            [sec(2), [95, 0]],
             // Pan over 1.5s to the left, where the browser permission popup
             // and webcam preview appear. Eased for a smooth glide.
-            [sec(6.5), [20, 0]],
-            [CAM_CLIP_FRAMES, [20, 0]],
+            [sec(3), [0, 0]],
+            [sec(8), [0, 0]],
+            [sec(10 ), [95, 0]],
+            [CAM_CLIP_FRAMES, [95, 0]],
           ]}
         >
-          <OffthreadVideo
-            src={RUSH_SRC}
-            startFrom={src(RUSH.camStart)}
-            endAt={src(RUSH.camEnd)}
-            playbackRate={SPEED}
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
-          />
+          {/* Pre-fast: rush 32.00 → 44.27. */}
+          <Sequence from={0} durationInFrames={CAM_PRE_FRAMES}>
+            <OffthreadVideo
+              src={RUSH_SRC}
+              startFrom={src(RUSH.camStart)}
+              endAt={src(RUSH.camStart + CAM_FAST_START_SEC)}
+              playbackRate={SPEED}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </Sequence>
+          {/* Fast: rush 44.27 → 50.27 played at SPEED * 10 = 20x. */}
+          <Sequence from={CAM_PRE_FRAMES} durationInFrames={CAM_FAST_FRAMES}>
+            <OffthreadVideo
+              src={RUSH_SRC}
+              startFrom={src(RUSH.camStart + CAM_FAST_START_SEC)}
+              endAt={src(RUSH.camStart + CAM_FAST_END_SEC)}
+              playbackRate={SPEED * CAM_FAST_X}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </Sequence>
+          {/* Post-fast: rush 50.27 → 63.00. */}
+          <Sequence
+            from={CAM_PRE_FRAMES + CAM_FAST_FRAMES}
+            durationInFrames={CAM_POST_FRAMES}
+          >
+            <OffthreadVideo
+              src={RUSH_SRC}
+              startFrom={src(RUSH.camStart + CAM_FAST_END_SEC)}
+              endAt={src(RUSH.camEnd)}
+              playbackRate={SPEED}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </Sequence>
         </ZoomLayer>
         <Callout
           enterAt={sec(0.5)}
@@ -236,7 +279,7 @@ export const ScanCamTour: React.FC = () => {
         />
         <Callout
           enterAt={sec(22)}
-          exitAt={sec(30.5)}
+          exitAt={Math.min(sec(30.5), CAM_CLIP_FRAMES - 10)}
           eyebrow="Vault"
           body="Three accounts now ticking down in your terminal."
           position="bottom-right"

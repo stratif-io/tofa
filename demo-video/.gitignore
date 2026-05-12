@@ -1,0 +1,7 @@
+node_modules/
+out/
+
+# Source rush footage lives on the maintainer's desktop;
+# the README references the rendered outputs in ../docs/.
+public/*.mov
+public/*.mp4

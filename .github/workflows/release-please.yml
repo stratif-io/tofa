@@ -16,14 +16,6 @@ jobs:
       tag_name: ${{ steps.rp.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Use the same PAT for checkout that the align step pushes with.
-          # Without this, `actions/checkout` configures the git remote with
-          # GITHUB_TOKEN credentials, and the bot's push won't trigger
-          # downstream workflows (PR checks, release.yml). With the PAT, the
-          # push on release-please--branches--main re-runs CI so the corrected
-          # workspace state is actually validated before merge.
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - uses: googleapis/release-please-action@v4
         id: rp
@@ -37,72 +29,3 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-
-      - name: Align linked-versions group (tofa ↔ tofa-core)
-        if: steps.rp.outputs.pr != ''
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          # Pass the PR JSON via env var rather than `'${{...}}'` inline, so
-          # parens/quotes in the CHANGELOG body don't break bash parsing.
-          PR_JSON: ${{ steps.rp.outputs.pr }}
-        run: |
-          set -euo pipefail
-
-          BRANCH=$(echo "$PR_JSON" | jq -r '.headBranchName')
-          git fetch origin "$BRANCH"
-          git checkout "$BRANCH"
-
-          TARGET=$(jq -r '."tofa-core"' .release-please-manifest.json)
-          CURRENT=$(jq -r '.tofa' .release-please-manifest.json)
-          CONSTRAINT=$(grep -E '^tofa-core = \{' tofa/Cargo.toml | sed -E 's/.*version = "([^"]+)".*/\1/')
-
-          if [ "$TARGET" = "$CURRENT" ] && [ "$TARGET" = "$CONSTRAINT" ]; then
-            echo "Already aligned at $TARGET — nothing to do"
-            exit 0
-          fi
-          echo "Aligning: manifest tofa=$CURRENT → $TARGET, constraint=$CONSTRAINT → $TARGET"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          jq --arg v "$TARGET" '.tofa = $v' .release-please-manifest.json > .tmp.json
-          mv .tmp.json .release-please-manifest.json
-
-          sed -i.bak -E "s/^version = \"[^\"]+\"$/version = \"$TARGET\"/" tofa/Cargo.toml
-          sed -i.bak -E "s|(tofa-core = \{ path = \"\.\./tofa-core\", version = \")[^\"]+(\".*)|\1$TARGET\2|" tofa/Cargo.toml
-          rm tofa/Cargo.toml.bak
-
-          if [ "$TARGET" != "$CURRENT" ]; then
-            DATE=$(date -u +%Y-%m-%d)
-            {
-              echo "## [$TARGET](https://github.com/stratif-io/tofa/compare/v$CURRENT...v$TARGET) ($DATE)"
-              echo
-              echo
-              echo "### Miscellaneous Chores"
-              echo
-              echo "* align with tofa-core"
-              echo
-              cat tofa/CHANGELOG.md
-            } > tofa/CHANGELOG.md.new
-            mv tofa/CHANGELOG.md.new tofa/CHANGELOG.md
-            git add tofa/CHANGELOG.md
-          fi
-
-          git add .release-please-manifest.json tofa/Cargo.toml
-
-          if git diff --cached --quiet; then
-            echo "No actual changes after edits — nothing to commit"
-            exit 0
-          fi
-
-          # Fold the alignment INTO the bot's commit and force-push. This
-          # avoids a public broken intermediate state — without the amend,
-          # the bot's first commit (tofa bumped but tofa-core constraint
-          # mismatched) gets a CI run that always fails before the align
-          # step's follow-up push fixes it. Amending keeps a single commit
-          # on the PR whose first CI run is on the already-aligned state.
-          # --force-with-lease is safe: we just fetched/checked out the
-          # branch, so the lease only loses if someone raced us in the
-          # ~seconds since checkout — in which case re-running is correct.
-          git commit --amend --no-edit
-          git push --force-with-lease origin "$BRANCH"

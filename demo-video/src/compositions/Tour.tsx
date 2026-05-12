@@ -1,4 +1,4 @@
-import { AbsoluteFill, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Easing, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { BrandCard } from "../components/BrandCard";
 import { Callout } from "../components/Callout";
 import { TitleCard } from "../components/TitleCard";
@@ -61,16 +61,18 @@ const OUTRO_START = SCENE2_START + CAM_CLIP_FRAMES;
 const RUSH_SRC = staticFile("scan-cam.mov");
 
 /**
- * Scale wrapper that interpolates between an ordered list of `[frame, scale]`
- * keyframes. Used for brief punch-in zooms that hold then settle back — keeps
- * most of the scene at scale 1.0 so the GIF palette compression stays cheap.
+ * Scale + pan wrapper. `keyframes` drives scale over time; `originKeyframes`
+ * (optional) animates the transform-origin as `[frame, [x%, y%]]`, allowing
+ * pans within a held zoom. If only a static `origin` is supplied the pan is
+ * skipped. Origin interpolation uses ease-in-out so pans feel cinematic.
  */
 const ZoomLayer: React.FC<
   React.PropsWithChildren<{
     keyframes: ReadonlyArray<readonly [number, number]>;
     origin?: string;
+    originKeyframes?: ReadonlyArray<readonly [number, readonly [number, number]]>;
   }>
-> = ({ keyframes, origin = "center", children }) => {
+> = ({ keyframes, origin = "center", originKeyframes, children }) => {
   const frame = useCurrentFrame();
   const frames = keyframes.map(([f]) => f);
   const scales = keyframes.map(([, s]) => s);
@@ -78,8 +80,28 @@ const ZoomLayer: React.FC<
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+
+  let resolvedOrigin = origin;
+  if (originKeyframes && originKeyframes.length > 0) {
+    const oFrames = originKeyframes.map(([f]) => f);
+    const xs = originKeyframes.map(([, [x]]) => x);
+    const ys = originKeyframes.map(([, [, y]]) => y);
+    const ease = Easing.bezier(0.4, 0, 0.2, 1);
+    const x = interpolate(frame, oFrames, xs, {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: ease,
+    });
+    const y = interpolate(frame, oFrames, ys, {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: ease,
+    });
+    resolvedOrigin = `${x}% ${y}%`;
+  }
+
   return (
-    <AbsoluteFill style={{ transform: `scale(${scale})`, transformOrigin: origin }}>
+    <AbsoluteFill style={{ transform: `scale(${scale})`, transformOrigin: resolvedOrigin }}>
       {children}
     </AbsoluteFill>
   );
@@ -178,8 +200,18 @@ export const ScanCamTour: React.FC = () => {
       <Sequence from={SCENE2_START} durationInFrames={CAM_CLIP_FRAMES}>
         <ZoomLayer
           keyframes={[
-            [0, 1.0],
-            [CAM_CLIP_FRAMES, 1.0],
+            [0, 1.88],
+            [CAM_CLIP_FRAMES, 1.88],
+          ]}
+          originKeyframes={[
+            // Hold on the terminal (top-right) while `tofa cam` is typed and
+            // the browser is opening.
+            [0, [95, 0]],
+            [sec(5), [95, 0]],
+            // Pan over 1.5s to the left, where the browser permission popup
+            // and webcam preview appear. Eased for a smooth glide.
+            [sec(6.5), [20, 0]],
+            [CAM_CLIP_FRAMES, [20, 0]],
           ]}
         >
           <OffthreadVideo

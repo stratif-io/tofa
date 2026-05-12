@@ -37,16 +37,21 @@ const SCAN_TAIL_TRIM_SEC = 4.70;
 const SCAN_TOTAL_SEC =
   (RUSH.scanEnd - RUSH.scanStart) - SCAN_CUT_LEN_SEC - SCAN_TAIL_TRIM_SEC;
 
-// Cam scene speed-up: time-lapse the webcam-scan moment at 10x. Window picked
-// to match the un-sped tour's frames 700 → 790 (scene-rush 12.27s → 18.27s).
+// Cam scene speed-up: time-lapse the webcam-scan moment. Window picked to
+// match the un-sped tour's frames 700 → 790 (scene-rush 12.27s → 18.27s).
+// `CAM_FAST_X` is the requested multiplier on top of `SPEED`; the actual
+// playback rate is clamped to MAX_PLAYBACK_RATE (Chromium's HTMLMediaElement
+// hard limit), so the segment length follows whatever rate we can really set.
+const MAX_PLAYBACK_RATE = 16;
 const CAM_FAST_START_SEC = 12.2667;
 const CAM_FAST_END_SEC = 18.2667;
 const CAM_FAST_X = 10;
+const CAM_FAST_RATE = Math.min(SPEED * CAM_FAST_X, MAX_PLAYBACK_RATE);
 const CAM_FAST_SRC_LEN_SEC = CAM_FAST_END_SEC - CAM_FAST_START_SEC;
 const CAM_PRE_FRAMES = sec(CAM_FAST_START_SEC);
 const CAM_FAST_FRAMES = Math.max(
   1,
-  Math.round((CAM_FAST_SRC_LEN_SEC * FPS) / (SPEED * CAM_FAST_X)),
+  Math.round((CAM_FAST_SRC_LEN_SEC * FPS) / CAM_FAST_RATE),
 );
 const CAM_POST_FRAMES = sec(
   (RUSH.camEnd - RUSH.camStart) - CAM_FAST_END_SEC,
@@ -241,13 +246,13 @@ export const ScanCamTour: React.FC = () => {
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </Sequence>
-          {/* Fast: rush 44.27 → 50.27 played at SPEED * 10 = 20x. */}
+          {/* Fast: rush 44.27 → 50.27 played at CAM_FAST_RATE (capped at 16x). */}
           <Sequence from={CAM_PRE_FRAMES} durationInFrames={CAM_FAST_FRAMES}>
             <OffthreadVideo
               src={RUSH_SRC}
               startFrom={src(RUSH.camStart + CAM_FAST_START_SEC)}
               endAt={src(RUSH.camStart + CAM_FAST_END_SEC)}
-              playbackRate={SPEED * CAM_FAST_X}
+              playbackRate={CAM_FAST_RATE}
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </Sequence>

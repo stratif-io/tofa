@@ -83,14 +83,20 @@ export const ScanCamTour: React.FC = () => {
         />
       </Sequence>
 
-      {/* Scene 1 footage — punch-in zoom at the top, then static rest of scene */}
+      {/* Scene 1 footage — terminal-focused zoom: in at start, out at scene-10s,
+          back in at scene-12s, settle at scene-end so the mid card cuts cleanly. */}
       <Sequence from={SCENE1_START} durationInFrames={SCAN_CLIP_FRAMES}>
         <ZoomLayer
+          origin="75% 18%"
           keyframes={[
             [0, 1.0],
-            [sec(0.4), 1.07],
-            [sec(4.6), 1.07],
-            [sec(5.6), 1.0],
+            [sec(0.4), 1.15],
+            [sec(10), 1.15],
+            [sec(10.5), 1.0],
+            [sec(12), 1.0],
+            [sec(12.5), 1.15],
+            [sec(29.5), 1.15],
+            [sec(30.5), 1.0],
             [SCAN_CLIP_FRAMES, 1.0],
           ]}
         >

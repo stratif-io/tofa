@@ -26,10 +26,17 @@ const RUSH = {
   camEnd: 63.0,
 } as const;
 
-const INTRO_FRAMES = sec(2.4);
-const SCAN_INTRO_FRAMES = sec(1.6);
-const SCAN_CLIP_FRAMES = sec(RUSH.scanEnd - RUSH.scanStart);
-const MID_CARD_FRAMES = sec(1.6);
+// Scan-scene content cut: skip a boring stretch (e.g. passphrase prompt
+// typing). Times are scene-relative rush seconds, matching the keyframe scale.
+const SCAN_CUT_START_SEC = 16.20;
+const SCAN_CUT_END_SEC = 19.10;
+const SCAN_CUT_LEN_SEC = SCAN_CUT_END_SEC - SCAN_CUT_START_SEC;
+const SCAN_TOTAL_SEC = (RUSH.scanEnd - RUSH.scanStart) - SCAN_CUT_LEN_SEC;
+
+const INTRO_FRAMES = sec(4);
+const SCAN_INTRO_FRAMES = sec(4);
+const SCAN_CLIP_FRAMES = sec(SCAN_TOTAL_SEC);
+const MID_CARD_FRAMES = sec(3);
 const CAM_CLIP_FRAMES = sec(RUSH.camEnd - RUSH.camStart);
 const OUTRO_FRAMES = sec(3.2);
 
@@ -81,7 +88,7 @@ export const ScanCamTour: React.FC = () => {
       <Sequence from={0} durationInFrames={INTRO_FRAMES}>
         <BrandCard
           title="TOFA"
-          subtitle="Two ways to capture a QR — without reaching for your phone"
+          subtitle="Two ways to capture a QR with CLI"
         />
       </Sequence>
 
@@ -102,22 +109,36 @@ export const ScanCamTour: React.FC = () => {
           keyframes={[
             [0, 1],
             [sec(0.4), 1.8],
-            [sec(10), 1.88],
-            [sec(10.5), 1.88 ],
-            [sec(12), 1.0],
-            [sec(12.5), 1.0],
-            [sec(29.5), 1.0],
-            [sec(30.5), 1.0],
-            [SCAN_CLIP_FRAMES, 1.0],
+            [sec(7), 1.88 ],
+            [sec(8), 1.0 ],
+            [sec(11 ), 1.0  ],
+            [sec(15.), 1.88 ],
+            [SCAN_CLIP_FRAMES,  1.88],
           ]}
         >
-          <OffthreadVideo
-            src={RUSH_SRC}
-            startFrom={src(RUSH.scanStart)}
-            endAt={src(RUSH.scanEnd)}
-            playbackRate={SPEED}
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
-          />
+          {/* Part A: rush 1.0 → 17.20 (= scene-rush 0 → 16.20). */}
+          <Sequence from={0} durationInFrames={sec(SCAN_CUT_START_SEC)}>
+            <OffthreadVideo
+              src={RUSH_SRC}
+              startFrom={src(RUSH.scanStart)}
+              endAt={src(RUSH.scanStart + SCAN_CUT_START_SEC)}
+              playbackRate={SPEED}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </Sequence>
+          {/* Part B: rush 20.10 → 32.0 (= scene-rush 16.20 → 28.10). */}
+          <Sequence
+            from={sec(SCAN_CUT_START_SEC)}
+            durationInFrames={SCAN_CLIP_FRAMES - sec(SCAN_CUT_START_SEC)}
+          >
+            <OffthreadVideo
+              src={RUSH_SRC}
+              startFrom={src(RUSH.scanStart + SCAN_CUT_END_SEC)}
+              endAt={src(RUSH.scanEnd)}
+              playbackRate={SPEED}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </Sequence>
         </ZoomLayer>
         <Callout
           enterAt={sec(0.4)}
@@ -127,13 +148,13 @@ export const ScanCamTour: React.FC = () => {
         />
         <Callout
           enterAt={sec(15)}
-          exitAt={sec(22)}
+          exitAt={sec(22 - SCAN_CUT_LEN_SEC)}
           eyebrow="One command"
           body="`tofa scan` captures every display and decodes every QR."
         />
         <Callout
-          enterAt={sec(22)}
-          exitAt={sec(30.5)}
+          enterAt={sec(22 - SCAN_CUT_LEN_SEC)}
+          exitAt={sec(30.5 - SCAN_CUT_LEN_SEC)}
           eyebrow="Result"
           body="Imported 2 accounts from 1 screen."
           position="bottom-right"

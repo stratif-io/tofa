@@ -26,12 +26,16 @@ const RUSH = {
   camEnd: 63.0,
 } as const;
 
-// Scan-scene content cut: skip a boring stretch (e.g. passphrase prompt
-// typing). Times are scene-relative rush seconds, matching the keyframe scale.
+// Scan-scene content cuts. Times are scene-relative rush seconds, matching
+// the keyframe scale. Mid-scene cut: skip the passphrase prompt typing.
+// Tail trim: drop the last few seconds (extra `tofa list` admin) so the
+// scene wraps right after the import result has been read.
 const SCAN_CUT_START_SEC = 16.20;
 const SCAN_CUT_END_SEC = 19.10;
 const SCAN_CUT_LEN_SEC = SCAN_CUT_END_SEC - SCAN_CUT_START_SEC;
-const SCAN_TOTAL_SEC = (RUSH.scanEnd - RUSH.scanStart) - SCAN_CUT_LEN_SEC;
+const SCAN_TAIL_TRIM_SEC = 4.70;
+const SCAN_TOTAL_SEC =
+  (RUSH.scanEnd - RUSH.scanStart) - SCAN_CUT_LEN_SEC - SCAN_TAIL_TRIM_SEC;
 
 const INTRO_FRAMES = sec(4);
 const SCAN_INTRO_FRAMES = sec(4);
@@ -126,7 +130,7 @@ export const ScanCamTour: React.FC = () => {
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </Sequence>
-          {/* Part B: rush 20.10 → 32.0 (= scene-rush 16.20 → 28.10). */}
+          {/* Part B: rush 20.10 → (32.0 - tail trim) = scene-rush 16.20 → end. */}
           <Sequence
             from={sec(SCAN_CUT_START_SEC)}
             durationInFrames={SCAN_CLIP_FRAMES - sec(SCAN_CUT_START_SEC)}
@@ -134,7 +138,7 @@ export const ScanCamTour: React.FC = () => {
             <OffthreadVideo
               src={RUSH_SRC}
               startFrom={src(RUSH.scanStart + SCAN_CUT_END_SEC)}
-              endAt={src(RUSH.scanEnd)}
+              endAt={src(RUSH.scanEnd - SCAN_TAIL_TRIM_SEC)}
               playbackRate={SPEED}
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
@@ -154,7 +158,7 @@ export const ScanCamTour: React.FC = () => {
         />
         <Callout
           enterAt={sec(22 - SCAN_CUT_LEN_SEC)}
-          exitAt={sec(30.5 - SCAN_CUT_LEN_SEC)}
+          exitAt={SCAN_CLIP_FRAMES - 10}
           eyebrow="Result"
           body="Imported 2 accounts from 1 screen."
           position="bottom-right"

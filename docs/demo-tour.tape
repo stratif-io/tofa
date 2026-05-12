@@ -28,6 +28,7 @@
 #       tofa add --name 'npm:stratif'       --secret ME2DSMRZGAYTKMRTGMZTKMBR
 
 Output docs/demo-tour.gif
+Output docs/demo-tour.mp4
 
 Set Theme "Catppuccin Mocha"
 Set FontSize 13

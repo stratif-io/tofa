@@ -1,3 +1,4 @@
+mod about_window;
 mod commands;
 mod state;
 
@@ -5,9 +6,9 @@ use state::AppState;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem},
+    menu::{IsMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Listener, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    Emitter, Listener, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Wry,
 };
 
 /// If true, the popover does NOT auto-hide on focus loss. JS toggles this
@@ -108,13 +109,49 @@ fn show_popover_under_tray(win: &WebviewWindow) {
     position_popover_under_tray(win);
 }
 
+fn build_tray_menu(
+    app: &tauri::AppHandle,
+    item_about: &MenuItem<Wry>,
+    item_scan_screen: &MenuItem<Wry>,
+    item_scan_camera: &MenuItem<Wry>,
+    item_lock: &MenuItem<Wry>,
+    item_quit: &MenuItem<Wry>,
+    update_item: Option<&MenuItem<Wry>>,
+) -> tauri::Result<Menu<Wry>> {
+    let sep1 = PredefinedMenuItem::separator(app)?;
+    let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+    let sep2 = PredefinedMenuItem::separator(app)?;
+    let sep3 = PredefinedMenuItem::separator(app)?;
+
+    let mut items: Vec<&dyn IsMenuItem<Wry>> = vec![item_about];
+    if let Some(u) = update_item {
+        items.push(u);
+    }
+    items.push(&sep1);
+    items.push(item_scan_screen);
+    items.push(item_scan_camera);
+    items.push(&settings_item);
+    items.push(&sep2);
+    items.push(item_lock);
+    items.push(&sep3);
+    items.push(item_quit);
+
+    Menu::with_items(app, &items)
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Mutex::new(AppState::new()))
+        .manage(crate::commands::PendingDownload::default())
         .invoke_handler(tauri::generate_handler![
             set_popover_pinned,
+            commands::get_versions,
+            commands::check_for_updates,
+            commands::download_and_install,
+            commands::take_pending_download,
             commands::vault_exists,
             commands::create_vault,
             commands::unlock,
@@ -180,17 +217,15 @@ pub fn run() {
             let item_lock = MenuItem::with_id(app, "lock", "Lock", false, None::<&str>)?;
             let item_quit = MenuItem::with_id(app, "quit", "Quit TOFA", true, Some("CmdOrCtrl+Q"))?;
 
-            let menu = Menu::with_items(
-                app,
-                &[
-                    &item_scan_screen,
-                    &item_scan_camera,
-                    &MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?,
-                    &PredefinedMenuItem::separator(app)?,
-                    &item_lock,
-                    &PredefinedMenuItem::separator(app)?,
-                    &item_quit,
-                ],
+            let item_about = MenuItem::with_id(app, "about", "About Tofa", true, None::<&str>)?;
+            let menu = build_tray_menu(
+                app.handle(),
+                &item_about,
+                &item_scan_screen,
+                &item_scan_camera,
+                &item_lock,
+                &item_quit,
+                None,
             )?;
 
             static ICON_LOCKED: &[u8] = include_bytes!("../icons/tray_icon_locked.png");
@@ -208,8 +243,20 @@ pub fn run() {
                     "TOFA"
                 })
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| {
+                .on_menu_event(move |app, event| {
                     let action = match event.id.as_ref() {
+                        "update-available" => {
+                            use std::sync::atomic::Ordering;
+                            let pending = app.state::<crate::commands::PendingDownload>();
+                            pending.0.store(true, Ordering::Relaxed);
+                            crate::about_window::show_or_focus(app);
+                            let _ = app.emit("trigger-download", ());
+                            return;
+                        }
+                        "about" => {
+                            crate::about_window::show_or_focus(app);
+                            return;
+                        }
                         "scan-screen" => "scan-screen",
                         "scan-camera" => "scan-camera",
                         "settings" => "settings",
@@ -229,14 +276,25 @@ pub fn run() {
 
             let tray_id = tray.id().clone();
 
-            // Enable scan/lock items when unlocked, disable when locked
-            let ss = item_scan_screen.clone();
+            // Clones the listener uses to rebuild the menu when an update arrives.
+            let item_about_l = item_about.clone();
+            let item_scan_screen_l = item_scan_screen.clone();
+            let item_scan_camera_l = item_scan_camera.clone();
+            let item_lock_l = item_lock.clone();
+            let item_quit_l = item_quit.clone();
+            let app_for_event = app.handle().clone();
+            let tray_id_for_event = tray_id.clone();
+
+            // Enable scan-camera + lock when unlocked, disable when locked.
+            // Scan Screen stays disabled in the tray — invoking it from the tray
+            // opens the popover, which then occludes the area being captured.
+            // The in-popover button works because the popover is hidden during
+            // capture; the tray path can't replicate that without race conditions.
             let sc = item_scan_camera.clone();
             let lk = item_lock.clone();
             let app_unlock = app.handle().clone();
             let tray_id_unlock = tray_id.clone();
             app.listen("session-unlocked", move |_| {
-                let _ = ss.set_enabled(true);
                 let _ = sc.set_enabled(true);
                 let _ = lk.set_enabled(true);
                 if let Some(tray) = app_unlock.tray_by_id(&tray_id_unlock) {
@@ -246,13 +304,11 @@ pub fn run() {
                 }
             });
 
-            let ss2 = item_scan_screen.clone();
             let sc2 = item_scan_camera.clone();
             let lk2 = item_lock.clone();
             let app_lock = app.handle().clone();
             let tray_id_lock = tray_id.clone();
             app.listen("session-locked", move |_| {
-                let _ = ss2.set_enabled(false);
                 let _ = sc2.set_enabled(false);
                 let _ = lk2.set_enabled(false);
                 if let Some(tray) = app_lock.tray_by_id(&tray_id_lock) {
@@ -278,6 +334,72 @@ pub fn run() {
                             show_popover_under_tray(&win);
                         }
                     }
+                }
+            });
+
+            app.listen("update-available", move |evt| {
+                #[derive(serde::Deserialize)]
+                struct UpdatePayload {
+                    version: String,
+                }
+
+                let payload: UpdatePayload = match serde_json::from_str(evt.payload()) {
+                    Ok(p) => p,
+                    Err(_) => return,
+                };
+                let label = format!("Update available — v{}", payload.version);
+                let update_item = match MenuItem::with_id(
+                    &app_for_event,
+                    "update-available",
+                    &label,
+                    true,
+                    None::<&str>,
+                ) {
+                    Ok(i) => i,
+                    Err(_) => return,
+                };
+                let new_menu = match build_tray_menu(
+                    &app_for_event,
+                    &item_about_l,
+                    &item_scan_screen_l,
+                    &item_scan_camera_l,
+                    &item_lock_l,
+                    &item_quit_l,
+                    Some(&update_item),
+                ) {
+                    Ok(m) => m,
+                    Err(_) => return,
+                };
+                if let Some(tray) = app_for_event.tray_by_id(&tray_id_for_event) {
+                    let _ = tray.set_menu(Some(new_menu));
+                }
+            });
+
+            // Background update check: once on launch, then every 24 hours.
+            let bg_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                use std::time::Duration;
+                use tauri_plugin_updater::UpdaterExt;
+
+                async fn run_once(app: &tauri::AppHandle) {
+                    let updater = match app.updater() {
+                        Ok(u) => u,
+                        Err(_) => return,
+                    };
+                    if let Ok(Some(update)) = updater.check().await {
+                        let _ = app.emit(
+                            "update-available",
+                            serde_json::json!({ "version": update.version }),
+                        );
+                    }
+                }
+
+                run_once(&bg_handle).await;
+                let mut ticker = tokio::time::interval(Duration::from_secs(24 * 60 * 60));
+                ticker.tick().await; // first tick fires immediately; we already ran above
+                loop {
+                    ticker.tick().await;
+                    run_once(&bg_handle).await;
                 }
             });
 

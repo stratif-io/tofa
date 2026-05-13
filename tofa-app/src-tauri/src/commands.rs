@@ -1141,6 +1141,63 @@ fn html_escape(s: &str) -> String {
         .collect()
 }
 
+#[derive(Serialize)]
+pub struct Versions {
+    pub app: String,
+    pub core: String,
+}
+
+#[tauri::command]
+pub fn get_versions() -> Versions {
+    Versions {
+        app: env!("CARGO_PKG_VERSION").to_string(),
+        core: tofa_core::VERSION.to_string(),
+    }
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct UpdateInfo {
+    pub current: String,
+    pub latest: Option<String>,
+    pub available: bool,
+}
+
+#[tauri::command]
+pub async fn check_for_updates(app: tauri::AppHandle) -> Result<UpdateInfo, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    match app.updater().map_err(|e| e.to_string())?.check().await {
+        Ok(Some(update)) => Ok(UpdateInfo {
+            current,
+            latest: Some(update.version.clone()),
+            available: true,
+        }),
+        Ok(None) => Ok(UpdateInfo {
+            current,
+            latest: None,
+            available: false,
+        }),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+pub async fn download_and_install(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let update = app
+        .updater()
+        .map_err(|e| e.to_string())?
+        .check()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "no update available".to_string())?;
+    update
+        .download_and_install(|_chunk, _total| {}, || {})
+        .await
+        .map_err(|e| e.to_string())?;
+    app.restart();
+}
+
 /// Save a base64-encoded PNG to a user-chosen location via native save dialog.
 #[tauri::command]
 pub async fn save_qr_png(
@@ -1174,6 +1231,18 @@ pub async fn save_qr_png(
     };
 
     std::fs::write(&path, &bytes).map_err(|e| e.to_string())
+}
+
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Whether a tray click requested a download. Read once + cleared by
+/// `take_pending_download` from the About window JS on load.
+#[derive(Default)]
+pub struct PendingDownload(pub AtomicBool);
+
+#[tauri::command]
+pub fn take_pending_download(state: tauri::State<'_, PendingDownload>) -> bool {
+    state.0.swap(false, Ordering::Relaxed)
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 ---
-import TofaWink from './TofaWink.astro';
+import HeroDemo from './HeroDemo.astro';
 import { getStars, formatStars, githubRepoUrl } from '../lib/github';
 
 const stars = await getStars();
@@ -76,8 +76,8 @@ const otps = Array.from({ length: 22 }, () => ({
           <span>· Argon2id</span>
         </div>
       </div>
-      <div class="hidden lg:flex items-center justify-center">
-        <TofaWink size={240} variant="dark" />
+      <div>
+        <HeroDemo />
       </div>
     </div>
   </div>

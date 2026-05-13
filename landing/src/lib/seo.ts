@@ -8,8 +8,8 @@ export interface SeoProps {
 export const SITE = {
   url: 'https://tofa.stratif.io',
   name: 'TOFA',
-  defaultTitle: 'TOFA — The 2FA app for your terminal & menu bar. Authy alternative, open source.',
-  defaultDescription: 'Offline, open-source 2FA in your terminal and macOS menu bar. Import from Authy, Google Authenticator, Aegis, 2FAS, 1Password and 6 more. MIT, no account, no cloud.',
+  defaultTitle: 'TOFA — Offline TOTP & 2FA for your terminal and menu bar. Open-source Authy alternative.',
+  defaultDescription: 'TOFA is an offline, open-source TOTP authenticator in your terminal and macOS menu bar. The 2FA app that imports OTP secrets from Authy, Google Authenticator, Aegis, 2FAS, 1Password and 6 more. MIT, no account, no cloud.',
   ogImage: 'https://tofa.stratif.io/og.png',
   repo: 'https://github.com/stratif-io/tofa',
 } as const;

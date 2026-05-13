@@ -1,14 +1,14 @@
 ---
 const features = [
-  { title: 'Click-to-copy TUI', body: 'Live countdown bars per code. Click any row to copy. Search by typing.' },
-  { title: 'Paste otpauth URIs', body: 'One or many at a time. tofa add --uri or the app\'s "Paste URI".' },
-  { title: 'Drop a QR image', body: 'tofa add --qr screenshot.png, or drag a PNG/JPG into the macOS app.' },
-  { title: 'Scan your screens', body: 'tofa scan captures every connected display and imports every QR it finds.' },
+  { title: 'Click-to-copy TUI', body: 'Live TOTP countdown bars per code. Click any row to copy the OTP. Search by typing.' },
+  { title: 'Paste otpauth:// URIs', body: 'Standard otpauth TOTP URIs, one or many at a time. tofa add --uri or the app\'s "Paste URI".' },
+  { title: 'Drop a QR image', body: 'tofa add --qr screenshot.png, or drag a PNG/JPG into the macOS app — every TOTP QR is recognized.' },
+  { title: 'Scan your screens', body: 'tofa scan captures every connected display and imports every TOTP QR it finds.' },
   { title: 'Export to QR', body: 'Single migration QR, one PNG per account, or the Save All zip with a printable one-pager.' },
-  { title: 'Encrypted vault', body: 'AES-256-GCM with an Argon2id-derived key. Auto-locks after 10 min idle.' },
-  { title: 'Scriptable CLI', body: 'TOFA_PASSPHRASE env var unlocks the vault for CI. Clipboard on every platform.' },
+  { title: 'Encrypted TOTP vault', body: 'AES-256-GCM with an Argon2id-derived key holds every TOTP secret offline. Auto-locks after 10 min idle.' },
+  { title: 'Scriptable CLI', body: 'TOFA_PASSPHRASE env var unlocks the vault for CI. tofa code <name> clips the OTP on every platform.' },
   { title: 'Auto-updating macOS app', body: 'Checks for a new release on launch and every 24h. Signed in-place updates.' },
-  { title: 'Open source, MIT', body: 'Audit the crypto in tofa-core. No telemetry. No cloud. Ever.' },
+  { title: 'Open source, MIT', body: 'Audit the RFC 6238 TOTP and crypto code in tofa-core. No telemetry. No cloud. Ever.' },
 ];
 ---
 <section id="features" class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">

@@ -6,7 +6,7 @@ export const softwareApplicationSchema = {
   name: 'TOFA',
   operatingSystem: 'macOS, Linux',
   applicationCategory: 'SecurityApplication',
-  description: 'Offline, open-source 2FA in your terminal and macOS menu bar. Imports from Authy, Google Authenticator, Aegis, 2FAS, 1Password and more.',
+  description: 'Offline, open-source TOTP authenticator and 2FA app for your terminal and macOS menu bar. Generates RFC 6238 TOTP codes locally. Imports OTP secrets from Authy, Google Authenticator, Aegis, 2FAS, 1Password and more.',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   downloadUrl: 'https://github.com/stratif-io/tofa/releases',
   license: 'https://opensource.org/licenses/MIT',

@@ -84,7 +84,7 @@ const seo = resolveSeo(seoProps);
           // force reflow so re-adding the class restarts the animation if double-clicked rapidly
           void el.getBoundingClientRect();
           el.classList.add('winking');
-          window.setTimeout(() => el.classList.remove('winking'), 650);
+          window.setTimeout(() => el.classList.remove('winking'), 720);
         });
       };
       document.querySelectorAll('[data-tofa-wink]').forEach(wire);

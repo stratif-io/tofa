@@ -72,10 +72,13 @@ jobs:
       - name: Pull image and (re)run tofa-landing
         env:
           IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ssh "${SSH_USER}@${SSH_HOST}" bash -s << REMOTE
           set -euo pipefail
           IMAGE="${IMAGE}:${IMAGE_TAG}"
+          echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
           docker pull "\$IMAGE"
           docker rm -f tofa-landing 2>/dev/null || true
           docker run -d \\
@@ -83,6 +86,7 @@ jobs:
             --network stratifio-net \\
             --restart unless-stopped \\
             "\$IMAGE"
+          docker logout ghcr.io
           docker image prune -af
           REMOTE
 

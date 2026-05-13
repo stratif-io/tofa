@@ -1,0 +1,23 @@
+---
+import TofaWink from './TofaWink.astro';
+import ThemeToggle from './ThemeToggle';
+---
+<header class="sticky top-0 z-50 backdrop-blur-md bg-bg/80 border-b border-border">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-6">
+    <a href="/" class="flex items-center gap-2 text-text hover:text-brand transition-colors">
+      <TofaWink size={28} class="text-brand" />
+      <span class="font-display font-bold tracking-tight text-lg">TOFA</span>
+    </a>
+    <nav class="hidden md:flex items-center gap-5 text-sm font-medium text-text-muted">
+      <a href="#features" class="hover:text-text transition-colors">Features</a>
+      <a href="#demos" class="hover:text-text transition-colors">Demos</a>
+      <a href="#compare" class="hover:text-text transition-colors">Compare</a>
+      <a href="#install" class="hover:text-text transition-colors">Install</a>
+      <a href="https://docs.tofa.stratif.io/" class="hover:text-text transition-colors">Docs</a>
+    </nav>
+    <div class="ml-auto flex items-center gap-2">
+      <a href="https://github.com/stratif-io/tofa" class="font-mono text-xs px-3 py-1.5 rounded-tofa-md border border-border bg-surface text-text-muted hover:text-text hover:border-border-strong transition-colors">★ GitHub</a>
+      <ThemeToggle client:idle />
+    </div>
+  </div>
+</header>

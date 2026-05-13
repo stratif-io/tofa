@@ -72,5 +72,23 @@ const seo = resolveSeo(seoProps);
 <body class="bg-bg text-text font-sans antialiased">
   <a href="#main" class="sr-only focus:not-sr-only">Skip to content</a>
   <slot />
+
+  <!-- Easter egg: double-click Sir Wink and he blinks. Skipped inside <a> so navigation isn't hijacked. -->
+  <script is:inline>
+    (() => {
+      const wire = (el) => {
+        if (el.closest('a')) return;
+        el.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          el.classList.remove('winking');
+          // force reflow so re-adding the class restarts the animation if double-clicked rapidly
+          void el.getBoundingClientRect();
+          el.classList.add('winking');
+          window.setTimeout(() => el.classList.remove('winking'), 450);
+        });
+      };
+      document.querySelectorAll('[data-tofa-wink]').forEach(wire);
+    })();
+  </script>
 </body>
 </html>

@@ -37,17 +37,22 @@ body { min-height: 100dvh; }
   92%      { opacity: 0;    transform: translate(-50%, -50%) scale(1.05); }
 }
 
-/* Easter egg: double-click Sir Wink → he blinks his open eye */
-[data-tofa-wink] .tofa-eye-left { transform-box: fill-box; transform-origin: center; }
-[data-tofa-wink].winking .tofa-eye-left { animation: tofa-blink 0.4s ease; }
-@keyframes tofa-blink {
-  0%, 100% { transform: scaleY(1); }
-  45%, 55% { transform: scaleY(0.06); }
-}
+/* Easter egg: double-click Sir Wink → wink swaps to the other eye.
+   Default state: left eye open (QR square), right eye closed (curve).
+   .winking state: left eye closed, right eye open. */
+[data-tofa-wink] .tofa-eye .open,
+[data-tofa-wink] .tofa-eye .closed { transition: opacity 120ms ease; }
+[data-tofa-wink] .tofa-eye.eye-l .closed,
+[data-tofa-wink] .tofa-eye.eye-r .open { opacity: 0; }
+[data-tofa-wink].winking .tofa-eye.eye-l .open,
+[data-tofa-wink].winking .tofa-eye.eye-r .closed { opacity: 0; }
+[data-tofa-wink].winking .tofa-eye.eye-l .closed,
+[data-tofa-wink].winking .tofa-eye.eye-r .open { opacity: 1; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
-  [data-tofa-wink].winking .tofa-eye-left { animation: none; }
+  [data-tofa-wink] .tofa-eye .open,
+  [data-tofa-wink] .tofa-eye .closed { transition: none !important; }
   .otp-rain { display: none; }
 }

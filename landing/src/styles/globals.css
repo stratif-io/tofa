@@ -14,6 +14,29 @@ body { min-height: 100dvh; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .focus\:not-sr-only:focus { position: static; width: auto; height: auto; padding: 0.5rem 1rem; margin: 0; overflow: visible; clip: auto; white-space: normal; background: var(--brand); color: var(--on-brand); border-radius: var(--r-md); }
 
+/* Hero OTP rain — subtle popping 6-digit codes in the background */
+.otp-rain { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.otp-rain .otp {
+  position: absolute;
+  font-family: var(--font-mono);
+  color: var(--brand);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.92);
+  animation-name: otp-pop;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-out;
+  user-select: none;
+}
+@keyframes otp-pop {
+  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  15%      { opacity: 0.10; transform: translate(-50%, -50%) scale(1); }
+  70%      { opacity: 0.10; transform: translate(-50%, -50%) scale(1); }
+  92%      { opacity: 0;    transform: translate(-50%, -50%) scale(1.05); }
+}
+
 /* Easter egg: double-click Sir Wink → he blinks his open eye */
 [data-tofa-wink] .tofa-eye-left { transform-box: fill-box; transform-origin: center; }
 [data-tofa-wink].winking .tofa-eye-left { animation: tofa-blink 0.4s ease; }
@@ -26,4 +49,5 @@ body { min-height: 100dvh; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   [data-tofa-wink].winking .tofa-eye-left { animation: none; }
+  .otp-rain { display: none; }
 }

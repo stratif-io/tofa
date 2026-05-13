@@ -1,8 +1,32 @@
 ---
 import TofaWink from './TofaWink.astro';
+
+// Build-time random seeds for the OTP rain — stable for the SSR'd page,
+// then re-shuffled client-side every few seconds for variety.
+function randomCode() {
+  const n = Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0');
+  return `${n.slice(0, 3)} ${n.slice(3)}`;
+}
+const otps = Array.from({ length: 9 }, () => ({
+  code:     randomCode(),
+  top:      8 + Math.random() * 80,    // %
+  left:     6 + Math.random() * 88,    // %
+  delay:    Math.random() * 10,         // s
+  duration: 7 + Math.random() * 6,      // s (each "pop" cycle)
+  size:     0.85 + Math.random() * 0.55, // rem
+}));
 ---
 <section class="relative overflow-hidden">
   <div aria-hidden="true" class="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full bg-brand/20 blur-3xl pointer-events-none"></div>
+
+  <div class="otp-rain" aria-hidden="true">
+    {otps.map((o) => (
+      <span
+        class="otp"
+        style={`top:${o.top}%; left:${o.left}%; animation-delay:${o.delay}s; animation-duration:${o.duration}s; font-size:${o.size}rem;`}
+      >{o.code}</span>
+    ))}
+  </div>
 
   <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-12 relative">
     <div class="grid lg:grid-cols-[1.4fr_1fr] gap-10 items-center">
@@ -38,3 +62,19 @@ import TofaWink from './TofaWink.astro';
     </div>
   </div>
 </section>
+
+<script is:inline>
+  (() => {
+    const code = () => {
+      const n = Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0');
+      return n.slice(0, 3) + ' ' + n.slice(3);
+    };
+    const els = document.querySelectorAll('.otp-rain .otp');
+    if (!els.length) return;
+    // Stagger refresh so codes don't all change at the same instant
+    els.forEach((el) => {
+      const interval = 4000 + Math.random() * 4000;
+      window.setInterval(() => { el.textContent = code(); }, interval);
+    });
+  })();
+</script>

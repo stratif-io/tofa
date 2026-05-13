@@ -14,18 +14,37 @@ describe('DemoGallery', () => {
     HTMLMediaElement.prototype.pause = vi.fn();
   });
 
-  it('renders three videos with posters', () => {
+  it('renders three card thumbnails (poster only, no video) by default', () => {
     render(<DemoGallery demos={demos} />);
-    const videos = screen.getAllByTestId('demo-video');
-    expect(videos).toHaveLength(3);
-    videos.forEach((v) => expect(v.getAttribute('poster')).toMatch(/\.png$/));
+    const triggers = screen.getAllByRole('button', { name: /play demo/i });
+    expect(triggers).toHaveLength(3);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByTestId('demo-video')).toBeNull();
   });
 
-  it('clicking a non-lead card plays the clicked video and pauses others', () => {
+  it('clicking a card opens a theater dialog with the matching video', () => {
     render(<DemoGallery demos={demos} />);
-    const cards = screen.getAllByRole('button', { name: /play demo/i });
-    fireEvent.click(cards[1]);
-    const videos = screen.getAllByTestId('demo-video') as HTMLVideoElement[];
-    expect(videos[1].play).toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole('button', { name: /play demo/i })[1]);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    const video = screen.getByTestId('demo-video') as HTMLVideoElement;
+    expect(video.getAttribute('src')).toBe('/demos/b.mp4');
+    expect(video.play).toHaveBeenCalled();
+  });
+
+  it('pressing Escape closes the dialog', () => {
+    render(<DemoGallery demos={demos} />);
+    fireEvent.click(screen.getAllByRole('button', { name: /play demo/i })[0]);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('clicking the close button closes the dialog', () => {
+    render(<DemoGallery demos={demos} />);
+    fireEvent.click(screen.getAllByRole('button', { name: /play demo/i })[2]);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /close demo/i }));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

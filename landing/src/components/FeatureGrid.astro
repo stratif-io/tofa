@@ -1,0 +1,28 @@
+---
+const features = [
+  { title: 'Click-to-copy TUI', body: 'Live countdown bars per code. Click any row to copy. Search by typing.' },
+  { title: 'Paste otpauth URIs', body: 'One or many at a time. tofa add --uri or the app\'s "Paste URI".' },
+  { title: 'Drop a QR image', body: 'tofa add --qr screenshot.png, or drag a PNG/JPG into the macOS app.' },
+  { title: 'Scan your screens', body: 'tofa scan captures every connected display and imports every QR it finds.' },
+  { title: 'Export to QR', body: 'Single migration QR, one PNG per account, or the Save All zip with a printable one-pager.' },
+  { title: 'Encrypted vault', body: 'AES-256-GCM with an Argon2id-derived key. Auto-locks after 10 min idle.' },
+  { title: 'Scriptable CLI', body: 'TOFA_PASSPHRASE env var unlocks the vault for CI. Clipboard on every platform.' },
+  { title: 'Auto-updating macOS app', body: 'Checks for a new release on launch and every 24h. Signed in-place updates.' },
+  { title: 'Open source, MIT', body: 'Audit the crypto in tofa-core. No telemetry. No cloud. Ever.' },
+];
+---
+<section id="features" class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+  <div class="max-w-2xl mb-10">
+    <h2 class="font-display font-bold tracking-tight text-3xl sm:text-4xl text-text">
+      Everything you'd want from an authenticator. <span class="italic font-medium text-brand">And then some.</span>
+    </h2>
+  </div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {features.map((f) => (
+      <article class="rounded-tofa-lg bg-surface border border-border p-5 hover:border-brand/40 transition-colors">
+        <h3 class="font-display font-bold text-lg text-text">{f.title}</h3>
+        <p class="mt-2 text-sm text-text-muted leading-relaxed">{f.body}</p>
+      </article>
+    ))}
+  </div>
+</section>

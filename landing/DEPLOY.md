@@ -19,12 +19,20 @@ the container on the shared `stratifio-net` Docker network; the host Caddy
 
 ## Secrets required (GitHub Actions on this repo)
 
+Both jobs in `landing-deploy.yml` declare `environment: OVH-PROD`, so the
+following secrets live on the **OVH-PROD** environment (mirrors the
+`stratif.io-saas` layout — repo-level for nothing, env-scoped for everything):
+
 | Secret | Purpose |
 |---|---|
 | `OVH_SSH_PRIVATE_KEY` | SSH key for `ubuntu@ns3150446.ip-51-83-100.eu` |
 | `TOFA_UMAMI_WEBSITE_ID` | Umami site id (UUID) for `tofa.stratif.io`; baked into the image at build time as `PUBLIC_UMAMI_WEBSITE_ID`. (Named `TOFA_…` to avoid colliding with the `UMAMI_WEBSITE_ID` secret already in use on other repos.) Leave unset to ship without analytics. |
 
-Sync from Bitwarden via `papa-data-infra`'s `scripts/sync-secrets.sh`.
+Create the `OVH-PROD` environment once at
+https://github.com/stratif-io/tofa/settings/environments — no required
+reviewers or deployment branch rules needed; the environment exists solely
+to scope these secrets. Then sync from Bitwarden via `papa-data-infra`'s
+`scripts/sync-secrets.sh`.
 
 The built-in `GITHUB_TOKEN` handles GHCR auth — no manual registry setup.
 

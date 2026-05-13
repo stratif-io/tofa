@@ -1,0 +1,36 @@
+---
+const pillars = [
+  {
+    key: '// terminal',
+    title: 'Native CLI + TUI',
+    body: 'Scriptable from anything. tofa code github --copy clips the code on every platform. The TUI shows live countdown bars and click-to-copy rows.',
+  },
+  {
+    key: '// offline',
+    title: 'No cloud. No account.',
+    body: 'One encrypted file on disk. AES-256-GCM with an Argon2id-derived key. The passphrase never touches disk. Auto-locks after 10 min idle.',
+  },
+  {
+    key: '// menu bar',
+    title: 'macOS app, same vault',
+    body: "Native menu bar app reads the same vault as the CLI. Auto-updates in place. Cmd-click any account, the code's on your clipboard before you switch tabs.",
+  },
+];
+---
+<section class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+  <div class="max-w-2xl mb-10">
+    <h2 class="font-display font-bold tracking-tight text-3xl sm:text-4xl text-text">
+      One vault. <span class="italic font-medium text-brand">Three faces.</span>
+    </h2>
+    <p class="mt-3 text-text-muted">Pick the surface that fits the task — they all read the same encrypted vault.</p>
+  </div>
+  <div class="grid md:grid-cols-3 gap-4">
+    {pillars.map((p) => (
+      <article class="rounded-tofa-lg bg-surface border border-border p-6 hover:border-brand/40 transition-colors">
+        <div class="font-mono text-[10px] uppercase tracking-widest text-brand mb-3">{p.key}</div>
+        <h3 class="font-display font-bold text-xl text-text mb-2">{p.title}</h3>
+        <p class="text-text-muted text-sm leading-relaxed">{p.body}</p>
+      </article>
+    ))}
+  </div>
+</section>

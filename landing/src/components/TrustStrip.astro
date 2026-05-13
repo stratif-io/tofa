@@ -1,0 +1,21 @@
+---
+const items = [
+  'MIT licensed',
+  'no telemetry',
+  'no account',
+  '9 importers',
+  'AES-256-GCM',
+  'Argon2id',
+];
+---
+<section aria-label="Trust signals" class="border-y border-border bg-bg-elevated/40">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-xs text-text-muted justify-center">
+    {items.map((item, idx) => (
+      <span class="inline-flex items-center gap-2">
+        {idx === 0 && <span class="w-1.5 h-1.5 rounded-full bg-success"></span>}
+        {item}
+        {idx < items.length - 1 && <span class="opacity-30">·</span>}
+      </span>
+    ))}
+  </div>
+</section>

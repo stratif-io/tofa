@@ -32,6 +32,7 @@ export default function DemoGallery({ demos }: Props) {
             type="button"
             aria-haspopup="dialog"
             onClick={() => open(i)}
+            data-umami-event={`demo-${d.src.split('/').pop()?.replace(/\.mp4$/, '')}`}
             className="group text-left rounded-tofa-lg bg-bg-sunken border border-border overflow-hidden hover:border-brand/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             <div className="relative aspect-[16/10] bg-bg-elevated overflow-hidden">

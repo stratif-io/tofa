@@ -7,6 +7,12 @@ interface Props extends SeoProps {
 }
 const { jsonLd = [], ...seoProps } = Astro.props;
 const seo = resolveSeo(seoProps);
+
+// Umami analytics — self-hosted at analytics.stratif.io. Script and
+// /api/send are publicly bypassed in papa-data-infra's Caddy block.
+// The website id is baked in at build time; absent in dev/local builds.
+const UMAMI_WEBSITE_ID = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID;
+const UMAMI_SRC = 'https://analytics.stratif.io/script.js';
 ---
 <!doctype html>
 <html lang="en">
@@ -55,6 +61,16 @@ const seo = resolveSeo(seoProps);
   {jsonLd.map((block) => (
     <script is:inline type="application/ld+json" set:html={JSON.stringify(block)} />
   ))}
+
+  {UMAMI_WEBSITE_ID && (
+    <script
+      is:inline
+      defer
+      src={UMAMI_SRC}
+      data-website-id={UMAMI_WEBSITE_ID}
+      data-domains="tofa.stratif.io"
+    />
+  )}
 </head>
 <body class="bg-bg text-text font-sans antialiased">
   <a href="#main" class="sr-only focus:not-sr-only">Skip to content</a>

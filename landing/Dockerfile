@@ -8,6 +8,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
+# Build-time env: Umami website id is baked into the static output.
+# Leave empty to ship without analytics.
+ARG PUBLIC_UMAMI_WEBSITE_ID=""
+ENV PUBLIC_UMAMI_WEBSITE_ID=$PUBLIC_UMAMI_WEBSITE_ID
+
 # Copy the rest and build
 COPY . .
 RUN npm run build

@@ -8,7 +8,7 @@ export default function FAQ({ entries }: Props) {
     <Accordion type="single" collapsible className="w-full">
       {entries.map((e, i) => (
         <AccordionItem key={i} value={`item-${i}`}>
-          <AccordionTrigger>{e.q}</AccordionTrigger>
+          <AccordionTrigger data-umami-event={`faq-open-${i + 1}`}>{e.q}</AccordionTrigger>
           <AccordionContent>{e.a}</AccordionContent>
         </AccordionItem>
       ))}

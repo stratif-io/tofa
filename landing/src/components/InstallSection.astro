@@ -1,0 +1,15 @@
+---
+import Install from './Install';
+---
+<section id="install" class="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+  <div class="mb-8">
+    <h2 class="font-display font-bold tracking-tight text-3xl sm:text-4xl text-text">
+      One line. <span class="italic font-medium text-brand">You're done.</span>
+    </h2>
+  </div>
+  <Install client:visible />
+  <p class="mt-5 text-xs text-text-subtle">
+    macOS: TOFA isn't notarized yet, so macOS quarantines it on first launch.
+    See the <a class="text-brand hover:underline" href="https://docs.tofa.stratif.io/security.html#unsigned-build">unsigned-build note</a> for the one-line fix.
+  </p>
+</section>

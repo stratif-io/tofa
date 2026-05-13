@@ -1,0 +1,90 @@
+---
+const supported = [
+  { name: 'Aegis',              how: 'JSON export' },
+  { name: 'andOTP',             how: 'JSON export' },
+  { name: '2FAS',               how: 'JSON backup' },
+  { name: 'Google Authenticator', how: 'Multi-account migration QR' },
+  { name: 'Bitwarden',          how: 'JSON export' },
+  { name: 'Raivo OTP',          how: 'JSON / ZIP export' },
+  { name: 'Ente Auth',          how: 'Plain-text export' },
+  { name: 'KeePassXC',          how: 'CSV export' },
+  { name: 'FreeOTP / FreeOTP+', how: 'TXT URI export' },
+];
+const upcoming = [
+  { name: '1Password',          how: 'TOTP fields export' },
+  { name: 'Apple Passwords',    how: 'CSV export (macOS 15+)' },
+];
+const impossible = [
+  { name: 'Authy',                    how: 'No user-facing export' },
+  { name: 'Microsoft Authenticator',  how: 'Cloud-only backup, no plain export' },
+];
+---
+<section id="import" class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+  <div class="max-w-2xl mb-10">
+    <h2 class="font-display font-bold tracking-tight text-3xl sm:text-4xl text-text">
+      The last 2FA migration you'll <span class="italic font-medium text-brand">do for a while.</span>
+    </h2>
+    <p class="mt-3 text-text-muted">
+      Pull every account from your existing authenticator into your TOFA vault once. Add new ones from your computer.
+    </p>
+  </div>
+
+  <div class="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 mb-8">
+    {supported.map((s) => (
+      <div class="rounded-tofa-md bg-surface border border-border px-3 py-3 text-center text-xs text-text-muted">
+        <span class="block font-mono text-text">{s.name}</span>
+      </div>
+    ))}
+  </div>
+
+  <div class="overflow-x-auto rounded-tofa-lg border border-border">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left font-mono text-[11px] uppercase tracking-widest text-text-subtle bg-bg-elevated">
+          <th scope="col" class="py-3 px-4">Source</th>
+          <th scope="col" class="py-3 px-4">How</th>
+          <th scope="col" class="py-3 px-4">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border">
+        {supported.map((row) => (
+          <tr>
+            <td class="py-2.5 px-4 text-text font-medium">{row.name}</td>
+            <td class="py-2.5 px-4 text-text-muted">{row.how}</td>
+            <td class="py-2.5 px-4">
+              <span class="inline-flex items-center gap-1.5 font-mono text-xs text-success" aria-label="supported">
+                <span class="w-1.5 h-1.5 rounded-full bg-success"></span>direct
+              </span>
+            </td>
+          </tr>
+        ))}
+        {upcoming.map((row) => (
+          <tr>
+            <td class="py-2.5 px-4 text-text font-medium">{row.name}</td>
+            <td class="py-2.5 px-4 text-text-muted">{row.how}</td>
+            <td class="py-2.5 px-4">
+              <span class="inline-flex items-center gap-1.5 font-mono text-xs text-warning" aria-label="coming soon">
+                <span class="w-1.5 h-1.5 rounded-full bg-warning"></span>coming soon
+              </span>
+            </td>
+          </tr>
+        ))}
+        {impossible.map((row) => (
+          <tr>
+            <td class="py-2.5 px-4 text-text font-medium">{row.name}</td>
+            <td class="py-2.5 px-4 text-text-muted">{row.how}</td>
+            <td class="py-2.5 px-4">
+              <span class="inline-flex items-center gap-1.5 font-mono text-xs text-danger" aria-label="not possible">
+                <span class="w-1.5 h-1.5 rounded-full bg-danger"></span>not possible
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-4 text-xs text-text-subtle">
+    Per-vendor migration guides on <a href="https://docs.tofa.stratif.io/" class="text-brand hover:underline">docs.tofa.stratif.io</a>.
+    Want a vendor prioritized? <a href="https://github.com/stratif-io/tofa/issues/new" class="text-brand hover:underline">Open an issue</a>.
+  </p>
+</section>

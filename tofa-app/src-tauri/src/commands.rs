@@ -29,6 +29,27 @@ fn default_theme() -> String {
     "system".to_string()
 }
 
+/// Take the passphrase + vault path out of the unlocked cache.
+///
+/// If the cache is locked (either explicitly or because `CACHE_TTL` expired
+/// in `state.rs` since the last access), emit `session-locked` so the UI
+/// can return to the lock screen — the silent TTL path is otherwise
+/// invisible to the frontend and surfaces only as a cryptic "locked"
+/// error at the next command invocation.
+fn take_unlocked(
+    state: &Mutex<AppState>,
+    app: &tauri::AppHandle,
+) -> Result<(std::path::PathBuf, Zeroizing<String>), String> {
+    let mut s = state.lock().map_err(|e| e.to_string())?;
+    match s.cache.with_passphrase(|p| Zeroizing::new(p.to_string())) {
+        Some(p) => Ok((s.vault_path.clone(), p)),
+        None => {
+            let _ = app.emit("session-locked", ());
+            Err("locked".to_string())
+        }
+    }
+}
+
 #[tauri::command]
 pub fn vault_exists(state: State<Mutex<AppState>>) -> bool {
     state.lock().map(|s| s.vault_path.exists()).unwrap_or(false)
@@ -88,15 +109,11 @@ pub fn unlock(
 }
 
 #[tauri::command]
-pub async fn get_entries(state: State<'_, Mutex<AppState>>) -> Result<Vec<OtpEntry>, String> {
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+pub async fn get_entries(
+    state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+) -> Result<Vec<OtpEntry>, String> {
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
     tokio::task::spawn_blocking(move || {
         let vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
@@ -112,14 +129,7 @@ pub async fn copy_code(
     state: State<'_, Mutex<AppState>>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
     let code = tokio::task::spawn_blocking(move || {
         let vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
@@ -149,14 +159,7 @@ pub async fn copy_uri(
     state: State<'_, Mutex<AppState>>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
     let uri = tokio::task::spawn_blocking(move || {
         let vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
@@ -181,15 +184,9 @@ pub async fn copy_uri(
 pub async fn get_masked_uri(
     id: String,
     state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
 ) -> Result<String, String> {
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
     tokio::task::spawn_blocking(move || {
         let vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
@@ -241,6 +238,7 @@ pub fn get_settings() -> Result<Settings, String> {
 pub async fn pick_and_import_file(
     window: tauri::Window,
     state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<String>, String> {
     let handle = window.app_handle().clone();
     // pick_files (plural) returns Option<Vec<FilePath>>; the native
@@ -293,14 +291,7 @@ pub async fn pick_and_import_file(
         return Err("No readable files in selection.".into());
     }
 
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
 
     tokio::task::spawn_blocking(move || {
         // Concatenate every file's parsed secrets first, then do one
@@ -398,15 +389,12 @@ pub fn lock(state: State<Mutex<AppState>>, app: tauri::AppHandle) -> Result<(), 
 }
 
 #[tauri::command]
-pub async fn delete_entry(id: String, state: State<'_, Mutex<AppState>>) -> Result<(), String> {
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+pub async fn delete_entry(
+    id: String,
+    state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
     tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
@@ -470,14 +458,7 @@ pub async fn scan_screen(
     );
 
     // 5. Save to vault
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
 
     let app_handle = app.clone();
     let added = tokio::task::spawn_blocking(move || {
@@ -524,6 +505,7 @@ pub async fn scan_screen(
 pub async fn scan_image_bytes(
     b64: String,
     state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<String>, String> {
     use base64::Engine;
     let bytes = base64::engine::general_purpose::STANDARD
@@ -534,14 +516,7 @@ pub async fn scan_image_bytes(
     let otps = extract_otps_from_bytes("drop.png", &bytes)
         .map_err(|_| "No QR code found in image.".to_string())?;
 
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
 
     let added = tokio::task::spawn_blocking(move || {
         let mut vault =
@@ -575,15 +550,9 @@ pub async fn add_from_uri(
     uri: String,
     name: String,
     state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<String>, String> {
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
     tokio::task::spawn_blocking(move || {
         let mut vault =
             tofa_core::store::Vault::load(&vault_path, &passphrase).map_err(|e| e.to_string())?;
@@ -625,18 +594,14 @@ pub async fn add_from_uri(
 }
 
 #[tauri::command]
-pub async fn scan_camera(state: State<'_, Mutex<AppState>>) -> Result<Vec<String>, String> {
+pub async fn scan_camera(
+    state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+) -> Result<Vec<String>, String> {
     use std::io::{BufRead, BufReader, Write as _};
     use std::net::TcpListener;
 
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
 
     let html = cam_html();
 
@@ -730,19 +695,13 @@ pub async fn import_file(
     filename: String,
     b64: String,
     state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<String>, String> {
     use base64::Engine;
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(&b64)
         .map_err(|e| e.to_string())?;
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
     tokio::task::spawn_blocking(move || {
         let otps = extract_otps_from_bytes(&filename, &bytes)?;
         let mut vault =
@@ -798,15 +757,9 @@ fn entries_from_vault(vault: &tofa_core::store::Vault) -> Result<Vec<OtpEntry>, 
 pub async fn generate_entry_qr(
     id: String,
     state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
 ) -> Result<String, String> {
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
 
     tokio::task::spawn_blocking(move || {
         let vault =
@@ -828,15 +781,9 @@ pub async fn generate_entry_qr(
 pub async fn generate_selection_qr(
     ids: Vec<String>,
     state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
 ) -> Result<String, String> {
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
 
     tokio::task::spawn_blocking(move || {
         let vault =
@@ -873,15 +820,9 @@ pub struct OtpauthQrItem {
 pub async fn generate_otpauth_list(
     ids: Vec<String>,
     state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<OtpauthQrItem>, String> {
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
 
     tokio::task::spawn_blocking(move || {
         let vault =
@@ -934,19 +875,13 @@ pub async fn save_uri_list(
     window: tauri::Window,
     ids: Vec<String>,
     state: State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
 ) -> Result<(), String> {
     if ids.is_empty() {
         return Err("nothing to save".to_string());
     }
 
-    let (vault_path, passphrase) = {
-        let mut s = state.lock().map_err(|e| e.to_string())?;
-        let p = s
-            .cache
-            .with_passphrase(|p| Zeroizing::new(p.to_string()))
-            .ok_or("locked")?;
-        (s.vault_path.clone(), p)
-    };
+    let (vault_path, passphrase) = take_unlocked(&state, &app)?;
 
     // Build the URI list off the UI thread — vault load + entry lookup
     // shouldn't block the dialog.

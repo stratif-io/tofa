@@ -836,6 +836,22 @@ $('reveal-passphrase').addEventListener('keydown', e => {
 
 $('search-input').addEventListener('input', e => applyFilter(e.target.value));
 
+// Reset popover state when the backend reports the vault is locked.
+// Fires from `invoke('lock')`, but also from the silent TTL expiry inside
+// `state.rs::PassphraseCache::get` — caught by `take_unlocked` in
+// commands.rs. Without this, the user can sit on view-add with a stale
+// session and only learn about the lock by clicking a button and getting
+// a one-word "locked" toast.
+function onSessionLocked() {
+  stopTick();
+  entries = [];
+  filteredEntries = [];
+  selectedId = null;
+  fromView = 'view-list';
+  init();
+}
+listen('session-locked', onSessionLocked);
+
 // Tray menu events
 listen('tray-action', ({ payload }) => {
   if (payload === 'lock') {

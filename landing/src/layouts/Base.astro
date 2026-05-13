@@ -13,12 +13,11 @@ const seo = resolveSeo(seoProps);
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="dark light" />
+  <meta name="color-scheme" content="dark" />
   <title>{seo.title}</title>
   <meta name="description" content={seo.description} />
   <link rel="canonical" href={seo.canonical} />
-  <meta name="theme-color" content="#0a0a12" media="(prefers-color-scheme: dark)" />
-  <meta name="theme-color" content="#f4f3f8" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0a12" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
   <!-- Open Graph -->
@@ -50,19 +49,7 @@ const seo = resolveSeo(seoProps);
     href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
   />
 
-  <!-- Theme bootstrap — must run before paint -->
-  <script is:inline>
-    (() => {
-      try {
-        const stored = localStorage.getItem('tofa-theme');
-        if (stored === 'light' || stored === 'dark') {
-          document.documentElement.setAttribute('data-theme', stored);
-        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
-      } catch (_) { /* localStorage may be disabled */ }
-    })();
-  </script>
+
 
   <!-- JSON-LD blocks -->
   {jsonLd.map((block) => (

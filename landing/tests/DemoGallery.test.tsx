@@ -14,17 +14,23 @@ describe('DemoGallery', () => {
     HTMLMediaElement.prototype.pause = vi.fn();
   });
 
+  function cardFor(title: string) {
+    // Each card's accessible name is its visible text content (title + sub + body)
+    return screen.getByRole('button', { name: new RegExp(`About ${title}`) });
+  }
+
   it('renders three card thumbnails (poster only, no video) by default', () => {
     render(<DemoGallery demos={demos} />);
-    const triggers = screen.getAllByRole('button', { name: /play demo/i });
-    expect(triggers).toHaveLength(3);
+    expect(cardFor('A')).toBeInTheDocument();
+    expect(cardFor('B')).toBeInTheDocument();
+    expect(cardFor('C')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.queryByTestId('demo-video')).toBeNull();
   });
 
   it('clicking a card opens a theater dialog with the matching video', () => {
     render(<DemoGallery demos={demos} />);
-    fireEvent.click(screen.getAllByRole('button', { name: /play demo/i })[1]);
+    fireEvent.click(cardFor('B'));
     const dialog = screen.getByRole('dialog');
     expect(dialog).toBeInTheDocument();
     const video = screen.getByTestId('demo-video') as HTMLVideoElement;
@@ -34,7 +40,7 @@ describe('DemoGallery', () => {
 
   it('pressing Escape closes the dialog', () => {
     render(<DemoGallery demos={demos} />);
-    fireEvent.click(screen.getAllByRole('button', { name: /play demo/i })[0]);
+    fireEvent.click(cardFor('A'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -42,7 +48,7 @@ describe('DemoGallery', () => {
 
   it('clicking the close button closes the dialog', () => {
     render(<DemoGallery demos={demos} />);
-    fireEvent.click(screen.getAllByRole('button', { name: /play demo/i })[2]);
+    fireEvent.click(cardFor('C'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /close demo/i }));
     expect(screen.queryByRole('dialog')).toBeNull();

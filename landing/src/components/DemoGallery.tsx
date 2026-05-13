@@ -30,7 +30,6 @@ export default function DemoGallery({ demos }: Props) {
             key={d.src}
             ref={(el) => { triggerRefs.current[i] = el; }}
             type="button"
-            aria-label={`Play demo: ${d.title}`}
             aria-haspopup="dialog"
             onClick={() => open(i)}
             className="group text-left rounded-tofa-lg bg-bg-sunken border border-border overflow-hidden hover:border-brand/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"

@@ -64,34 +64,26 @@ const SPEC: MacAppSpec = {
   },
   scene: {
     src: "mac-app.mov",
-    durationSec: 58,
+    durationSec: 53.83,
     // 1280×800 comp consumes a 1728×1080 crop where the popover sits around
     // 60% horizontal. Pulse between an overview (1.0) and tighter pushes
     // (1.5–1.8) so the popover dominates the frame during action moments.
     // Origin keyframes pan vertically around the popover.
     zoom: [
-      [0, 1.0],
-      [2, 1.0],     // overview: full popover + menu bar context
-      [6, 1.6],     // push into the unlock form
-      [12, 1.6],
-      [15, 1.0],    // pull back to show the full account list
-      [22, 1.0],
-      [25, 1.7],    // zoom onto the live codes
-      [38, 1.7],
-      [42, 1.0],    // pull back for the lock + footer moment
-      [58, 1.0],
+      [0, 1],
+      [1, 1.6],
+      [4, 1.6],
     ],
     pan: [
-      [0, [60, 30]],   // popover top (menu-bar + header reveal)
-      [2, [60, 30]],
-      [6, [60, 55]],   // shift down to the passphrase row
-      [12, [60, 55]],
-      [15, [60, 45]],  // re-centre on the popover body
-      [22, [60, 45]],
-      [25, [60, 50]],  // accounts area, mid-popover
-      [38, [60, 50]],
-      [42, [60, 75]],  // drift down toward the lock button
-      [58, [60, 75]],
+      [0, [30, 60]],   
+      [1, [30, 60]],
+      [3, [30, 60]],
+      [4, [120, 40]],
+      [14, [120, 40]],   
+      [15, [120, 60  ]],   
+      [45, [120, 60  ]],   
+      [46, [30, 60  ]],
+      
     ],
     callouts: [
       {

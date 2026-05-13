@@ -50,9 +50,12 @@ const EDIT = {
     // macOS menu-bar context around it. Height stops just past the Create
     // vault button so the yellow desktop sticky stays out — the slight
     // aspect mismatch with 1280×800 letterboxes onto the ink-900 background.
-    crop: { x: 1720, y: 0, w: 1728, h: 1030 },
     segments: [
-      { in: 2.0, out: 60.0 },
+      { in: 0.0, out: 11.14},
+      { in: 14.94, out: 22.0, speed: 5},
+      { in: 22.00, out: 50.86 },
+      { in: 55.76, out: 59.6 },
+      { in: 62, out: 1000 },
     ],
   },
 };

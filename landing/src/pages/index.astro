@@ -1,0 +1,32 @@
+---
+import Base from '../layouts/Base.astro';
+import TopBar from '../components/TopBar.astro';
+import Hero from '../components/Hero.astro';
+import TrustStrip from '../components/TrustStrip.astro';
+import Pillars from '../components/Pillars.astro';
+import DemoSection from '../components/DemoSection.astro';
+import FeatureGrid from '../components/FeatureGrid.astro';
+import ImportCompat from '../components/ImportCompat.astro';
+import Compare from '../components/Compare.astro';
+import Security from '../components/Security.astro';
+import InstallSection from '../components/InstallSection.astro';
+import FAQSection from '../components/FAQSection.astro';
+import Footer from '../components/Footer.astro';
+import { softwareApplicationSchema, faqPageSchema, organizationSchema } from '../lib/schema';
+---
+<Base jsonLd={[softwareApplicationSchema, faqPageSchema, organizationSchema]}>
+  <TopBar />
+  <main id="main">
+    <Hero />
+    <TrustStrip />
+    <Pillars />
+    <DemoSection />
+    <FeatureGrid />
+    <ImportCompat />
+    <Compare />
+    <Security />
+    <InstallSection />
+    <FAQSection />
+  </main>
+  <Footer />
+</Base>

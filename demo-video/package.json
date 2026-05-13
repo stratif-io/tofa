@@ -1,0 +1,27 @@
+{
+  "name": "tofa-demo-video",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Remotion compositions for the TOFA README demo GIFs/videos",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "cut-rush": "node scripts/cut-rush.mjs",
+    "build:mp4": "remotion render src/index.ts ScanCamTour ../docs/demo-scan-cam.mp4 --codec=h264 --crf=22",
+    "build:gif": "ffmpeg -y -i ../docs/demo-scan-cam.mp4 -vf \"fps=15,scale=800:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5\" ../docs/demo-scan-cam.gif",
+    "build:mac-mp4": "remotion render src/index.ts MacAppDemo ../docs/demo-app.mp4 --codec=h264 --crf=22",
+    "build:mac-gif": "ffmpeg -y -i ../docs/demo-app.mp4 -vf \"fps=15,scale=640:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5\" ../docs/demo-app.gif",
+    "build": "npm run cut-rush && npm run build:mp4 && npm run build:gif",
+    "build:mac": "node scripts/cut-rush.mjs macApp && npm run build:mac-mp4 && npm run build:mac-gif"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.404",
+    "@remotion/google-fonts": "^4.0.404",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "4.0.404"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "typescript": "^5.6.3"
+  }
+}

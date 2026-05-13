@@ -36,6 +36,27 @@ intact — never a half-written file.
 The decrypted passphrase is held in a `Zeroizing` buffer with a 10-minute TTL.
 On lock (manual, timeout, or process exit) the buffer is zeroed.
 
+## Unsigned build
+
+The macOS app is **not yet notarized** by Apple. Releases are built and
+distributed unsigned, which means macOS Gatekeeper will quarantine the app on
+first launch and refuse to open it.
+
+To allow it through, run once after install:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/tofa.app
+```
+
+This removes the quarantine flag that macOS adds to apps downloaded from the
+internet. Alternatively, right-click the app in Finder, choose **Open**, and
+confirm the dialog — same effect.
+
+Notarization is on the roadmap. Until then, you can audit the
+[release workflow](https://github.com/stratif-io/tofa/blob/main/.github/workflows/release.yml)
+that produces these binaries, and run `cargo tauri build` locally from the
+same commit to produce your own.
+
 ## Reporting a vulnerability
 
 Open a private security advisory at

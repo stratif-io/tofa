@@ -1,127 +1,206 @@
 <div align="center">
   <img src="tofa-app/src-tauri/icons/128x128@2x.png" width="96" alt="TOFA" />
   <h1>TOFA</h1>
-  <p><strong>Offline, encrypted 2FA — CLI, TUI, and a macOS menu bar app.</strong></p>
+  <p><strong>The 2FA app that lives in your terminal — and your menu bar.</strong></p>
+  <p>Import your phone's authenticator once. Stay in flow.</p>
 
   [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-  [![Rust](https://img.shields.io/badge/rust-1.78%2B-orange.svg)](https://www.rust-lang.org)
+  [![crates.io](https://img.shields.io/crates/v/tofa.svg)](https://crates.io/crates/tofa)
+  [![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org)
+  [![Platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux-lightgrey.svg)](#)
   [![Tauri](https://img.shields.io/badge/tauri-v2-purple.svg)](https://tauri.app)
-  [![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#)
-  [![Docs](https://img.shields.io/badge/docs-live-blue.svg)](https://stratif-io.github.io/tofa/)
+  [![Docs](https://img.shields.io/badge/docs-live-blue.svg)](https://docs.tofa.stratif.io/)
+
+  <p>
+    <a href="https://docs.tofa.stratif.io/">Docs</a> ·
+    <a href="#quick-start">Install</a> ·
+    <a href="https://github.com/stratif-io/tofa/releases">Releases</a> ·
+    <a href="https://github.com/stratif-io/tofa/discussions">Discussions</a>
+  </p>
 </div>
 
 ---
 
-TOFA is a command-line 2FA tool with a full-featured terminal TUI. Secrets stay encrypted on disk with AES-256-GCM — no cloud, no account, no telemetry. A macOS menu bar app is the first GUI built on top of it.
-
-## Why TOFA
-
-You're mid-flow at your desk and a site asks for a 6-digit OTP. You unlock your phone, open the authenticator app, wait for a code, squint at it, and type it in. That interruption is annoying and unnecessary when your Mac is right in front of you.
-
-TOFA lives in your terminal — or in one click from the menu bar. No phone needed.
-
-## CLI & TUI
-
-<!-- demo-cli: replace with an actual GIF or video -->
 <div align="center">
-  <img src="docs/demo-cli.gif" alt="TOFA TUI demo" width="640" />
+  <img src="docs/hero-tui.png" alt="TOFA TUI showing 21 accounts with live OTP codes" height="460" />
+  &nbsp;
+  <img src="docs/hero-app.png" alt="TOFA macOS menu bar app showing the same accounts" height="460" />
+  <p><em>Same vault. Terminal or menu bar. <strong>One passphrase away from every code.</strong></em></p>
 </div>
 
+<details>
+  <summary>📺 <strong>Watch the full tour</strong> — fullscreen view, secret reveal, in-terminal QR, file-picker import, QR export, and CLI commands (~30 s)</summary>
+  <br>
+  <div align="center">
+    <img src="docs/demo-tour.gif" alt="TOFA feature tour" width="780" />
+  </div>
+</details>
+
+<details>
+  <summary>📷 <strong>Scan from screen or webcam</strong> — <code>tofa scan</code> grabs every QR on every display, <code>tofa cam</code> opens your laptop webcam (~37 s)</summary>
+  <br>
+  <div align="center">
+    <img src="docs/demo-scan-cam.gif" alt="tofa scan and tofa cam demo" width="780" />
+  </div>
+</details>
+
+<a id="quick-start"></a>
+
+## ⚡ Quick Start
+
+### CLI + TUI (macOS, Linux)
+
 ```bash
-cargo install --path tofa
-tofa          # open the interactive TUI
+# Homebrew (macOS or Linux)
+brew tap stratif-io/tofa
+brew install tofa
+
+# Cargo (any platform with Rust)
+cargo install tofa
+
+tofa          # open the TUI
 tofa --help   # CLI reference
 ```
 
-**Full reference:** <https://stratif-io.github.io/tofa/>
-
-```
-tofa                               # open the interactive TUI
-tofa init                          # create a new encrypted vault
-tofa add --name GitHub:you --secret JBSWY3DPEHPK3PXP
-tofa add --uri "otpauth://totp/..."
-tofa add --qr ~/Downloads/qr.png
-tofa list                          # show all entries
-tofa code GitHub:you               # print current TOTP code
-tofa code GitHub:you --copy        # copy code to clipboard
-tofa code GitHub:you --uri --copy  # copy the otpauth:// URI instead
-tofa remove GitHub:you
-tofa rename GitHub:you GitHub:me
-tofa rekey                         # change vault passphrase
-tofa export                        # dump vault as JSON (re-importable)
-tofa export --format uris          # write one otpauth:// per line (.txt)
-tofa import accounts.json          # also: .txt, .csv, .png/.jpg/..., .zip
-tofa scan                          # capture all screens, import every QR
-tofa qr GitHub:you                 # display QR in terminal
-tofa completions zsh               # shell completions
-```
-
-`tofa import` accepts every format the desktop app accepts — single-QR
-images, multi-QR images (e.g. a printout of a backup), Google
-Authenticator migration QRs, JSON exports from Aegis / andOTP / 2FAS /
-Bitwarden / FreeOTP+ / Raivo, KeePassXC CSV, Ente Auth's plain-text
-URI list, and zip archives containing any of the above (the desktop
-app's "Save All" output round-trips back through it).
-
-The TUI shows all accounts with live countdown bars, violet accent, and mouse support.
-
-## macOS menu bar app
-
-<!-- demo-app: replace with an actual GIF or video -->
-<div align="center">
-  <img src="docs/demo-app.gif" alt="TOFA menu bar app demo" width="320" />
-</div>
-
-The first GUI built on `tofa-core`. One click from the tray icon opens a compact popover with live codes — no phone, no alt-tab. Leave your phone in your pocket.
+### macOS menu bar app
 
 ```bash
-git clone https://github.com/stratif-io/tofa
-cd tofa/tofa-app
-cargo tauri build        # → src-tauri/target/release/bundle/macos/tofa.app
+brew tap stratif-io/tofa
+brew install --cask tofa
 ```
 
-**Adding accounts:**
+<div align="center">
+  <img src="docs/demo-app.gif" alt="TOFA macOS menu bar app demo" width="640" />
+  <p><em>Same vault as the CLI — menu-bar UI alongside the terminal.</em></p>
+</div>
 
-| Method | How |
-|--------|-----|
-| **Open file** | Single- or multi-QR images (PNG/JPG/…), Aegis / andOTP / 2FAS / Bitwarden / FreeOTP+ / Raivo JSON, KeePassXC CSV, plain-text URI lists, or zip archives mixing any of the above |
-| **Scan screen** | Captures every connected display and decodes every QR code visible — multi-account migration QRs and printout grids supported |
-| **Camera** | Opens a browser-based QR scanner using your webcam |
-| **Paste URI** | One `otpauth://` or `otpauth-migration://` URI for a single account, or a newline-separated list to bulk-import |
+> **First launch:** TOFA isn't notarized yet, so macOS quarantines it.
+> After install, run once:
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/tofa.app
+> ```
+> Or right-click the app in Finder and choose **Open**, then confirm.
+> See [why](https://docs.tofa.stratif.io/security.html#unsigned-build).
 
-**Exporting accounts:**
+## 🔑 Why TOFA
 
-| Method | How |
-|--------|-----|
-| **Single QR** | One `otpauth-migration://` QR for selected accounts (compatible with most authenticators) |
-| **List of QRs** | One `otpauth://` QR per entry — paginated viewer; preserves period / digits / algorithm where the migration format can't |
-| **Save URI list** | A `.txt` file with one `otpauth://` URI per line — round-trips through *Open file* |
-| **Save All (.zip)** | Every account as its own QR PNG plus a printable one-pager (`print.html`) |
-| **Per-entry URI** | "URI" button in the detail view copies that account's `otpauth://` URI to the clipboard |
+- **Phone stays in your pocket.** Import your authenticator once and add new
+  TOTPs from your computer. Your phone keeps working — TOFA is additive, not
+  a replacement.
+- **Offline by design.** No account, no cloud sync, no telemetry. Your secrets
+  live in a single AES-256-GCM file unlocked by your passphrase.
+- **Three faces, one vault.** A `tofa` CLI for scripts, a Ratatui TUI with
+  click-to-copy codes, and a macOS menu bar app. All read the same vault.
 
-The vault locks after 10 minutes of inactivity or manually from the tray menu. Supports dark/light/auto theme and a configurable vault path.
+## ✨ Features
 
-## Architecture
+**Get codes in**
 
-| Package | Role |
-|---|---|
-| `tofa-core` | Rust library — crypto, TOTP generation, QR parsing, vault I/O |
-| `tofa` | Clap CLI + Ratatui TUI — thin shell over `tofa-core` |
-| `tofa-app` | Tauri v2 menu bar app — thin shell over `tofa-core` |
+- **Click any TUI row to copy.** No memorizing names, no typing. The TUI also shows live countdown bars per code.
+- **Import otpauth URIs.** Paste a single `otpauth://totp/…` URI or a newline-separated list to bulk-import — `tofa add --uri` or the app's "Paste URI".
+- **Import QR images.** Drop a PNG/JPG into the app, or `tofa add --qr screenshot.png` from the CLI.
+- **Scan your screens.** `tofa scan` captures every connected display and imports every QR code it finds — handy for multi-account migration QRs and printout grids (CLI only, experimental).
+- **Import from 9 authenticators.** Aegis, andOTP, 2FAS, Bitwarden, Raivo, Ente, KeePassXC, FreeOTP, and Google Authenticator's migration QR — all parsed directly from their export formats.
 
-All business logic lives in `tofa-core`. The CLI, TUI, and app are pure UI layers.
+**Use TOFA day-to-day**
 
-## Vault security
+- **Export to QR.** Re-encode any account or your whole vault as scannable QR codes — a single migration QR, one PNG per account (`tofa qr --all --multi`), or the app's **Save All** zip with a printable `print.html` one-pager.
+- **Encrypted vault.** AES-256-GCM with an Argon2id-derived key. Auto-locks after 10 min idle, or on demand.
+- **Scriptable.** `tofa code github --copy` puts the code on your clipboard on every platform. `TOFA_PASSPHRASE` env var unlocks the vault for CI/automation.
+- **Auto-updating macOS app.** Checks for a new release on launch and every 24 h, then installs signed updates in place. No reinstall, no second trip through Gatekeeper.
+- **Open source, MIT.** No account, no telemetry, no cloud. Audit the crypto in `tofa-core`.
 
-- Key derivation: **Argon2id** (m=64 MiB, t=3, p=1)
-- Encryption: **AES-256-GCM** with a random 96-bit nonce per write
-- Atomic writes: vault saved to a temp file then renamed — no partial writes
-- Passphrase cached in memory with a 10-minute TTL; zeroed on lock via `zeroize`
+## 📥 Migrate from your phone
 
-## Built with
+TOFA's job is to be *the last 2FA migration you do for a while*. Pull every
+account from your existing authenticator into your TOFA vault once, then add
+new ones from your computer.
 
-[Rust](https://www.rust-lang.org) · [Tauri v2](https://tauri.app) · [Ratatui](https://ratatui.rs) · [totp-rs](https://github.com/constantoine/totp-rs) · [Argon2](https://github.com/RustCrypto/password-hashes) · [rqrr](https://github.com/WanzenBug/rqrr) · [Clap](https://github.com/clap-rs/clap)
+| Source                            | How                                | Status                            |
+|-----------------------------------|------------------------------------|-----------------------------------|
+| **Aegis** (Android, FOSS)         | JSON export                        | ✓ direct                          |
+| **andOTP** (Android, FOSS)        | JSON export                        | ✓ direct                          |
+| **2FAS** (iOS / Android)          | JSON backup                        | ✓ direct                          |
+| **Google Authenticator**          | Multi-account migration QR         | ✓ direct                          |
+| **Bitwarden**                     | JSON export                        | ✓ direct                          |
+| **Raivo OTP** (iOS)               | JSON / ZIP export                  | ✓ direct                          |
+| **Ente Auth**                     | Plain-text export                  | ✓ direct                          |
+| **KeePassXC**                     | CSV export                         | ✓ direct                          |
+| **FreeOTP / FreeOTP+**            | TXT URI export                     | ✓ direct                          |
+| Any app with **QR display**       | Screenshot or camera               | ✓ via `tofa add --qr` or the app  |
+| **1Password**                     | TOTP fields export                 | ⏳ Coming soon                     |
+| **Apple Passwords**               | CSV export (macOS 15+)             | ⏳ Coming soon                     |
+| **Authy**                         | No user-facing export              | ✗ Not possible                    |
+| **Microsoft Authenticator**       | Cloud-only backup, no plain export | ✗ Not possible                    |
+
+> **Per-vendor migration guides** — with screenshots and step-by-step import —
+> are coming to the [docs site](https://docs.tofa.stratif.io/). Want a
+> vendor prioritized?
+> [Open an issue](https://github.com/stratif-io/tofa/issues/new).
+
+## 📊 How TOFA compares
+
+|                                 | TOFA | Authy | Google Auth | Microsoft Auth | 1Password | Aegis |
+|---------------------------------|:----:|:-----:|:-----------:|:--------------:|:---------:|:-----:|
+| Open source                     |  ✓   |   ✗   |     ✗       |       ✗        |    ✗      |  ✓    |
+| Works without an account        |  ✓   |   ✗   |     ✓       |       ✗        |    ✗      |  ✓    |
+| Encrypted local vault           |  ✓   |   ✗   |     ✗       |       ✗        |    ✓      |  ✓    |
+| Native CLI                      |  ✓   |   ✗   |     ✗       |       ✗        |    ✓      |  ✗    |
+| Native TUI                      |  ✓   |   ✗   |     ✗       |       ✗        |    ✗      |  ✗    |
+| Desktop app (no phone needed)   |  ✓   |   ✓   |     ✗       |       ✓        |    ✓      |  ✗    |
+| No telemetry                    |  ✓   |   ✗   |     ✗       |       ✗        |    ✗      |  ✓    |
+| Import otpauth URI / QR         |  ✓   |   ✗   |     ✓       |       ✗        |    ✗      |  ✓    |
+| Export your secrets             |  ✓   |   ✗   |     ✓       |       ✗        |    ✗      |  ✓    |
+
+> Comparison reflects published behavior as of 2026. Corrections welcome —
+> open a [PR](https://github.com/stratif-io/tofa/pulls).
+
+## 🔒 Your vault, your responsibility
+
+TOFA stores everything in a single file (default
+`~/.local/share/tofa/vault.json`, configurable), encrypted with
+**AES-256-GCM** under a key derived from your passphrase via **Argon2id**.
+The passphrase never touches disk; it lives in memory with a 10-minute TTL
+and is zeroed on lock.
+
+**No cloud means no recovery.** If you lose the file, no one can restore it.
+If you forget the passphrase, no one can decrypt it. There is no "forgot
+password" link, and that's the point.
+
+**Back up the vault yourself.** A few patterns that work:
+
+- Drop the file in **iCloud Drive**, **Dropbox**, or any folder your OS syncs
+- Run `tofa export` and stash the JSON in a password manager
+- Use `tofa qr <name>` to print a paper backup of any single account
+- Click **Save All** in the macOS app for a zip with one QR PNG per account plus a printable `print.html` one-pager
+
+See the [security model](https://docs.tofa.stratif.io/security.html) for
+the full threat model and crypto choices.
+
+## 🤝 Contributing
+
+Bug reports, vendor migration requests, and PRs are all welcome. Start with
+[CONTRIBUTING.md](./CONTRIBUTING.md) or open a
+[discussion](https://github.com/stratif-io/tofa/discussions).
+
+If TOFA saved you a phone-grab today, a ⭐ on GitHub helps others find it.
+
+## ⭐ Star history
+
+[![Star History Chart](https://api.star-history.com/svg?repos=stratif-io/tofa&type=Date)](https://star-history.com/#stratif-io/tofa&Date)
+
+## 🛠️ Built with
+
+[Rust](https://www.rust-lang.org) ·
+[Tauri v2](https://tauri.app) ·
+[Ratatui](https://ratatui.rs) ·
+[Clap](https://github.com/clap-rs/clap) ·
+[totp-rs](https://github.com/constantoine/totp-rs) ·
+[Argon2](https://github.com/RustCrypto/password-hashes) ·
+[AES-GCM](https://github.com/RustCrypto/AEADs) ·
+[rqrr](https://github.com/WanzenBug/rqrr) ·
+[arboard](https://github.com/1Password/arboard)
 
 ## License
 
-MIT © Carlo Abi Chahine
+[MIT](./LICENSE) © Carlo Abi Chahine

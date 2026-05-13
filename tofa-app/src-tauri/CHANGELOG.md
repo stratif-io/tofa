@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.3](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.11.2...tofa-macos-v0.11.3) (2026-05-13)
+
+
+### Bug Fixes
+
+* **app:** redirect popover to view-locked when vault locks ([5ce357d](https://github.com/stratif-io/tofa/commit/5ce357de7290e795c0d465d63932b7dc940a4849))
+
 ## [0.11.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.11.1...tofa-macos-v0.11.2) (2026-05-13)
 
 

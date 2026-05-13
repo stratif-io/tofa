@@ -1,0 +1,42 @@
+name: Landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'landing/**'
+      - '.github/workflows/landing.yml'
+  pull_request:
+    paths:
+      - 'landing/**'
+      - '.github/workflows/landing.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: landing-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build · check · test · lighthouse
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: landing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: 'landing/.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'landing/package-lock.json'
+
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - run: npm run lhci

@@ -1,0 +1,43 @@
+---
+import TofaWink from './TofaWink.astro';
+const year = new Date().getFullYear();
+---
+<footer class="border-t border-border mt-24">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+    <div class="col-span-2 md:col-span-1 flex flex-col gap-3">
+      <a href="/" class="flex items-center gap-2 text-text">
+        <TofaWink size={32} class="text-brand" />
+        <span class="font-display font-bold tracking-tight text-lg">TOFA</span>
+      </a>
+      <p class="text-text-muted text-xs leading-relaxed">Offline TOTP &amp; 2FA in your terminal and menu bar. Open-source, MIT.</p>
+    </div>
+    <div>
+      <h4 class="font-mono uppercase text-[10px] tracking-widest text-text-subtle mb-3">Product</h4>
+      <ul class="space-y-2 text-text-muted">
+        <li><a href="https://docs.tofa.stratif.io/" class="hover:text-text">Docs</a></li>
+        <li><a href="#install" class="hover:text-text">Install</a></li>
+        <li><a href="https://github.com/stratif-io/tofa/releases" class="hover:text-text">Releases</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="font-mono uppercase text-[10px] tracking-widest text-text-subtle mb-3">Project</h4>
+      <ul class="space-y-2 text-text-muted">
+        <li><a href="https://github.com/stratif-io/tofa" class="hover:text-text">GitHub</a></li>
+        <li><a href="https://github.com/stratif-io/tofa/discussions" class="hover:text-text">Discussions</a></li>
+        <li><a href="https://github.com/stratif-io/tofa/blob/main/CONTRIBUTING.md" class="hover:text-text">Contribute</a></li>
+        <li><a href="https://github.com/stratif-io/tofa/blob/main/LICENSE" class="hover:text-text">MIT License</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="font-mono uppercase text-[10px] tracking-widest text-text-subtle mb-3">Author</h4>
+      <ul class="space-y-2 text-text-muted">
+        <li>by Carlo Abi Chahine</li>
+        <li><a href="https://stratif.io" class="hover:text-text">Stratif</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 pb-8 flex items-center justify-between text-xs text-text-subtle font-mono">
+    <span>© {year} Stratif</span>
+    <span>made with 💜 + ⌨</span>
+  </div>
+</footer>

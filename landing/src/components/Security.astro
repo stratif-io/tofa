@@ -1,0 +1,29 @@
+---
+---
+<section id="security" class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+  <div class="grid lg:grid-cols-[1fr_1.4fr] gap-10 items-start">
+    <div>
+      <h2 class="font-display font-bold tracking-tight text-3xl sm:text-4xl text-text">
+        Your vault. <span class="italic font-medium text-brand">Your responsibility.</span>
+      </h2>
+      <p class="mt-4 text-text-muted">AES-256-GCM with an Argon2id-derived key. The passphrase never touches disk — it lives in memory with a 10-minute TTL and is zeroed on lock.</p>
+      <a href="https://docs.tofa.stratif.io/security.html" class="mt-5 inline-flex items-center gap-2 font-mono text-sm text-brand hover:underline">Read the full threat model →</a>
+    </div>
+    <div class="space-y-4">
+      <blockquote class="rounded-tofa-lg bg-brand-bg border border-brand/25 p-5 text-text">
+        <p class="font-display text-lg leading-snug">
+          No cloud means no recovery. If you lose the file, no one can restore it. If you forget the passphrase, no one can decrypt it. There is no "forgot password" link, and that's the point.
+        </p>
+      </blockquote>
+      <div class="rounded-tofa-lg bg-surface border border-border p-5">
+        <h3 class="font-mono uppercase text-[11px] tracking-widest text-text-subtle mb-3">Back up the vault yourself</h3>
+        <ul class="space-y-2 text-sm text-text-muted">
+          <li>Drop the file in iCloud Drive, Dropbox, or any folder your OS syncs</li>
+          <li>Run <code class="font-mono text-text">tofa export</code> and stash the JSON in a password manager</li>
+          <li>Use <code class="font-mono text-text">tofa qr &lt;name&gt;</code> to print a paper backup</li>
+          <li>Click <strong class="text-text">Save All</strong> in the macOS app for a zip with one QR PNG per account + a printable one-pager</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

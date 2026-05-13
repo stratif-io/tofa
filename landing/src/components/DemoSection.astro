@@ -1,0 +1,36 @@
+---
+import DemoGallery from './DemoGallery';
+
+const demos = [
+  {
+    src:    '/demos/demo-tour.mp4',
+    poster: '/demos/demo-tour-poster.png',
+    title:  'The full tour',
+    sub:    'demo-tour.mp4 · ~30s',
+    body:   'Fullscreen view, secret reveal, in-terminal QR, file-picker import, QR export, and CLI commands.',
+  },
+  {
+    src:    '/demos/demo-scan-cam.mp4',
+    poster: '/demos/demo-scan-cam-poster.png',
+    title:  'Scan from screen or webcam',
+    sub:    'demo-scan-cam.mp4 · ~37s',
+    body:   'tofa scan grabs every QR on every display. tofa cam opens your laptop webcam.',
+  },
+  {
+    src:    '/demos/demo-app.mp4',
+    poster: '/demos/demo-app-poster.png',
+    title:  'The macOS app',
+    sub:    'demo-app.mp4',
+    body:   'Same vault as the CLI — menu-bar UI alongside the terminal. Click-to-copy, search, lock.',
+  },
+];
+---
+<section id="demos" class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+  <div class="max-w-2xl mb-10">
+    <h2 class="font-display font-bold tracking-tight text-3xl sm:text-4xl text-text">
+      See it in <span class="italic font-medium text-brand">thirty seconds.</span>
+    </h2>
+    <p class="mt-3 text-text-muted">Lead demo auto-plays when you scroll into view. The other two play on click — only one plays at a time.</p>
+  </div>
+  <DemoGallery demos={demos} client:visible />
+</section>

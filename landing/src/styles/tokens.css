@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap');
+
+/* ============ TOKENS ============ */
+:root {
+  /* primitive — purple scale */
+  --purple-50:  #f5f1ff;
+  --purple-100: #e8def8;
+  --purple-200: #d4c2ff;
+  --purple-300: #b89eff;
+  --purple-400: #9d7ee8;
+  --purple-500: #8b6fd4;
+  --purple-600: #7559b8;
+  --purple-700: #5d4593;
+  --purple-800: #3d2d66;
+  --purple-900: #1f1438;
+
+  /* primitive — neutral scale */
+  --ink-50:  #f4f3f8;
+  --ink-100: #e8e6f0;
+  --ink-200: #c8c5d4;
+  --ink-300: #a09cb0;
+  --ink-400: #7a7690;
+  --ink-500: #56536b;
+  --ink-600: #3a3850;
+  --ink-700: #25233a;
+  --ink-800: #14131f;
+  --ink-900: #0a0a12;
+
+  /* primitive — semantic */
+  --green:  #4ade80;
+  --amber:  #fbbf24;
+  --red:    #f87171;
+  --pink:   #ff8fa3;
+
+  /* DARK MODE (default) — semantic tokens */
+  --bg:           var(--ink-900);
+  --bg-elevated:  var(--ink-800);
+  --bg-sunken:    #050508;
+  --surface:      var(--ink-800);
+  --surface-2:    var(--ink-700);
+  --border:       #2a2a3a;
+  --border-strong:#3d3d52;
+  --text:         var(--ink-100);
+  --text-muted:   var(--ink-400);
+  --text-subtle:  #5a5870;
+
+  --brand:        var(--purple-300);
+  --brand-bg:     rgba(184, 158, 255, 0.12);
+  --brand-hover:  var(--purple-200);
+  --on-brand:     var(--ink-900);
+
+  --success:      var(--green);
+  --warning:      var(--amber);
+  --danger:       var(--red);
+  --accent:       var(--pink);
+
+  /* spacing scale (4px base) */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  24px;
+  --s-6:  32px;
+  --s-7:  48px;
+  --s-8:  64px;
+
+  /* radius */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 20px;
+
+  /* type */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'Inter', -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'SF Mono', monospace;
+
+  /* motion */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+[data-theme="light"] {
+  --bg:           var(--ink-50);
+  --bg-elevated:  #ffffff;
+  --bg-sunken:    #ebe8f0;
+  --surface:      #ffffff;
+  --surface-2:    #f0eef5;
+  --border:       #d8d4e0;
+  --border-strong:#b8b3c4;
+  --text:         var(--ink-900);
+  --text-muted:   var(--ink-500);
+  --text-subtle:  var(--ink-300);
+
+  --brand:        var(--purple-600);
+  --brand-bg:     rgba(117, 89, 184, 0.08);
+  --brand-hover:  var(--purple-700);
+  --on-brand:     #ffffff;
+}

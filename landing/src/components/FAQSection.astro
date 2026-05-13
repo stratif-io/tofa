@@ -1,0 +1,12 @@
+---
+import FAQ from './FAQ';
+import faq from '../content/faq.json';
+---
+<section id="faq" class="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+  <div class="mb-8">
+    <h2 class="font-display font-bold tracking-tight text-3xl sm:text-4xl text-text">
+      Questions you'd <span class="italic font-medium text-brand">ask a friend.</span>
+    </h2>
+  </div>
+  <FAQ entries={faq.entries} client:visible />
+</section>

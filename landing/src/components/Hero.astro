@@ -1,0 +1,79 @@
+---
+import TofaWink from './TofaWink.astro';
+
+// Build-time random seeds for the OTP rain — stable for the SSR'd page,
+// then re-shuffled client-side every few seconds for variety.
+function randomCode() {
+  const n = Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0');
+  return `${n.slice(0, 3)} ${n.slice(3)}`;
+}
+const otps = Array.from({ length: 22 }, () => ({
+  code:     randomCode(),
+  top:      4 + Math.random() * 92,     // %
+  left:     3 + Math.random() * 94,     // %
+  delay:    Math.random() * 7,           // s
+  duration: 5 + Math.random() * 5,       // s (slower, more ambient)
+  size:     0.72 + Math.random() * 0.58, // rem (less size variance — calmer)
+}));
+---
+<section class="relative overflow-hidden">
+  <div aria-hidden="true" class="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full bg-brand/20 blur-3xl pointer-events-none"></div>
+
+  <div class="otp-rain" aria-hidden="true">
+    {otps.map((o) => (
+      <span
+        class="otp"
+        style={`top:${o.top}%; left:${o.left}%; animation-delay:${o.delay}s; animation-duration:${o.duration}s; font-size:${o.size}rem;`}
+      >{o.code}</span>
+    ))}
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-12 relative">
+    <div class="grid lg:grid-cols-[1.4fr_1fr] gap-10 items-center">
+      <div>
+        <span class="inline-flex items-center gap-2 font-mono text-xs px-3 py-1 rounded-full bg-brand-bg text-brand border border-brand/25 mb-6">
+          ★ open source · MIT · no telemetry
+        </span>
+        <h1 class="font-display font-bold tracking-tight text-[clamp(2.25rem,5.5vw,4rem)] leading-[1.05] text-text">
+          Stop grabbing your <span class="italic font-medium text-brand">phone</span> for codes.
+        </h1>
+        <p class="mt-5 max-w-xl text-text-muted text-base sm:text-lg leading-relaxed">
+          TOFA is the open-source <strong class="text-text font-semibold">TOTP authenticator</strong> for people who live in their computer. A native CLI, TUI, and macOS menu bar app — all reading one offline-encrypted vault. Import 2FA codes from nine authenticators in one go.
+        </p>
+        <div class="mt-7 flex flex-wrap items-center gap-3">
+          <a href="#install" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover transition-colors">
+            Install TOFA →
+          </a>
+          <a href="#demos" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-transparent text-text border border-border-strong text-sm font-medium hover:border-brand transition-colors">
+            See the demos →
+          </a>
+        </div>
+        <div class="mt-7 pt-5 border-t border-border flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] text-text-muted">
+          <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>Works offline</span>
+          <span>· macOS &amp; Linux</span>
+          <span>· AES-256-GCM</span>
+          <span>· Argon2id</span>
+        </div>
+      </div>
+      <div class="hidden lg:flex items-center justify-center">
+        <TofaWink size={240} variant="dark" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+  (() => {
+    const code = () => {
+      const n = Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0');
+      return n.slice(0, 3) + ' ' + n.slice(3);
+    };
+    const els = document.querySelectorAll('.otp-rain .otp');
+    if (!els.length) return;
+    // Stagger refresh so codes don't all change at the same instant
+    els.forEach((el) => {
+      const interval = 3000 + Math.random() * 3500;
+      window.setInterval(() => { el.textContent = code(); }, interval);
+    });
+  })();
+</script>

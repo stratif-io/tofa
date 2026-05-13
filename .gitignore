@@ -20,6 +20,11 @@ tofa-app/src-tauri/gen/
 !tofa-core/tests/fixtures/raivo/*.json
 !tofa-core/tests/fixtures/bitwarden/*.json
 !tofa-core/tests/fixtures/freeotp/*.json
+!landing/package.json
+!landing/package-lock.json
+!landing/tsconfig.json
+!landing/src/content/*.json
+!landing/lighthouserc.json
 
 # Superpowers AI tooling — not part of the project
 docs/superpowers/

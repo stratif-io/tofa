@@ -49,7 +49,7 @@ jobs:
             ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE }}:latest
           build-args: |
-            PUBLIC_UMAMI_WEBSITE_ID=${{ secrets.UMAMI_WEBSITE_ID }}
+            PUBLIC_UMAMI_WEBSITE_ID=${{ secrets.TOFA_UMAMI_WEBSITE_ID }}
           cache-from: type=gha,scope=landing
           cache-to: type=gha,mode=max,scope=landing
 

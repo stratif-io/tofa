@@ -22,7 +22,7 @@ the container on the shared `stratifio-net` Docker network; the host Caddy
 | Secret | Purpose |
 |---|---|
 | `OVH_SSH_PRIVATE_KEY` | SSH key for `ubuntu@ns3150446.ip-51-83-100.eu` |
-| `UMAMI_WEBSITE_ID` | Umami site id (UUID) for `tofa.stratif.io`; baked into the image at build time as `PUBLIC_UMAMI_WEBSITE_ID`. Leave unset to ship without analytics. |
+| `TOFA_UMAMI_WEBSITE_ID` | Umami site id (UUID) for `tofa.stratif.io`; baked into the image at build time as `PUBLIC_UMAMI_WEBSITE_ID`. (Named `TOFA_…` to avoid colliding with the `UMAMI_WEBSITE_ID` secret already in use on other repos.) Leave unset to ship without analytics. |
 
 Sync from Bitwarden via `papa-data-infra`'s `scripts/sync-secrets.sh`.
 
@@ -38,7 +38,9 @@ into Caddy with public bypasses on `/script.js` and `/api/send`).
 
 1. Open `https://analytics.stratif.io`, log in, and add a website for
    `tofa.stratif.io`. Copy the generated **Website ID** (a UUID).
-2. Set it as a GitHub Actions secret on this repo: `UMAMI_WEBSITE_ID`.
+2. Set it as a GitHub Actions secret on this repo: `TOFA_UMAMI_WEBSITE_ID`.
+   (The `TOFA_` prefix avoids collision with the `UMAMI_WEBSITE_ID` secret
+   already in use on other repos that track different sites.)
 3. The next deploy bakes it into the image as `PUBLIC_UMAMI_WEBSITE_ID`
    (Astro env). The build emits the `<script>` tag only when the var is
    present, so local dev / unconfigured environments ship without tracking.

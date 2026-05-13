@@ -30,8 +30,14 @@ export async function getStars(): Promise<number | null> {
   }
 }
 
+// Hide the count until the project has a respectable number of stars —
+// a low count reads as "not many people use this" and hurts more than it helps.
+// Once we cross this threshold the count auto-appears.
+export const STARS_DISPLAY_THRESHOLD = 50;
+
 export function formatStars(n: number | null): string | null {
   if (n === null) return null;
+  if (n < STARS_DISPLAY_THRESHOLD) return null;
   if (n < 1000) return String(n);
   if (n < 10000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
   return `${Math.round(n / 1000)}k`;

@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import TopBar from '../components/TopBar.astro';
+import Footer from '../components/Footer.astro';
+import TofaWink from '../components/TofaWink.astro';
+---
+<Base title="404 — TOFA" description="Page not found.">
+  <TopBar />
+  <main id="main" class="min-h-[60vh] flex items-center justify-center px-4">
+    <div class="text-center max-w-md">
+      <TofaWink size={120} variant="dark" />
+      <h1 class="mt-6 font-display font-bold text-3xl text-text">Page not found</h1>
+      <p class="mt-3 text-text-muted">Sir Wink looked everywhere. The page you wanted isn't here.</p>
+      <a href="/" class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-tofa-md bg-brand text-on-brand font-mono text-sm">Take me home →</a>
+    </div>
+  </main>
+  <Footer />
+</Base>

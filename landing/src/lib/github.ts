@@ -1,0 +1,40 @@
+const REPO = 'stratif-io/tofa';
+const REPO_URL = `https://github.com/${REPO}`;
+
+let cached: number | null | undefined;
+
+export async function getStars(): Promise<number | null> {
+  if (cached !== undefined) return cached;
+  try {
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'tofa-landing-build',
+    };
+    if (process.env.GITHUB_TOKEN) {
+      headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+    }
+    const res = await fetch(`https://api.github.com/repos/${REPO}`, {
+      headers,
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+      cached = null;
+      return null;
+    }
+    const data = (await res.json()) as { stargazers_count?: number };
+    cached = typeof data.stargazers_count === 'number' ? data.stargazers_count : null;
+    return cached;
+  } catch {
+    cached = null;
+    return null;
+  }
+}
+
+export function formatStars(n: number | null): string | null {
+  if (n === null) return null;
+  if (n < 1000) return String(n);
+  if (n < 10000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+  return `${Math.round(n / 1000)}k`;
+}
+
+export const githubRepoUrl = REPO_URL;

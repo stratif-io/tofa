@@ -1,5 +1,9 @@
 ---
 import TofaWink from './TofaWink.astro';
+import { getStars, formatStars, githubRepoUrl } from '../lib/github';
+
+const stars = await getStars();
+const starsLabel = formatStars(stars);
 
 // Build-time random seeds for the OTP rain — stable for the SSR'd page,
 // then re-shuffled client-side every few seconds for variety.
@@ -31,9 +35,13 @@ const otps = Array.from({ length: 22 }, () => ({
   <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-12 relative">
     <div class="grid lg:grid-cols-[1.4fr_1fr] gap-10 items-center">
       <div>
-        <span class="inline-flex items-center gap-2 font-mono text-xs px-3 py-1 rounded-full bg-brand-bg text-brand border border-brand/25 mb-6">
+        <a
+          href={githubRepoUrl}
+          data-umami-event="cta-hero-badge"
+          class="inline-flex items-center gap-2 font-mono text-xs px-3 py-1 rounded-full bg-brand-bg text-brand border border-brand/25 mb-6 hover:border-brand/60 transition-colors"
+        >
           ★ open source · MIT · no telemetry
-        </span>
+        </a>
         <h1 class="font-display font-bold tracking-tight text-[clamp(2.25rem,5.5vw,4rem)] leading-[1.05] text-text">
           Stop grabbing your <span class="italic font-medium text-brand">phone</span> for codes.
         </h1>
@@ -44,7 +52,20 @@ const otps = Array.from({ length: 22 }, () => ({
           <a href="#install" data-umami-event="cta-hero-install" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover transition-colors">
             Install TOFA →
           </a>
-          <a href="#demos" data-umami-event="cta-hero-demos" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-transparent text-text border border-border-strong text-sm font-medium hover:border-brand transition-colors">
+          <a
+            href={githubRepoUrl}
+            data-umami-event="cta-hero-star"
+            class="group inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-transparent text-text border border-border-strong text-sm font-medium hover:border-brand transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+            </svg>
+            Star on GitHub
+            {starsLabel && (
+              <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-bg-elevated text-text-muted group-hover:text-text transition-colors">{starsLabel}</span>
+            )}
+          </a>
+          <a href="#demos" data-umami-event="cta-hero-demos" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-transparent text-text-muted text-sm font-medium hover:text-text transition-colors">
             See the demos →
           </a>
         </div>

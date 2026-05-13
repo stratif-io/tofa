@@ -1,5 +1,6 @@
 ---
 import Install from './Install';
+import { githubRepoUrl } from '../lib/github';
 ---
 <section id="install" class="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
   <div class="mb-8">
@@ -12,4 +13,20 @@ import Install from './Install';
     macOS: TOFA isn't notarized yet, so macOS quarantines it on first launch.
     See the <a class="text-brand underline underline-offset-2" data-umami-event="link-install-unsigned-build" href="https://docs.tofa.stratif.io/security.html#unsigned-build">unsigned-build note</a> for the one-line fix.
   </p>
+  <div class="mt-8 pt-6 border-t border-border flex flex-wrap items-center justify-between gap-4">
+    <p class="text-sm text-text-muted">
+      If TOFA looks useful, <a class="text-text font-medium hover:text-brand underline underline-offset-4 decoration-border-strong hover:decoration-brand transition-colors" data-umami-event="cta-install-star" href={githubRepoUrl}>star the repo</a> — it's the easiest way to say thanks.
+    </p>
+    <a
+      href={githubRepoUrl}
+      data-umami-event="cta-install-star-button"
+      aria-label="Star TOFA on GitHub"
+      class="inline-flex items-center gap-2 px-3 py-1.5 rounded-tofa-md bg-surface border border-border text-text text-sm font-medium hover:border-brand transition-colors"
+    >
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+      </svg>
+      Star on GitHub
+    </a>
+  </div>
 </section>

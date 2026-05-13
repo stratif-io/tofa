@@ -1,0 +1,40 @@
+---
+import TofaWink from './TofaWink.astro';
+---
+<section class="relative overflow-hidden">
+  <div aria-hidden="true" class="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full bg-brand/20 blur-3xl pointer-events-none"></div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-12 relative">
+    <div class="grid lg:grid-cols-[1.4fr_1fr] gap-10 items-center">
+      <div>
+        <span class="inline-flex items-center gap-2 font-mono text-xs px-3 py-1 rounded-full bg-brand-bg text-brand border border-brand/25 mb-6">
+          ★ open source · MIT · no telemetry
+        </span>
+        <h1 class="font-display font-bold tracking-tight text-[clamp(2.25rem,5.5vw,4rem)] leading-[1.05] text-text">
+          Stop grabbing your <span class="italic font-medium text-brand">phone</span> for codes.
+        </h1>
+        <p class="mt-5 max-w-xl text-text-muted text-base sm:text-lg leading-relaxed">
+          TOFA is the 2FA app for people who live in their computer. CLI, TUI, and a macOS menu bar app — all reading one offline-encrypted vault. Import from nine authenticators in one go.
+        </p>
+        <div class="mt-7 flex flex-wrap items-center gap-3">
+          <a href="#install" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-brand text-on-brand font-mono text-sm font-medium hover:bg-brand-hover transition-colors">
+            <span class="text-purple-700">$</span>
+            brew install tofa
+          </a>
+          <a href="#demos" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-transparent text-text border border-border-strong text-sm font-medium hover:border-brand transition-colors">
+            See the demos →
+          </a>
+        </div>
+        <div class="mt-7 pt-5 border-t border-border flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] text-text-muted">
+          <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>Works offline</span>
+          <span>· macOS &amp; Linux</span>
+          <span>· AES-256-GCM</span>
+          <span>· Argon2id</span>
+        </div>
+      </div>
+      <div class="hidden lg:flex items-center justify-center">
+        <TofaWink size={240} variant="dark" />
+      </div>
+    </div>
+  </div>
+</section>

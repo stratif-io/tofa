@@ -31,7 +31,7 @@ export default function Install() {
     <Tabs defaultValue="macos">
       <TabsList>
         {TABS.map((t) => (
-          <TabsTrigger key={t.id} value={t.id}>{t.label}</TabsTrigger>
+          <TabsTrigger key={t.id} value={t.id} data-umami-event={`install-tab-${t.id}`}>{t.label}</TabsTrigger>
         ))}
       </TabsList>
       {TABS.map((t) => (
@@ -39,7 +39,10 @@ export default function Install() {
           <pre className="rounded-tofa-md bg-bg-sunken border border-border p-4 font-mono text-sm text-text overflow-x-auto relative">
             <code>{t.commands.join('\n')}</code>
             <div className="absolute top-2 right-2">
-              <CopyButton value={t.commands.filter((c) => !c.startsWith('#')).join('\n')} />
+              <CopyButton
+                value={t.commands.filter((c) => !c.startsWith('#')).join('\n')}
+                umamiEvent={`install-copy-${t.id}`}
+              />
             </div>
           </pre>
         </TabsContent>

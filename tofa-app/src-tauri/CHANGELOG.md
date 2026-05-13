@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.11.1...tofa-macos-v0.11.2) (2026-05-13)
+
+
+### Bug Fixes
+
+* **app:** stop cutting off the Create vault button in the locked view ([3b7aa0d](https://github.com/stratif-io/tofa/commit/3b7aa0deb4712bce01cba258b90fa4873edb78ea))
+
 ## [0.11.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.11.0...tofa-macos-v0.11.1) (2026-05-11)
 
 

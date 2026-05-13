@@ -1,0 +1,26 @@
+# Local dev artifacts
+node_modules
+dist
+.astro
+.lighthouseci
+playwright-report
+test-results
+.env
+.env.*
+.DS_Store
+
+# Tests and CI assets don't need to be in the build context
+tests
+playwright.config.ts
+lighthouserc.json
+
+# Repo / project metadata (not needed at build time)
+.git
+.gitignore
+README.md
+DEPLOY.md
+Makefile
+
+# The Dockerfile itself + nginx.conf are pulled in explicitly, no need
+# to include unrelated scripts.
+scripts/deploy.sh

@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "q": "Why not use Authy or Google Authenticator?",
+      "a": "Authy shut down its desktop apps. Google Authenticator sync stores your TOTP secrets in your Google account with no end-to-end encryption. TOFA stays offline — your secrets never leave your disk, and you can audit the crypto in tofa-core."
+    },
+    {
+      "q": "What happens if I forget my passphrase?",
+      "a": "Nobody can recover it. No 'forgot password' link, no recovery codes, no cloud. That's the security model. Back up the vault file, and either memorize your passphrase or stash it in a password manager."
+    },
+    {
+      "q": "Does TOFA need to phone home? Ever?",
+      "a": "No. The CLI and TUI never make outbound requests. The macOS app makes one outbound request — to GitHub Releases, to check for updates. You can disable that in preferences."
+    },
+    {
+      "q": "Can I share a vault between Mac and Linux?",
+      "a": "Yes. The vault file is portable. Drop it in iCloud Drive / Dropbox / Syncthing and both machines can read it (one at a time — there's no merge protocol)."
+    },
+    {
+      "q": "Is the macOS app signed and notarized?",
+      "a": "Signed, not yet notarized. First launch needs xattr -dr com.apple.quarantine /Applications/tofa.app or a right-click → Open. We're working on Apple notarization for a future release."
+    },
+    {
+      "q": "What does TOFA stand for?",
+      "a": "Terminal OTP For Authentication. Mascot is Sir Wink — a chubby shield with a QR-code eye and a smile."
+    },
+    {
+      "q": "How is this different from pass-otp?",
+      "a": "pass-otp is a pass extension. TOFA has its own encrypted vault, a TUI with click-to-copy, a CLI, and a menu bar app. If you already use pass, pass-otp is great. If you don't, TOFA is self-contained."
+    },
+    {
+      "q": "Can I import from my password manager?",
+      "a": "Bitwarden (JSON export) and KeePassXC (CSV) are supported today. 1Password and Apple Passwords are coming."
+    },
+    {
+      "q": "Why is the CLI not on Windows?",
+      "a": "Open issue. The Rust crate compiles on Windows; we just haven't tested the full surface there. PRs welcome."
+    }
+  ]
+}

@@ -23,6 +23,8 @@ tofa-app/src-tauri/gen/
 !landing/package.json
 !landing/package-lock.json
 !landing/tsconfig.json
+!landing/src/content/*.json
+!landing/lighthouserc.json
 
 # Superpowers AI tooling — not part of the project
 docs/superpowers/

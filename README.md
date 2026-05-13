@@ -71,7 +71,7 @@ brew install --cask tofa
 
 <div align="center">
   <img src="docs/demo-app.gif" alt="TOFA macOS menu bar app demo" width="640" />
-  <p><em>The macOS app: tray icon → popover → click code.</em></p>
+  <p><em>Same vault as the CLI — menu-bar UI alongside the terminal.</em></p>
 </div>
 
 > **First launch:** TOFA isn't notarized yet, so macOS quarantines it.

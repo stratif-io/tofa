@@ -4,7 +4,8 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] }
+    "paths": { "@/*": ["src/*"] },
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src/**/*", "tests/**/*", "scripts/**/*"],
   "exclude": ["dist", "node_modules"]

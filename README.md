@@ -9,9 +9,11 @@
   [![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org)
   [![Platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux-lightgrey.svg)](#)
   [![Tauri](https://img.shields.io/badge/tauri-v2-purple.svg)](https://tauri.app)
+  [![Website](https://img.shields.io/badge/website-tofa.stratif.io-7559b8.svg)](https://tofa.stratif.io)
   [![Docs](https://img.shields.io/badge/docs-live-blue.svg)](https://docs.tofa.stratif.io/)
 
   <p>
+    <a href="https://tofa.stratif.io">Website</a> ·
     <a href="https://docs.tofa.stratif.io/">Docs</a> ·
     <a href="#quick-start">Install</a> ·
     <a href="https://github.com/stratif-io/tofa/releases">Releases</a> ·

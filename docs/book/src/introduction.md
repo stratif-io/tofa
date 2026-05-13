@@ -9,6 +9,9 @@
 `tofa` is an offline, encrypted 2FA tool for the terminal. Secrets stay on your
 machine in an `AES-256-GCM` vault — no cloud, no account, no telemetry.
 
+> Looking for the marketing site, installer one-liner, demos, and FAQ?
+> → **<https://tofa.stratif.io>**
+
 This site primarily documents the **command-line interface** and its
 companion TUI. The macOS menu bar app — pictured above — reads the same
 vault and is covered in the [project README](https://github.com/stratif-io/tofa).

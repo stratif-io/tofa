@@ -19,14 +19,27 @@ the container on the shared `stratifio-net` Docker network; the host Caddy
 
 ## Secrets required (GitHub Actions on this repo)
 
+Both jobs in `landing-deploy.yml` declare `environment: OVH-PROD`, so the
+following secrets live on the **OVH-PROD** environment (mirrors the
+`stratif.io-saas` layout — repo-level for nothing, env-scoped for everything):
+
 | Secret | Purpose |
 |---|---|
 | `OVH_SSH_PRIVATE_KEY` | SSH key for `ubuntu@ns3150446.ip-51-83-100.eu` |
 | `TOFA_UMAMI_WEBSITE_ID` | Umami site id (UUID) for `tofa.stratif.io`; baked into the image at build time as `PUBLIC_UMAMI_WEBSITE_ID`. (Named `TOFA_…` to avoid colliding with the `UMAMI_WEBSITE_ID` secret already in use on other repos.) Leave unset to ship without analytics. |
 
-Sync from Bitwarden via `papa-data-infra`'s `scripts/sync-secrets.sh`.
+Create the `OVH-PROD` environment once at
+https://github.com/stratif-io/tofa/settings/environments — no required
+reviewers or deployment branch rules needed; the environment exists solely
+to scope these secrets. Then sync from Bitwarden via `papa-data-infra`'s
+`scripts/sync-secrets.sh`.
 
-The built-in `GITHUB_TOKEN` handles GHCR auth — no manual registry setup.
+The built-in `GITHUB_TOKEN` handles GHCR auth in two places:
+- **Build/push** (workflow runner): `docker/login-action` uses it to push to GHCR.
+- **Pull on OVH host**: the deploy step pipes it over SSH and runs
+  `docker login ghcr.io --password-stdin` before `docker pull`, then `docker
+  logout` after. So the package can stay **private** — no manual visibility
+  change required.
 
 ## Umami analytics
 
@@ -57,12 +70,6 @@ into Caddy with public bypasses on `/script.js` and `/api/send`).
 | `faq-open-{1..9}` | FAQ accordion items |
 | `link-security-threat-model`, `link-import-docs`, `link-import-issue`, `link-install-unsigned-build` | inline prose links |
 
-## One-time GHCR visibility
-
-After the first push, set the package visibility to **public** at
-https://github.com/orgs/stratif-io/packages/container/tofa-landing/settings
-so the OVH server can pull without authenticating.
-
 ## Running the image locally
 
 ```bash
@@ -79,15 +86,19 @@ Re-run the workflow against an earlier commit:
 gh workflow run "Landing · deploy" --repo stratif-io/tofa --ref <earlier-sha>
 ```
 
-Or SSH and pull a previous tag manually:
+Or SSH and pull a previous tag manually. Since the package is **private**,
+you need a PAT with `read:packages` scope on the host's `docker login`
+(or run the workflow against the older SHA — easier):
 
 ```bash
 ssh ubuntu@ns3150446.ip-51-83-100.eu
+echo <YOUR_GHCR_PAT> | docker login ghcr.io -u <your-gh-user> --password-stdin
 docker pull ghcr.io/stratif-io/tofa-landing:<old-sha>
 docker rm -f tofa-landing
 docker run -d --name tofa-landing --network stratifio-net \
   --restart unless-stopped \
   ghcr.io/stratif-io/tofa-landing:<old-sha>
+docker logout ghcr.io
 ```
 
 ## Image internals

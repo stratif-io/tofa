@@ -12,7 +12,7 @@ const { fontFamily: monoFamily } = loadJetBrainsMono("normal", {
   weights: ["400", "500", "600", "700"],
   subsets: ["latin"],
 });
-const { fontFamily: faunceFamily } = loadFraunces("normal", {
+const { fontFamily: frauncesFamily } = loadFraunces("normal", {
   weights: ["700"],
   subsets: ["latin"],
 });
@@ -60,7 +60,7 @@ export const tokens = {
   font: {
     mono: `${monoFamily}, "SF Mono", Menlo, Consolas, monospace`,
     body: `${interFamily}, -apple-system, "Segoe UI", Roboto, sans-serif`,
-    display: `${faunceFamily}, Georgia, serif`,
+    display: `${frauncesFamily}, Georgia, serif`,
   },
 
   /** Type scale (1.333 modular, snapped to whole pixels). */

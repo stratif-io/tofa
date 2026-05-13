@@ -101,7 +101,7 @@ const SPEC: TourSpec = {
           enter: 15,
           exit: 19.1,
           eyebrow: "One command",
-          body: "` tofa scan` captures every display and decodes every QR.",
+          body: "`tofa scan` captures every display and decodes every QR.",
         },
         {
           enter: 19.1,

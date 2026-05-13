@@ -5,7 +5,7 @@ import ThemeToggle from '../src/components/ThemeToggle';
 describe('ThemeToggle', () => {
   it('cycles system → dark → light → system', () => {
     render(<ThemeToggle />);
-    const btn = screen.getByRole('button', { name: /toggle theme/i });
+    const btn = screen.getByRole('button', { name: /^theme:/i });
 
     expect(localStorage.getItem('tofa-theme')).toBeNull();
     fireEvent.click(btn);

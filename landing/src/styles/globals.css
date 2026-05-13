@@ -31,10 +31,10 @@ body { min-height: 100dvh; }
   user-select: none;
 }
 @keyframes otp-pop {
-  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.88); }
-  12%      { opacity: 0.20; transform: translate(-50%, -50%) scale(1); }
-  60%      { opacity: 0.20; transform: translate(-50%, -50%) scale(1); }
-  88%      { opacity: 0;    transform: translate(-50%, -50%) scale(1.08); }
+  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.94); }
+  18%      { opacity: 0.08; transform: translate(-50%, -50%) scale(1); }
+  70%      { opacity: 0.08; transform: translate(-50%, -50%) scale(1); }
+  92%      { opacity: 0;    transform: translate(-50%, -50%) scale(1.04); }
 }
 
 /* Easter egg: double-click Sir Wink → the right (closed) eye opens,

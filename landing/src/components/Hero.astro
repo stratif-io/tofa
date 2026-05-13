@@ -7,13 +7,13 @@ function randomCode() {
   const n = Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0');
   return `${n.slice(0, 3)} ${n.slice(3)}`;
 }
-const otps = Array.from({ length: 28 }, () => ({
+const otps = Array.from({ length: 22 }, () => ({
   code:     randomCode(),
-  top:      4 + Math.random() * 92,    // %
-  left:     3 + Math.random() * 94,    // %
-  delay:    Math.random() * 5,          // s
-  duration: 2.4 + Math.random() * 3.6,  // s (each "pop" cycle — much faster)
-  size:     0.72 + Math.random() * 0.95, // rem (more size variety)
+  top:      4 + Math.random() * 92,     // %
+  left:     3 + Math.random() * 94,     // %
+  delay:    Math.random() * 7,           // s
+  duration: 5 + Math.random() * 5,       // s (slower, more ambient)
+  size:     0.72 + Math.random() * 0.58, // rem (less size variance — calmer)
 }));
 ---
 <section class="relative overflow-hidden">
@@ -72,7 +72,7 @@ const otps = Array.from({ length: 28 }, () => ({
     if (!els.length) return;
     // Stagger refresh so codes don't all change at the same instant
     els.forEach((el) => {
-      const interval = 1200 + Math.random() * 2400;
+      const interval = 3000 + Math.random() * 3500;
       window.setInterval(() => { el.textContent = code(); }, interval);
     });
   })();

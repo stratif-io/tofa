@@ -1,5 +1,6 @@
 ---
 import TofaWink from './TofaWink.astro';
+import ThemeToggle from './ThemeToggle';
 ---
 <header class="sticky top-0 z-50 backdrop-blur-md bg-bg/80 border-b border-border">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-6">
@@ -15,9 +16,11 @@ import TofaWink from './TofaWink.astro';
       <a href="https://docs.tofa.stratif.io/" class="hover:text-text transition-colors">Docs</a>
     </nav>
     <div class="ml-auto flex items-center gap-2">
+      <ThemeToggle client:load />
       <a
         href="https://github.com/stratif-io/tofa"
         aria-label="TOFA on GitHub"
+        data-umami-event="link-topbar-github"
         class="inline-flex items-center gap-1.5 font-mono text-xs px-3 py-1.5 rounded-tofa-md border border-border bg-surface text-text-muted hover:text-text hover:border-border-strong transition-colors"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">

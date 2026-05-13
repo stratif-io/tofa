@@ -4,11 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Landing-specific token overrides — the upstream design system's --text-muted
-   (ink-400 on dark) sits at 4.21:1 against surface-dark which fails WCAG AA
-   for body text. Bump to ink-300 (~7.5:1) for the landing surface; the app
-   keeps its original value. */
-:root { --text-muted: var(--ink-300); }
+/* Landing-specific token overrides — the upstream design system's defaults
+   sit just under WCAG AA for body text in places. Bump them on the landing
+   surface only (the app keeps its original values).
+   - dark: --text-muted ink-400 → ink-300 lifts contrast 4.21:1 → ~7.5:1.
+   - light: --text-subtle ink-300 → ink-500 lifts contrast 2.5:1 → ~5.6:1. */
+:root:not([data-theme="light"]) { --text-muted: var(--ink-300); }
+[data-theme="light"] { --text-subtle: var(--ink-500); }
 
 html { background: var(--bg); color: var(--text); font-family: var(--font-body); }
 body { min-height: 100dvh; }

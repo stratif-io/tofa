@@ -2,15 +2,15 @@
 const apps = ['TOFA', 'Authy', 'Google Auth', 'Microsoft Auth', '1Password', 'Aegis'];
 type Row = { feature: string; values: boolean[] };
 const rows: Row[] = [
-  { feature: 'Open source',              values: [true, false, false, false, false, true] },
-  { feature: 'Works without an account', values: [true, false, true,  false, false, true] },
-  { feature: 'Encrypted local vault',    values: [true, false, false, false, true,  true] },
-  { feature: 'Native CLI',               values: [true, false, false, false, true,  false] },
   { feature: 'Native TUI',               values: [true, false, false, false, false, false] },
-  { feature: 'Desktop app (no phone)',   values: [true, true,  false, true,  true,  false] },
+  { feature: 'Native CLI',               values: [true, false, false, false, true,  false] },
+  { feature: 'Open source',              values: [true, false, false, false, false, true] },
   { feature: 'No telemetry',             values: [true, false, false, false, false, true] },
+  { feature: 'Encrypted local vault',    values: [true, false, false, false, true,  true] },
+  { feature: 'Works without an account', values: [true, false, true,  false, false, true] },
   { feature: 'Import otpauth URI / QR',  values: [true, false, true,  false, false, true] },
   { feature: 'Export your secrets',      values: [true, false, true,  false, false, true] },
+  { feature: 'Desktop app (no phone)',   values: [true, true,  false, true,  true,  false] },
 ];
 ---
 <section id="compare" class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">

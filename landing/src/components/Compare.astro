@@ -1,0 +1,50 @@
+---
+const apps = ['TOFA', 'Authy', 'Google Auth', 'Microsoft Auth', '1Password', 'Aegis'];
+type Row = { feature: string; values: boolean[] };
+const rows: Row[] = [
+  { feature: 'Open source',              values: [true, false, false, false, false, true] },
+  { feature: 'Works without an account', values: [true, false, true,  false, false, true] },
+  { feature: 'Encrypted local vault',    values: [true, false, false, false, true,  true] },
+  { feature: 'Native CLI',               values: [true, false, false, false, true,  false] },
+  { feature: 'Native TUI',               values: [true, false, false, false, false, false] },
+  { feature: 'Desktop app (no phone)',   values: [true, true,  false, true,  true,  false] },
+  { feature: 'No telemetry',             values: [true, false, false, false, false, true] },
+  { feature: 'Import otpauth URI / QR',  values: [true, false, true,  false, false, true] },
+  { feature: 'Export your secrets',      values: [true, false, true,  false, false, true] },
+];
+---
+<section id="compare" class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+  <div class="max-w-2xl mb-10">
+    <h2 class="font-display font-bold tracking-tight text-3xl sm:text-4xl text-text">
+      How TOFA <span class="italic font-medium text-brand">compares.</span>
+    </h2>
+    <p class="mt-3 text-text-muted">Comparison reflects published behavior as of 2026. Corrections welcome — open a PR.</p>
+  </div>
+
+  <div class="overflow-x-auto rounded-tofa-lg border border-border">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left font-mono text-[11px] uppercase tracking-widest text-text-subtle bg-bg-elevated">
+          <th scope="col" class="py-3 px-4 sticky left-0 bg-bg-elevated">Feature</th>
+          {apps.map((a, idx) => (
+            <th scope="col" class:list={["py-3 px-4 text-center", idx === 0 && "text-brand"]}>{a}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border">
+        {rows.map((row) => (
+          <tr>
+            <th scope="row" class="py-3 px-4 text-left text-text font-medium sticky left-0 bg-bg">{row.feature}</th>
+            {row.values.map((v, idx) => (
+              <td class:list={["py-3 px-4 text-center", idx === 0 && "bg-brand-bg"]}>
+                {v
+                  ? <span class="text-success" aria-label="supports">✓</span>
+                  : <span class="text-text-subtle" aria-label="does not support">✗</span>}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>

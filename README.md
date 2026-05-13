@@ -22,8 +22,10 @@
 ---
 
 <div align="center">
-  <img src="docs/demo-cli.gif" alt="TOFA TUI demo" width="640" />
-  <p><em>The TUI: live countdown bars, click any row to copy.</em></p>
+  <img src="docs/hero-tui.png" alt="TOFA TUI showing 21 accounts with live OTP codes" height="460" />
+  &nbsp;
+  <img src="docs/hero-app.png" alt="TOFA macOS menu bar app showing the same accounts" height="460" />
+  <p><em>Same vault. Terminal or menu bar. <strong>One passphrase away from every code.</strong></em></p>
 </div>
 
 <details>

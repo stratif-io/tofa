@@ -1,5 +1,11 @@
 # tofa
 
+<div align="center">
+  <img src="./hero-tui.png" alt="TOFA TUI showing 21 accounts with live OTP codes" height="380" />
+  &nbsp;
+  <img src="./hero-app.png" alt="TOFA macOS menu bar app showing the same accounts" height="380" />
+</div>
+
 `tofa` is an offline, encrypted 2FA tool for the terminal. Secrets stay on your
 machine in an `AES-256-GCM` vault — no cloud, no account, no telemetry.
 

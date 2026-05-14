@@ -283,6 +283,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install expect (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y expect
+
       - name: Run install.sh
         run: |
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
@@ -293,13 +297,31 @@ jobs:
           tofa --version
           tofa --help
           # list must fail — no vault yet
-          if printf 'testpass\n' | tofa list; then
+          if tofa list 2>/dev/null; then
             echo "ERROR: tofa list should have failed before init" >&2
             exit 1
           fi
           VAULT_DIR="$(mktemp -d)"
           export TOFA_VAULT="$VAULT_DIR/vault"
-          printf 'testpass\ntestpass\n' | tofa init
-          printf 'testpass\n' | tofa add --name "Test" --secret "JBSWY3DPEHPK3PXP"
-          printf 'testpass\n' | tofa list | grep -q "Test"
+          expect -c "
+            spawn tofa init
+            expect \"Passphrase:\"
+            send \"testpass\r\"
+            expect \"Confirm\"
+            send \"testpass\r\"
+            expect eof
+          "
+          expect -c "
+            spawn tofa add --name Test --secret JBSWY3DPEHPK3PXP
+            expect \"Passphrase:\"
+            send \"testpass\r\"
+            expect eof
+          "
+          expect -c "
+            spawn tofa list
+            expect \"Passphrase:\"
+            send \"testpass\r\"
+            expect \"Test\"
+            expect eof
+          "
           echo "Smoke test passed."

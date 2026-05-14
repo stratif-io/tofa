@@ -3,7 +3,13 @@ name: Publish to crates.io
 on:
   push:
     tags:
-      - 'v[0-9]*'
+      - 'v[0-9]*'             # CLI release tags (publishes tofa-core + tofa)
+      - 'tofa-core-v[0-9]*'   # release-please tag for tofa-core (publishes tofa-core only;
+                              # the tofa step's curl skip-if-published check handles the CLI side)
+  # Manual escape hatch: `gh workflow run publish-crates.yml --ref <tag>`
+  # to retry a publish that didn't fire on tag push (e.g. tag predates this
+  # workflow change, or the run was cancelled).
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always

@@ -2,6 +2,8 @@
 name = "tofa-app"
 version = "0.11.3"
 edition = "2021"
+license = "MIT"
+publish = false
 
 [[bin]]
 name = "Tofa"

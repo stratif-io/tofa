@@ -370,11 +370,29 @@ function restoreAddView() {
 async function openSettings(from) {
   fromView = from ?? currentView();
   let settings;
-  try { settings = await invoke('get_settings'); } catch (_) { settings = { vault_path: '', theme: 'system' }; }
+  try { settings = await invoke('get_settings'); } catch (_) {
+    settings = { vault_path: '', theme: 'system', lock_after_seconds: 600 };
+  }
   const theme = settings.theme || 'system';
+  // settings.lock_after_seconds is number|null (null = never). undefined
+  // shouldn't happen because serde fills the default, but coerce for safety.
+  const initialLockAfter =
+    settings.lock_after_seconds === undefined ? 600 : settings.lock_after_seconds;
 
   const wrap = $('view-add-content');
   if (!wrap) return;
+
+  // Helper: is the loaded value one of the preset buttons?
+  const presets = [60, 300, 600, 3600, 86400];
+  const presetMatch = initialLockAfter === null
+    ? 'never'
+    : (presets.includes(initialLockAfter) ? String(initialLockAfter) : null);
+
+  function lockBtn(val, label) {
+    const active = presetMatch === val ? ' active' : '';
+    return `<button class="settings-seg-btn${active}" data-lock-btn="${val}">${label}</button>`;
+  }
+
   wrap.innerHTML = `
     <div class="settings-section">
       <span class="settings-section-label">Vault path</span>
@@ -397,6 +415,20 @@ async function openSettings(from) {
         </button>
       </div>
     </div>
+    <div class="settings-section">
+      <span class="settings-section-label">Auto-lock after</span>
+      <div class="settings-segmented settings-segmented-grid">
+        ${lockBtn('60', '1m')}
+        ${lockBtn('300', '5m')}
+        ${lockBtn('600', '10m')}
+        ${lockBtn('3600', '1h')}
+        ${lockBtn('86400', '24h')}
+        ${lockBtn('never', 'Never')}
+      </div>
+      <p class="settings-hint" id="settings-lock-hint" style="display:${presetMatch==='never'?'block':'none'};">
+        Not recommended — your passphrase stays in memory until you lock or quit.
+      </p>
+    </div>
     <button id="btn-settings-save" class="btn btn-primary settings-save-btn">Save</button>
     <p id="settings-error" class="settings-error"></p>`;
 
@@ -412,6 +444,19 @@ async function openSettings(from) {
     });
   });
 
+  // Lock-after segmented control. Initialized to the loaded value so that
+  // hand-edited JSON values (e.g., 7 min) round-trip through Save untouched
+  // even when no button highlights for them.
+  let selectedLockAfter = initialLockAfter;
+  wrap.querySelectorAll('[data-lock-btn]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const raw = btn.dataset.lockBtn;
+      selectedLockAfter = raw === 'never' ? null : Number(raw);
+      wrap.querySelectorAll('[data-lock-btn]').forEach(b => b.classList.toggle('active', b === btn));
+      $('settings-lock-hint').style.display = raw === 'never' ? 'block' : 'none';
+    });
+  });
+
   $('btn-browse-vault').addEventListener('click', async () => {
     try {
       const picked = await withPopoverPinned(() => invoke('pick_vault_folder'));
@@ -422,7 +467,13 @@ async function openSettings(from) {
   $('btn-settings-save').addEventListener('click', async () => {
     const vault_path = $('settings-vault-path').value.trim();
     try {
-      await invoke('save_settings', { settings: { vault_path, theme: selectedTheme } });
+      await invoke('save_settings', {
+        settings: {
+          vault_path,
+          theme: selectedTheme,
+          lock_after_seconds: selectedLockAfter,
+        },
+      });
       document.documentElement.setAttribute('data-theme-pref', selectedTheme);
       toast('Settings saved');
       showView('view-locked');

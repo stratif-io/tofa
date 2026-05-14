@@ -36,7 +36,7 @@ jobs:
           version=$(cargo metadata --no-deps --format-version=1 \
             | jq -r '.packages[] | select(.name == "tofa-core") | .version')
           echo "tofa-core local version: $version"
-          if curl -sfI "https://crates.io/api/v1/crates/tofa-core/$version" >/dev/null; then
+          if curl -sfL -o /dev/null "https://crates.io/api/v1/crates/tofa-core/$version"; then
             echo "tofa-core $version already published, skipping"
           else
             cargo publish -p tofa-core
@@ -53,7 +53,7 @@ jobs:
           version=$(cargo metadata --no-deps --format-version=1 \
             | jq -r '.packages[] | select(.name == "tofa") | .version')
           echo "tofa local version: $version"
-          if curl -sfI "https://crates.io/api/v1/crates/tofa/$version" >/dev/null; then
+          if curl -sfL -o /dev/null "https://crates.io/api/v1/crates/tofa/$version"; then
             echo "tofa $version already published, skipping"
           else
             cargo publish -p tofa

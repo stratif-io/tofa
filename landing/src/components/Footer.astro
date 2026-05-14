@@ -1,45 +1,64 @@
 ---
-import TofaWink from './TofaWink.astro';
 import { githubRepoUrl } from '../lib/github';
 
 const year = new Date().getFullYear();
 
 const links = [
-  { href: githubRepoUrl,                                                  label: 'GitHub',      key: 'github'      },
-  { href: 'https://docs.tofa.stratif.io/',                                label: 'Docs',        key: 'docs'        },
-  { href: 'https://github.com/stratif-io/tofa/releases',                  label: 'Releases',    key: 'releases'    },
-  { href: 'https://github.com/stratif-io/tofa/discussions',               label: 'Discussions', key: 'discussions' },
-  { href: 'https://github.com/stratif-io/tofa/blob/main/CONTRIBUTING.md', label: 'Contribute',  key: 'contribute'  },
-  { href: 'https://github.com/stratif-io/tofa/blob/main/LICENSE',         label: 'MIT License', key: 'license'     },
+  { cmd: 'GitHub',      target: 'stratif-io/tofa',        href: githubRepoUrl,                                                    key: 'github'      },
+  { cmd: 'Docs',        target: 'docs.tofa.stratif.io',   href: 'https://docs.tofa.stratif.io/',                                  key: 'docs'        },
+  { cmd: 'Releases',    target: './releases',              href: 'https://github.com/stratif-io/tofa/releases',                    key: 'releases'    },
+  { cmd: 'Discussions', target: './discussions',           href: 'https://github.com/stratif-io/tofa/discussions',                 key: 'discussions' },
+  { cmd: 'Contribute',  target: './CONTRIBUTING.md',       href: 'https://github.com/stratif-io/tofa/blob/main/CONTRIBUTING.md',   key: 'contribute'  },
+  { cmd: 'License',     target: 'MIT',                     href: 'https://github.com/stratif-io/tofa/blob/main/LICENSE',           key: 'license'     },
 ];
 ---
 <footer class="border-t border-border mt-24">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-    <div class="flex items-end gap-3 mb-6">
-      <TofaWink size={48} class="text-brand" />
-      <span class="font-display font-bold tracking-tight text-5xl sm:text-6xl text-text leading-none">TOFA</span>
-    </div>
-    <p class="max-w-2xl text-text-muted text-base leading-relaxed">
-      Offline TOTP &amp; 2FA in your terminal and macOS menu bar. Open-source, MIT. No telemetry. <span class="italic font-medium text-brand">Ever.</span>
-    </p>
+    <div class="font-mono text-sm leading-relaxed text-text-muted">
 
-    <nav aria-label="Footer navigation" class="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm">
-      {links.map((l) => (
-        <a
-          href={l.href}
-          data-umami-event={`link-footer-${l.key}`}
-          class="text-text-muted hover:text-text transition-colors"
-        >{l.label}</a>
-      ))}
-    </nav>
+      <div class="flex items-baseline gap-3">
+        <span aria-hidden="true" class="text-text-subtle select-none">$</span>
+        <span class="text-text">tofa <span class="text-brand">--about</span></span>
+      </div>
+      <div class="mt-3 ml-5 space-y-1">
+        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span class="text-text font-medium">TOFA</span>
+          <span aria-hidden="true" class="text-text-subtle">·</span>
+          <span>MIT</span>
+          <span aria-hidden="true" class="text-text-subtle">·</span>
+          <span>offline</span>
+          <span aria-hidden="true" class="text-text-subtle">·</span>
+          <span>no telemetry</span>
+        </div>
+        <div>
+          Maintained by
+          <a href="https://stratif.io" data-umami-event="link-footer-author" class="text-text hover:text-brand transition-colors">Carlo Abi Chahine</a>
+          at
+          <a href="https://stratif.io" data-umami-event="link-footer-stratif" class="text-text hover:text-brand transition-colors">Stratif</a>
+        </div>
+      </div>
 
-    <div class="mt-12 pt-6 border-t border-border flex flex-wrap items-baseline justify-between gap-3 font-mono text-xs text-text-subtle">
-      <span>
-        Built by <a href="https://stratif.io" class="text-text-muted hover:text-text transition-colors">Carlo Abi Chahine</a>
-        <span aria-hidden="true" class="mx-1">·</span>
-        <a href="https://stratif.io" class="text-text-muted hover:text-text transition-colors">Stratif</a>
-      </span>
-      <span>© {year}</span>
+      <div class="mt-8 flex items-baseline gap-3">
+        <span aria-hidden="true" class="text-text-subtle select-none">$</span>
+        <span class="text-text">tofa <span class="text-brand">--links</span></span>
+      </div>
+      <ul class="mt-3 ml-5 grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-1">
+        {links.map((l) => (
+          <li>
+            <a
+              href={l.href}
+              data-umami-event={`link-footer-${l.key}`}
+              class="group inline-flex items-baseline gap-3 transition-colors"
+            >
+              <span class="text-text-muted group-hover:text-text w-28 inline-block">{l.cmd}</span>
+              <span aria-hidden="true" class="text-text-subtle">→</span>
+              <span class="text-text-subtle group-hover:text-text underline underline-offset-4 decoration-transparent group-hover:decoration-border-strong transition-colors">{l.target}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <div class="mt-10 text-text-subtle"># © {year} Stratif</div>
     </div>
   </div>
 </footer>

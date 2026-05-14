@@ -23,16 +23,25 @@ pub struct Settings {
     pub vault_path: String,
     #[serde(default = "default_theme")]
     pub theme: String, // "system" | "dark" | "light"
+    /// Seconds the unlocked passphrase stays cached in memory. `None`
+    /// means "never auto-lock". Missing in legacy JSON files → falls back
+    /// to 10 min via the serde default below.
+    #[serde(default = "default_lock_after_seconds")]
+    pub lock_after_seconds: Option<u64>,
 }
 
 fn default_theme() -> String {
     "system".to_string()
 }
 
+fn default_lock_after_seconds() -> Option<u64> {
+    Some(crate::state::DEFAULT_LOCK_AFTER_SECONDS)
+}
+
 /// Take the passphrase + vault path out of the unlocked cache.
 ///
-/// If the cache is locked (either explicitly or because `CACHE_TTL` expired
-/// in `state.rs` since the last access), emit `session-locked` so the UI
+/// If the cache is locked (either explicitly or because the cache's TTL
+/// elapsed in `state.rs` since the last access), emit `session-locked` so the UI
 /// can return to the lock screen — the silent TTL path is otherwise
 /// invisible to the frontend and surfaces only as a cryptic "locked"
 /// error at the next command invocation.
@@ -230,6 +239,7 @@ pub fn get_settings() -> Result<Settings, String> {
         Ok(Settings {
             vault_path: default_vault_path().to_string_lossy().to_string(),
             theme: default_theme(),
+            lock_after_seconds: default_lock_after_seconds(),
         })
     }
 }
@@ -361,6 +371,11 @@ pub fn save_settings(settings: Settings, state: State<Mutex<AppState>>) -> Resul
     std::fs::write(&path, s).map_err(|e| e.to_string())?;
     let mut st = state.lock().map_err(|e| e.to_string())?;
     st.vault_path = std::path::PathBuf::from(&settings.vault_path);
+    st.cache.set_lock_after(
+        settings
+            .lock_after_seconds
+            .map(std::time::Duration::from_secs),
+    );
     st.cache.lock();
     Ok(())
 }
@@ -1253,5 +1268,26 @@ mod tests {
             data_uri: "data:text/plain;base64,aGVsbG8=".to_string(),
         };
         assert!(build_qr_zip(&[bad]).is_err());
+    }
+
+    #[test]
+    fn settings_deserialize_legacy_without_lock_after() {
+        let json = r#"{ "vault_path": "/tmp/v.enc", "theme": "system" }"#;
+        let s: Settings = serde_json::from_str(json).unwrap();
+        assert_eq!(s.lock_after_seconds, Some(600));
+    }
+
+    #[test]
+    fn settings_deserialize_never_lock() {
+        let json = r#"{ "vault_path": "/tmp/v.enc", "theme": "dark", "lock_after_seconds": null }"#;
+        let s: Settings = serde_json::from_str(json).unwrap();
+        assert_eq!(s.lock_after_seconds, None);
+    }
+
+    #[test]
+    fn settings_deserialize_explicit_lock_after() {
+        let json = r#"{ "vault_path": "/tmp/v.enc", "theme": "light", "lock_after_seconds": 60 }"#;
+        let s: Settings = serde_json::from_str(json).unwrap();
+        assert_eq!(s.lock_after_seconds, Some(60));
     }
 }

@@ -100,7 +100,21 @@ fn position_popover_under_tray(window: &WebviewWindow) {
 fn position_popover_under_tray(_window: &WebviewWindow) {}
 
 /// Show the popover under the tray on the right monitor, then focus it.
+/// If the passphrase cache TTL elapsed while the popover was hidden,
+/// emit `session-locked` *before* showing the window so the JS handler
+/// has the event in flight before the first paint — avoids a flash of
+/// stale unlocked codes.
 fn show_popover_under_tray(win: &WebviewWindow) {
+    let app = win.app_handle();
+    if let Some(state) = app.try_state::<Mutex<AppState>>() {
+        if let Ok(mut s) = state.lock() {
+            if s.cache.is_expired() {
+                s.cache.lock();
+                let _ = app.emit("session-locked", ());
+            }
+        }
+    }
+
     position_popover_under_tray(win);
     let _ = win.show();
     let _ = win.set_focus();

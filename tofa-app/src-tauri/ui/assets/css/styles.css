@@ -474,6 +474,17 @@ body {
 }
 .settings-seg-btn:hover:not(.active) { color: var(--text); }
 .settings-seg-btn.active { background: var(--brand); color: #fff; font-weight: 600; }
+.settings-segmented-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+.settings-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: var(--s-2);
+}
 .seg-icon { vertical-align: -2px; margin-right: 4px; stroke: currentColor; fill: none; stroke-width: 2; }
 .settings-save-btn { width: 100%; margin-bottom: var(--s-2); }
 .settings-error {

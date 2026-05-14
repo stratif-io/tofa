@@ -2,6 +2,8 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use zeroize::Zeroizing;
 
+const DEFAULT_LOCK_AFTER: Duration = Duration::from_secs(10 * 60);
+
 pub struct PassphraseCache {
     passphrase: Zeroizing<String>,
     unlocked_at: Option<Instant>,
@@ -40,9 +42,12 @@ impl PassphraseCache {
         }
     }
 
-    /// True iff the cache is currently unlocked AND its TTL has elapsed.
-    /// Pure read — does not mutate state. Used by `show_popover_under_tray`
-    /// to flip the UI to the lock screen before the popover becomes visible.
+    /// True iff the cache has been unlocked, a finite TTL is configured,
+    /// and that TTL has now elapsed. Returns `false` when `lock_after` is
+    /// `None` (never-expire mode), even though the cache is unlocked.
+    ///
+    /// Pure read — does not mutate state or self-lock. The next call to
+    /// `get()` will perform the actual lock-and-scrub.
     pub fn is_expired(&self) -> bool {
         match (self.unlocked_at, self.lock_after) {
             (Some(t), Some(ttl)) => t.elapsed() >= ttl,
@@ -91,7 +96,7 @@ impl AppState {
     /// `tofa-app-settings.json` in one read. Missing fields fall back to:
     /// vault_path → `default_vault_path()`, lock_after → 10 min.
     fn load_from_settings() -> (PathBuf, Option<Duration>) {
-        let default_lock = Some(Duration::from_secs(600));
+        let default_lock = Some(DEFAULT_LOCK_AFTER);
         let path = settings_path();
         let Ok(s) = std::fs::read_to_string(&path) else {
             return (default_vault_path(), default_lock);
@@ -105,10 +110,15 @@ impl AppState {
             .map(PathBuf::from)
             .unwrap_or_else(default_vault_path);
 
-        // Three states for lock_after_seconds in the JSON:
+        // Four states for lock_after_seconds in the JSON:
         //   - missing            → default to 10 min
         //   - null               → never expire (None)
-        //   - number             → Some(Duration::from_secs(n))
+        //   - 0                  → Some(Duration::ZERO), i.e. expire on
+        //                          next access. Probably a footgun for
+        //                          hand-edited files, but consistent with
+        //                          the in-memory semantics; the UI only
+        //                          surfaces non-zero preset durations.
+        //   - positive number    → Some(Duration::from_secs(n))
         let lock_after = match v.get("lock_after_seconds") {
             None => default_lock,
             Some(serde_json::Value::Null) => None,
@@ -136,10 +146,9 @@ pub fn settings_path() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::thread::sleep;
 
     fn ten_min() -> Option<Duration> {
-        Some(Duration::from_secs(600))
+        Some(DEFAULT_LOCK_AFTER)
     }
 
     #[test]
@@ -181,7 +190,6 @@ mod tests {
     fn cache_with_none_ttl_never_expires() {
         let mut cache = PassphraseCache::new(None);
         cache.unlock("secret".to_string());
-        sleep(Duration::from_millis(20));
         assert!(!cache.is_expired());
         assert_eq!(cache.get(), Some("secret"));
     }

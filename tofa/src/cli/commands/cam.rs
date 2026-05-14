@@ -80,7 +80,19 @@ fn handle_conn(mut stream: TcpStream) -> Option<String> {
     }
 
     let is_post = request_line.starts_with("POST /result");
+    let is_get_js = request_line.starts_with("GET /jsQR.min.js");
     let is_get = request_line.starts_with("GET /");
+
+    if is_get_js {
+        let js = tofa_core::JSQR_MIN_JS;
+        let resp = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/javascript; charset=utf-8\r\nContent-Length: {}\r\n\r\n{}",
+            js.len(),
+            js
+        );
+        stream.write_all(resp.as_bytes()).ok();
+        return None;
+    }
 
     if is_get {
         let html = build_html();
@@ -255,7 +267,7 @@ function tick() {
     if (!window._jsqrLoaded) {
       window._jsqrLoaded = true;
       const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+      s.src = '/jsQR.min.js';
       s.onload = tick;
       document.head.appendChild(s);
       return;

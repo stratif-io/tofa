@@ -371,6 +371,11 @@ pub fn save_settings(settings: Settings, state: State<Mutex<AppState>>) -> Resul
     std::fs::write(&path, s).map_err(|e| e.to_string())?;
     let mut st = state.lock().map_err(|e| e.to_string())?;
     st.vault_path = std::path::PathBuf::from(&settings.vault_path);
+    st.cache.set_lock_after(
+        settings
+            .lock_after_seconds
+            .map(std::time::Duration::from_secs),
+    );
     st.cache.lock();
     Ok(())
 }

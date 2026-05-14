@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.12.0...tofa-macos-v0.12.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* **landing:** use node:22-alpine in Dockerfile for Astro v6 ([1ed6256](https://github.com/stratif-io/tofa/commit/1ed6256a0bb426b35f01ee56155f663c97ae4fd1))
+
 ## [0.12.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.11.3...tofa-macos-v0.12.0) (2026-05-14)
 
 

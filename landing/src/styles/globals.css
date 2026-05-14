@@ -8,9 +8,18 @@
    sit just under WCAG AA for body text in places. Bump them on the landing
    surface only (the app keeps its original values).
    - dark: --text-muted ink-400 → ink-300 lifts contrast 4.21:1 → ~7.5:1.
-   - light: --text-subtle ink-300 → ink-500 lifts contrast 2.5:1 → ~5.6:1. */
-:root:not([data-theme="light"]) { --text-muted: var(--ink-300); }
-[data-theme="light"] { --text-subtle: var(--ink-500); }
+   - dark: --text-subtle #5a5870 → ink-400 lifts contrast 4.4:1 → ~5.8:1.
+   - light: --text-subtle ink-300 → ink-500 lifts contrast 2.5:1 → ~5.6:1.
+   - light: --bg-elevated / --on-brand pure-white → tinted toward brand. */
+:root:not([data-theme="light"]) {
+  --text-muted:  var(--ink-300);
+  --text-subtle: var(--ink-400);
+}
+[data-theme="light"] {
+  --text-subtle:  var(--ink-500);
+  --bg-elevated:  #fdfcff;
+  --on-brand:     #fdfcff;
+}
 
 html { background: var(--bg); color: var(--text); font-family: var(--font-body); }
 body { min-height: 100dvh; }

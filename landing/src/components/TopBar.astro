@@ -5,26 +5,32 @@ import { getStars, formatStars, githubRepoUrl } from '../lib/github';
 
 const stars = await getStars();
 const starsLabel = formatStars(stars);
+
+const navLinks = [
+  { href: '#features',                          label: 'Features' },
+  { href: '#demos',                             label: 'Demos'    },
+  { href: '#compare',                           label: 'Compare'  },
+  { href: '#install',                           label: 'Install'  },
+  { href: 'https://docs.tofa.stratif.io/',      label: 'Docs'     },
+];
 ---
 <header class="sticky top-0 z-50 backdrop-blur-md bg-bg/80 border-b border-border">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4 sm:gap-6">
     <a href="/" class="flex items-center gap-2 text-text hover:text-brand transition-colors">
       <TofaWink size={28} class="text-brand" />
       <span class="font-display font-bold tracking-tight text-lg">TOFA</span>
     </a>
     <nav class="hidden md:flex items-center gap-5 text-sm font-medium text-text-muted">
-      <a href="#features" class="hover:text-text transition-colors">Features</a>
-      <a href="#demos" class="hover:text-text transition-colors">Demos</a>
-      <a href="#compare" class="hover:text-text transition-colors">Compare</a>
-      <a href="#install" class="hover:text-text transition-colors">Install</a>
-      <a href="https://docs.tofa.stratif.io/" class="hover:text-text transition-colors">Docs</a>
+      {navLinks.map((l) => (
+        <a href={l.href} class="hover:text-text transition-colors">{l.label}</a>
+      ))}
     </nav>
     <div class="ml-auto flex items-center gap-2">
       <a
         href={githubRepoUrl}
         aria-label={starsLabel ? `Star TOFA on GitHub (${starsLabel} stars)` : 'Star TOFA on GitHub'}
         data-umami-event="link-topbar-github"
-        class="inline-flex items-center gap-1.5 font-mono text-xs pl-2.5 pr-1.5 py-1 rounded-tofa-md border border-border bg-surface text-text-muted hover:text-text hover:border-border-strong transition-colors"
+        class="inline-flex items-center gap-1.5 font-mono text-xs min-h-[40px] pl-2.5 pr-1.5 rounded-tofa-md border border-border bg-surface text-text-muted hover:text-text hover:border-border-strong transition-colors"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
@@ -37,6 +43,53 @@ const starsLabel = formatStars(stars);
         )}
       </a>
       <ThemeToggle client:load />
+      <button
+        type="button"
+        id="nav-toggle"
+        aria-label="Open navigation"
+        aria-expanded="false"
+        aria-controls="mobile-nav"
+        class="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-tofa-md border border-border bg-surface text-text-muted hover:text-text hover:border-border-strong transition-colors"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path class="nav-bars" d="M4 7h16M4 12h16M4 17h16" />
+          <path class="nav-close hidden" d="M6 6l12 12M6 18L18 6" />
+        </svg>
+      </button>
     </div>
   </div>
+  <div
+    id="mobile-nav"
+    hidden
+    class="md:hidden border-t border-border bg-bg/95 backdrop-blur-md"
+  >
+    <nav aria-label="Mobile navigation" class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col">
+      {navLinks.map((l) => (
+        <a
+          href={l.href}
+          class="text-text-muted hover:text-text transition-colors py-3 border-b border-border last:border-b-0 text-base"
+        >{l.label}</a>
+      ))}
+    </nav>
+  </div>
 </header>
+
+<script is:inline>
+  (() => {
+    const btn  = document.getElementById('nav-toggle');
+    const menu = document.getElementById('mobile-nav');
+    if (!btn || !menu) return;
+    const bars  = btn.querySelector('.nav-bars');
+    const close = btn.querySelector('.nav-close');
+    const set = (open) => {
+      btn.setAttribute('aria-expanded', String(open));
+      btn.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+      if (open) menu.removeAttribute('hidden'); else menu.setAttribute('hidden', '');
+      bars && bars.classList.toggle('hidden', open);
+      close && close.classList.toggle('hidden', !open);
+    };
+    btn.addEventListener('click', () => set(btn.getAttribute('aria-expanded') !== 'true'));
+    menu.addEventListener('click', (e) => { if (e.target instanceof HTMLAnchorElement) set(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') set(false); });
+  })();
+</script>

@@ -38,7 +38,7 @@ const otps = Array.from({ length: 22 }, () => ({
         <a
           href={githubRepoUrl}
           data-umami-event="cta-hero-badge"
-          class="inline-flex items-center gap-2 font-mono text-xs px-3 py-1 rounded-full bg-brand-bg text-brand border border-brand/25 mb-6 hover:border-brand/60 transition-colors"
+          class="inline-flex items-center gap-2 font-mono text-xs px-3 py-1.5 rounded-full bg-brand-bg text-brand border border-brand/25 mb-6 hover:border-brand/60 transition-colors"
         >
           ★ open source · MIT · no telemetry
         </a>
@@ -46,16 +46,16 @@ const otps = Array.from({ length: 22 }, () => ({
           Stop grabbing your <span class="italic font-medium text-brand">phone</span> for codes.
         </h1>
         <p class="mt-5 max-w-xl text-text-muted text-base sm:text-lg leading-relaxed">
-          TOFA is the open-source <strong class="text-text font-semibold">TOTP authenticator</strong> for people who live in their computer. A native CLI, TUI, and macOS menu bar app — all reading one offline-encrypted vault. Import 2FA codes from nine authenticators in one go.
+          The open-source <strong class="text-text font-semibold">TOTP authenticator</strong> for the terminal and macOS menu bar. One offline vault. No cloud, no account.
         </p>
         <div class="mt-7 flex flex-wrap items-center gap-3">
-          <a href="#install" data-umami-event="cta-hero-install" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover transition-colors">
+          <a href="#install" data-umami-event="cta-hero-install" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-tofa-md bg-brand text-on-brand text-sm font-semibold hover:bg-brand-hover transition-colors">
             Install TOFA →
           </a>
           <a
             href={githubRepoUrl}
             data-umami-event="cta-hero-star"
-            class="group inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-transparent text-text border border-border-strong text-sm font-medium hover:border-brand transition-colors"
+            class="group inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-tofa-md bg-transparent text-text border border-border-strong text-sm font-medium hover:border-brand transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
@@ -65,7 +65,7 @@ const otps = Array.from({ length: 22 }, () => ({
               <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-bg-elevated text-text-muted group-hover:text-text transition-colors">{starsLabel}</span>
             )}
           </a>
-          <a href="#demos" data-umami-event="cta-hero-demos" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-tofa-md bg-transparent text-text-muted text-sm font-medium hover:text-text transition-colors">
+          <a href="#demos" data-umami-event="cta-hero-demos" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-tofa-md bg-transparent text-text-muted text-sm font-medium hover:text-text transition-colors">
             See the demos →
           </a>
         </div>
@@ -85,16 +85,35 @@ const otps = Array.from({ length: 22 }, () => ({
 
 <script is:inline>
   (() => {
+    const rain = document.querySelector('.otp-rain');
+    if (!rain) return;
+    const els = rain.querySelectorAll('.otp');
+    if (!els.length) return;
+
     const code = () => {
       const n = Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0');
       return n.slice(0, 3) + ' ' + n.slice(3);
     };
-    const els = document.querySelectorAll('.otp-rain .otp');
-    if (!els.length) return;
-    // Stagger refresh so codes don't all change at the same instant
-    els.forEach((el) => {
-      const interval = 3000 + Math.random() * 3500;
-      window.setInterval(() => { el.textContent = code(); }, interval);
-    });
+
+    let timers = [];
+    const start = () => {
+      if (timers.length) return;
+      els.forEach((el) => {
+        el.style.animationPlayState = '';
+        const interval = 3000 + Math.random() * 3500;
+        timers.push(window.setInterval(() => { el.textContent = code(); }, interval));
+      });
+    };
+    const stop = () => {
+      timers.forEach((id) => window.clearInterval(id));
+      timers = [];
+      els.forEach((el) => { el.style.animationPlayState = 'paused'; });
+    };
+
+    if (!('IntersectionObserver' in window)) { start(); return; }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) { e.isIntersecting ? start() : stop(); }
+    }, { rootMargin: '100px', threshold: 0 });
+    io.observe(rain);
   })();
 </script>

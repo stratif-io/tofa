@@ -6,8 +6,7 @@ const poster = '/demos/demo-tour-hero-poster.png';
 <div class="relative">
   <div class="relative rounded-tofa-lg bg-bg-sunken border border-border overflow-hidden shadow-lg aspect-[16/10]">
     <video
-      class="absolute inset-0 w-full h-full object-cover motion-reduce:hidden"
-      src={src}
+      class="hero-demo-video absolute inset-0 w-full h-full object-cover motion-reduce:hidden"
       poster={poster}
       autoplay
       muted
@@ -15,7 +14,11 @@ const poster = '/demos/demo-tour-hero-poster.png';
       playsinline
       preload="metadata"
       aria-label="TOFA terminal demo — fullscreen view, secret reveal, QR scan, file import, and CLI commands"
-    ></video>
+    >
+      <!-- Skip the ~4MB fetch on small screens; the poster + tap-through to
+           #demos in the section below covers the mobile case. -->
+      <source src={src} media="(min-width: 768px)" type="video/mp4" />
+    </video>
 
     <a
       href="#demos"

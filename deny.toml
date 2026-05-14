@@ -1,0 +1,86 @@
+# cargo-deny configuration for the tofa workspace.
+# Run with: cargo deny check
+#
+# Reference: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+all-features = false
+no-default-features = false
+
+[output]
+feature-depth = 1
+
+# ---------------------------------------------------------------------------
+# Advisories — RUSTSEC database checks.
+# ---------------------------------------------------------------------------
+[advisories]
+# Each ignored advisory is a transitive dependency we can't fix unilaterally.
+# Revisit on every Tauri major bump.
+ignore = [
+    # GTK3 bindings (10 crates) — pulled in by Tauri 2 on Linux. Will be
+    # resolved when upstream migrates off GTK3.
+    { id = "RUSTSEC-2024-0411", reason = "gdkwayland-sys: transitive via tauri (linux)" },
+    { id = "RUSTSEC-2024-0412", reason = "gdk: transitive via tauri (linux)" },
+    { id = "RUSTSEC-2024-0413", reason = "atk: transitive via tauri (linux)" },
+    { id = "RUSTSEC-2024-0414", reason = "gdkx11-sys: transitive via tauri (linux)" },
+    { id = "RUSTSEC-2024-0415", reason = "gtk: transitive via tauri (linux)" },
+    { id = "RUSTSEC-2024-0416", reason = "atk-sys: transitive via tauri (linux)" },
+    { id = "RUSTSEC-2024-0417", reason = "gdkx11: transitive via tauri (linux)" },
+    { id = "RUSTSEC-2024-0418", reason = "gdk-sys: transitive via tauri (linux)" },
+    { id = "RUSTSEC-2024-0419", reason = "gtk3-macros: transitive via tauri (linux)" },
+    { id = "RUSTSEC-2024-0420", reason = "gtk-sys: transitive via tauri (linux)" },
+    # unic-* (5 crates) — pulled in by urlpattern -> tauri-utils.
+    { id = "RUSTSEC-2025-0075", reason = "unic-char-range: transitive via tauri-utils" },
+    { id = "RUSTSEC-2025-0080", reason = "unic-common: transitive via tauri-utils" },
+    { id = "RUSTSEC-2025-0081", reason = "unic-char-property: transitive via tauri-utils" },
+    { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version: transitive via tauri-utils" },
+    { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident: transitive via tauri-utils" },
+    # Other unmaintained transitives.
+    { id = "RUSTSEC-2024-0370", reason = "proc-macro-error: transitive build-macro dep" },
+    { id = "RUSTSEC-2024-0436", reason = "paste: transitive macro dep" },
+]
+
+# ---------------------------------------------------------------------------
+# Licenses — SPDX allowlist for compatible permissive/copyleft-OK licenses.
+# ---------------------------------------------------------------------------
+[licenses]
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.8
+
+[licenses.private]
+# Ignore workspace crates that are `publish = false`. Covers `xtask`.
+ignore = true
+
+# ---------------------------------------------------------------------------
+# Bans — duplicate crate versions, wildcards, banned crates.
+# ---------------------------------------------------------------------------
+[bans]
+multiple-versions = "warn"
+wildcards = "allow"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+
+# ---------------------------------------------------------------------------
+# Sources — allowed registries/git remotes.
+# ---------------------------------------------------------------------------
+[sources]
+unknown-registry = "warn"
+unknown-git = "warn"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

@@ -33,6 +33,15 @@ jobs:
       - name: test
         run: cargo test --workspace
 
+  # Supply-chain check: RUSTSEC advisories, licenses, bans, sources.
+  # Config: deny.toml. Runs in parallel with the other checks.
+  security:
+    name: Security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
   # CLI + core only on Linux (Tauri requires native GTK/WebKit unavailable here)
   check-linux:
     name: Check (Linux, CLI + core)

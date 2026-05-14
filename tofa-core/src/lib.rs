@@ -21,3 +21,7 @@ pub use totp::{
 /// assert_eq!(tofa_core::VERSION.split('.').count(), 3);
 /// ```
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Vendored `jsQR.min.js` (v1.4.0). Embedded so the camera-scan flow never
+/// has to fetch a third-party CDN at runtime — see AUDIT.md FINDING 1.
+pub const JSQR_MIN_JS: &str = include_str!("../vendor/jsQR.min.js");

@@ -642,7 +642,14 @@ pub async fn scan_camera(
                     content_length = v.trim().parse().unwrap_or(0);
                 }
             }
-            if req_line.starts_with("GET /") {
+            if req_line.starts_with("GET /jsQR.min.js") {
+                let js = tofa_core::JSQR_MIN_JS;
+                let resp = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/javascript; charset=utf-8\r\nContent-Length: {}\r\n\r\n{}",
+                    js.len(), js
+                );
+                stream.write_all(resp.as_bytes()).ok();
+            } else if req_line.starts_with("GET /") {
                 let resp = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\n\r\n{}",
                     html.len(), html

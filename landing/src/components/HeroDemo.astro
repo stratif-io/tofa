@@ -1,0 +1,41 @@
+---
+import TofaWink from './TofaWink.astro';
+const src = '/demos/demo-tour-hero.mp4';
+const poster = '/demos/demo-tour-hero-poster.png';
+---
+<div class="relative">
+  <div class="relative rounded-tofa-lg bg-bg-sunken border border-border overflow-hidden shadow-lg aspect-[16/10]">
+    <video
+      class="hero-demo-video absolute inset-0 w-full h-full object-cover motion-reduce:hidden"
+      poster={poster}
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="metadata"
+      aria-label="TOFA terminal demo — fullscreen view, secret reveal, QR scan, file import, and CLI commands"
+    >
+      <!-- Skip the ~4MB fetch on small screens; the poster + tap-through to
+           #demos in the section below covers the mobile case. -->
+      <source src={src} media="(min-width: 768px)" type="video/mp4" />
+    </video>
+
+    <a
+      href="#demos"
+      class="hidden motion-reduce:flex absolute inset-0 items-center justify-center bg-black/30 hover:bg-black/20 transition-colors"
+      aria-label="Watch the TOFA demo (motion reduced — opens the demo gallery)"
+      data-umami-event="cta-hero-demo-poster"
+    >
+      <img src={poster} alt="" class="absolute inset-0 w-full h-full object-cover" />
+      <div class="relative w-14 h-14 rounded-full bg-brand text-on-brand flex items-center justify-center shadow-lg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </div>
+    </a>
+  </div>
+
+  <div class="hidden lg:flex absolute -top-4 -right-4 w-12 h-12 rounded-full bg-bg-elevated border border-border shadow-md items-center justify-center">
+    <TofaWink size={32} variant="dark" />
+  </div>
+</div>

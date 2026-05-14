@@ -1,15 +1,25 @@
 ---
-const features = [
-  { title: 'Click-to-copy TUI', body: 'Live TOTP countdown bars per code. Click any row to copy the OTP. Search by typing.' },
-  { title: 'Paste otpauth:// URIs', body: 'Standard otpauth TOTP URIs, one or many at a time. tofa add --uri or the app\'s "Paste URI".' },
-  { title: 'Drop a QR image', body: 'tofa add --qr screenshot.png, or drag a PNG/JPG into the macOS app — every TOTP QR is recognized.' },
-  { title: 'Scan your screens', body: 'tofa scan captures every connected display and imports every TOTP QR it finds.' },
-  { title: 'Export to QR', body: 'Single migration QR, one PNG per account, or the Save All zip with a printable one-pager.' },
-  { title: 'Encrypted TOTP vault', body: 'AES-256-GCM with an Argon2id-derived key holds every TOTP secret offline. Auto-locks after 10 min idle.' },
-  { title: 'Scriptable CLI', body: 'TOFA_PASSPHRASE env var unlocks the vault for CI. tofa code <name> clips the OTP on every platform.' },
-  { title: 'Auto-updating macOS app', body: 'Checks for a new release on launch and every 24h. Signed in-place updates.' },
-  { title: 'Open source, MIT', body: 'Audit the RFC 6238 TOTP and crypto code in tofa-core. No telemetry. No cloud. Ever.' },
+import { githubRepoUrl } from '../lib/github';
+
+type Tile = { title: string; body: string; span: 2 | 4 | 6; tag?: string };
+const features: Tile[] = [
+  { title: 'Click-to-copy TUI',        body: 'Live TOTP countdown bars per code. Click any row to copy the OTP. Search by typing.', span: 2 },
+  { title: 'Paste otpauth:// URIs',    body: 'Standard otpauth TOTP URIs, one or many at a time. tofa add --uri or the app\'s "Paste URI".', span: 2 },
+  { title: 'Drop a QR image',          body: 'tofa add --qr screenshot.png, or drag a PNG/JPG into the macOS app — every TOTP QR is recognized.', span: 2 },
+  { title: 'Scan your screens',        body: 'tofa scan captures every connected display and imports every TOTP QR it finds.', span: 2 },
+  { title: 'Export to QR',             body: 'Single migration QR, one PNG per account, or the Save All zip with a printable one-pager.', span: 2 },
+  { title: 'Scriptable CLI',           body: 'TOFA_PASSPHRASE env var unlocks the vault for CI. tofa code <name> clips the OTP on every platform.', span: 2 },
+  { title: 'Encrypted TOTP vault',     body: 'AES-256-GCM with an Argon2id-derived key holds every TOTP secret offline. Auto-locks after 10 min idle.', span: 4, tag: '// crypto' },
+  { title: 'Auto-updating macOS app',  body: 'Checks for a new release on launch and every 24h. Signed in-place updates.', span: 2 },
+  { title: 'Open source, MIT',         body: 'Audit the RFC 6238 TOTP and crypto code in tofa-core. No telemetry. No cloud. Ever.', span: 6 },
 ];
+
+const baseCard = 'rounded-tofa-lg border p-5 transition-colors';
+function cardClass(t: Tile) {
+  if (t.span === 6) return `${baseCard} bg-brand-bg border-brand/25 hover:border-brand/60 sm:col-span-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8`;
+  if (t.span === 4) return `${baseCard} bg-surface border-border hover:border-brand/40 sm:col-span-6 lg:col-span-4`;
+  return `${baseCard} bg-surface border-border hover:border-brand/40 sm:col-span-3 lg:col-span-2`;
+}
 ---
 <section id="features" class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
   <div class="max-w-2xl mb-10">
@@ -17,11 +27,28 @@ const features = [
       Everything you'd want from an authenticator. <span class="italic font-medium text-brand">And then some.</span>
     </h2>
   </div>
-  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-6 gap-4">
     {features.map((f) => (
-      <article class="rounded-tofa-lg bg-surface border border-border p-5 hover:border-brand/40 transition-colors">
-        <h3 class="font-display font-bold text-lg text-text">{f.title}</h3>
-        <p class="mt-2 text-sm text-text-muted leading-relaxed">{f.body}</p>
+      <article class={cardClass(f)}>
+        {f.span === 6 ? (
+          <>
+            <div class="flex-1">
+              <h3 class="font-display font-bold text-lg text-text">{f.title}</h3>
+              <p class="mt-2 text-sm text-text-muted leading-relaxed">{f.body}</p>
+            </div>
+            <a
+              href={githubRepoUrl}
+              data-umami-event="cta-features-github"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-tofa-md bg-bg border border-border-strong text-text text-sm font-medium hover:border-brand transition-colors whitespace-nowrap self-start sm:self-center"
+            >View on GitHub →</a>
+          </>
+        ) : (
+          <>
+            {f.tag && <div class="font-mono text-[10px] uppercase tracking-widest text-brand mb-2">{f.tag}</div>}
+            <h3 class="font-display font-bold text-lg text-text">{f.title}</h3>
+            <p class="mt-2 text-sm text-text-muted leading-relaxed">{f.body}</p>
+          </>
+        )}
       </article>
     ))}
   </div>

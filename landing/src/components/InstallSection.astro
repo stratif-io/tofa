@@ -1,6 +1,7 @@
 ---
 import Install from './Install';
-import { githubRepoUrl } from '../lib/github';
+import { githubRepoUrl, getLatestDmgUrl } from '../lib/github';
+const dmgUrl = await getLatestDmgUrl();
 ---
 <section id="install" class="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
   <div class="mb-8">
@@ -8,7 +9,7 @@ import { githubRepoUrl } from '../lib/github';
       One line. <span class="italic font-medium text-brand">You're done.</span>
     </h2>
   </div>
-  <Install client:visible />
+  <Install client:visible dmgUrl={dmgUrl} />
   <p class="mt-5 text-xs text-text-subtle">
     macOS: TOFA isn't notarized yet, so macOS quarantines it on first launch.
     See the <a class="text-brand underline underline-offset-2" data-umami-event="link-install-unsigned-build" href="https://docs.tofa.stratif.io/security.html#unsigned-build">unsigned-build note</a> for the one-line fix.

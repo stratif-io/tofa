@@ -7,12 +7,14 @@ on:
       - 'docs/book/**'
       - 'tofa/src/cli/**'
       - 'xtask/**'
+      - 'scripts/install.sh'
       - '.github/workflows/docs.yml'
   pull_request:
     paths:
       - 'docs/book/**'
       - 'tofa/src/cli/**'
       - 'xtask/**'
+      - 'scripts/install.sh'
       - '.github/workflows/docs.yml'
 
 permissions:

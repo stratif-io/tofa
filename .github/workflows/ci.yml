@@ -3,7 +3,25 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - 'tofa/**'
+      - 'tofa-core/**'
+      - 'tofa-app/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'deny.toml'
+      - 'scripts/install.sh'
+      - '.github/workflows/ci.yml'
   pull_request:
+    paths:
+      - 'tofa/**'
+      - 'tofa-core/**'
+      - 'tofa-app/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'deny.toml'
+      - 'scripts/install.sh'
+      - '.github/workflows/ci.yml'
 
 jobs:
   # fmt is platform-independent — run once on Linux (fast)
@@ -77,6 +95,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: install-test
 
       - name: Build CLI binary
         run: cargo build --release -p tofa

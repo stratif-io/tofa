@@ -21,6 +21,17 @@
   --on-brand:     #fdfcff;
 }
 
+/* Sir Wink mascot — canonical colors per docs/design/assets/svg/tofa-wink-*.svg.
+   Body shade flips with theme; face is always dark ink (never white). */
+:root:not([data-theme="light"]) {
+  --wink-body: #b89eff;
+  --wink-face: #0a0a12;
+}
+[data-theme="light"] {
+  --wink-body: #7C5CFF;
+  --wink-face: #0a0a12;
+}
+
 html { background: var(--bg); color: var(--text); font-family: var(--font-body); }
 body { min-height: 100dvh; }
 

@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'landing/**'
+      - 'scripts/install.sh'
       - '.github/workflows/landing-deploy.yml'
   workflow_dispatch:
 

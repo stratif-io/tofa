@@ -15,7 +15,7 @@
     "build:mac": "node scripts/cut-rush.mjs macApp && npm run build:mac-mp4 && npm run build:mac-gif"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.404",
+    "@remotion/cli": "^4.0.461",
     "@remotion/google-fonts": "^4.0.404",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

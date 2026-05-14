@@ -5,6 +5,11 @@ interface TabDef { id: string; label: string; commands: string[] }
 
 const TABS: TabDef[] = [
   {
+    id: 'shell',
+    label: 'Shell',
+    commands: ['curl -fsSL https://tofa.stratif.io/install.sh | sh'],
+  },
+  {
     id: 'macos',
     label: 'macOS',
     commands: ['brew tap stratif-io/tofa', 'brew install tofa', '# menu bar app:', 'brew install --cask tofa'],
@@ -12,7 +17,7 @@ const TABS: TabDef[] = [
   {
     id: 'linux',
     label: 'Linux',
-    commands: ['# Homebrew on Linux:', 'brew tap stratif-io/tofa', 'brew install tofa', '# or with Cargo:', 'cargo install tofa'],
+    commands: ['# shell installer (no Rust required):', 'curl -fsSL https://tofa.stratif.io/install.sh | sh', '# or with Homebrew:', 'brew tap stratif-io/tofa', 'brew install tofa'],
   },
   {
     id: 'cargo',
@@ -28,7 +33,7 @@ const TABS: TabDef[] = [
 
 export default function Install() {
   return (
-    <Tabs defaultValue="macos">
+    <Tabs defaultValue="shell">
       <TabsList>
         {TABS.map((t) => (
           <TabsTrigger key={t.id} value={t.id} data-umami-event={`install-tab-${t.id}`}>{t.label}</TabsTrigger>

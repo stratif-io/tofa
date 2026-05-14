@@ -53,6 +53,9 @@
 ### CLI + TUI (macOS, Linux)
 
 ```bash
+# Shell installer (macOS or Linux — no Rust required)
+curl -fsSL https://tofa.stratif.io/install.sh | sh
+
 # Homebrew (macOS or Linux)
 brew tap stratif-io/tofa
 brew install tofa

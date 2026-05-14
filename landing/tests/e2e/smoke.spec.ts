@@ -23,7 +23,9 @@ test('404 page renders', async ({ page }) => {
   await expect(page.locator('h1')).toContainText(/not found/i);
 });
 
-test('install tabs render and macOS tab shows brew command', async ({ page }) => {
+test('install tabs render: shell tab is default, macOS tab shows brew command', async ({ page }) => {
   await page.goto('/#install');
+  await expect(page.locator('#install').getByText('tofa.stratif.io/install.sh').first()).toBeVisible();
+  await page.locator('#install').getByRole('tab', { name: 'macOS' }).click();
   await expect(page.locator('#install').getByText('brew install tofa').first()).toBeVisible();
 });

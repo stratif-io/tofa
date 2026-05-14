@@ -59,3 +59,70 @@ jobs:
 
       - name: test
         run: cargo test -p tofa -p tofa-core
+
+  # ── install.sh smoke test ───────────────────────────────────────────────────
+  install-test:
+    name: Install & smoke test (${{ matrix.os }})
+    # On PRs and pushes to main: build locally.
+    # On release tags (v*): handled by release-install-test in release.yml.
+    if: "!startsWith(github.ref_name, 'v')"
+    runs-on: ${{ matrix.os }}
+    needs: [check-linux, check-macos]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: install-test-${{ matrix.os }}
+
+      - name: Build CLI binary
+        run: cargo build --release -p tofa
+
+      - name: Install binary to ~/.local/bin
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          cp target/release/tofa "$HOME/.local/bin/tofa"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install expect (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y expect
+
+      - name: Smoke test
+        run: |
+          tofa --version
+          tofa --help
+          # list must fail — no vault yet
+          if tofa list 2>/dev/null; then
+            echo "ERROR: tofa list should have failed before init" >&2
+            exit 1
+          fi
+          VAULT_DIR="$(mktemp -d)"
+          export TOFA_VAULT="$VAULT_DIR/vault"
+          expect -c "
+            spawn tofa init
+            expect \"Passphrase:\"
+            send \"testpass\r\"
+            expect \"Confirm\"
+            send \"testpass\r\"
+            expect eof
+          "
+          expect -c "
+            spawn tofa add --name Test --secret JBSWY3DPEHPK3PXP
+            expect \"Passphrase:\"
+            send \"testpass\r\"
+            expect eof
+          "
+          expect -c "
+            spawn tofa list
+            expect \"Passphrase:\"
+            send \"testpass\r\"
+            expect \"Test\"
+            expect eof
+          "
+          echo "Smoke test passed."

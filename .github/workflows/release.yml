@@ -270,3 +270,58 @@ jobs:
                 \"sha_dmg\": \"$SHA_DMG\"
               }
             }"
+
+  # ── Post-release install.sh smoke test ─────────────────────────────────────
+  release-install-test:
+    name: Release install smoke test (${{ matrix.os }})
+    if: startsWith(github.ref_name, 'v')
+    needs: [release]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install expect (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y expect
+
+      - name: Run install.sh
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          VERSION="${GITHUB_REF_NAME#v}" sh scripts/install.sh
+
+      - name: Smoke test
+        run: |
+          tofa --version
+          tofa --help
+          # list must fail — no vault yet
+          if tofa list 2>/dev/null; then
+            echo "ERROR: tofa list should have failed before init" >&2
+            exit 1
+          fi
+          VAULT_DIR="$(mktemp -d)"
+          export TOFA_VAULT="$VAULT_DIR/vault"
+          expect -c "
+            spawn tofa init
+            expect \"Passphrase:\"
+            send \"testpass\r\"
+            expect \"Confirm\"
+            send \"testpass\r\"
+            expect eof
+          "
+          expect -c "
+            spawn tofa add --name Test --secret JBSWY3DPEHPK3PXP
+            expect \"Passphrase:\"
+            send \"testpass\r\"
+            expect eof
+          "
+          expect -c "
+            spawn tofa list
+            expect \"Passphrase:\"
+            send \"testpass\r\"
+            expect \"Test\"
+            expect eof
+          "
+          echo "Smoke test passed."

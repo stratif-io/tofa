@@ -25,6 +25,13 @@ let selectedId = null;
 let tickInterval = null;
 let fromView = 'view-list'; // view to return to when pressing Back
 
+// Auto-lock tracking — JS mirrors the cache TTL so we can flip the UI to the
+// locked view *while the popover is open*, not just on next show. Both fields
+// are reset on lock (button, settings save, session-locked event). Reading
+// them in tick() avoids an IPC round-trip per second.
+let unlockedAtMs = null;
+let lockAfterSeconds = 600; // refreshed from settings in init() and on save
+
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
@@ -127,6 +134,7 @@ async function init() {
     const s = await invoke('get_settings');
     applyTheme(s.theme || 'system');
     document.documentElement.setAttribute('data-theme-pref', s.theme || 'system');
+    lockAfterSeconds = s.lock_after_seconds === undefined ? 600 : s.lock_after_seconds;
   } catch (_) {
     applyTheme('system');
   }
@@ -231,6 +239,21 @@ function stopTick() {
 }
 
 function tick() {
+  // Auto-lock while visible: if the configured TTL has elapsed since
+  // unlock, fire `lock` and let the session-locked event flip the UI.
+  // Doing this in JS (rather than a Rust background timer) keeps the
+  // truth in one place and works while the popover is hidden too,
+  // since setInterval keeps firing whether the webview is visible or not.
+  if (unlockedAtMs !== null && lockAfterSeconds !== null) {
+    const elapsedSec = (Date.now() - unlockedAtMs) / 1000;
+    if (elapsedSec >= lockAfterSeconds) {
+      unlockedAtMs = null;
+      stopTick();
+      invoke('lock').catch(() => {});
+      return;
+    }
+  }
+
   const secs = OTP.secondsRemaining();
   const globalBar = $('global-progress-bar');
   const pct = (secs / 30) * 100;
@@ -585,15 +608,21 @@ $('form-unlock').addEventListener('submit', async e => {
   errEl.style.visibility = 'hidden';
   errEl.textContent = '';
   const btn = $('btn-unlock-submit');
-  btn.classList.add('active');
-  setTimeout(() => btn.classList.remove('active'), 200);
-  loaderStart();
-  setLogoEye(true);
-  await new Promise(r => setTimeout(r, 1000));
-  const closeEyeAfterDelay = () => setLogoEye(false);
+  const originalBtnText = btn.textContent;
 
+  // Vault check has to happen *before* we show the spinner so the message
+  // matches the action (unlock vs create). It's a cheap check — pure file
+  // exists() — so the user doesn't perceive the wait.
   let vaultExists;
   try { vaultExists = await invoke('vault_exists'); } catch (_) { vaultExists = true; }
+
+  // Disable the button + flip its label so it's obvious the click landed.
+  // Argon2id KDF in debug builds can run several seconds; without this
+  // affordance the UI feels frozen.
+  btn.disabled = true;
+  btn.textContent = vaultExists ? 'Unlocking…' : 'Creating…';
+  loaderStart();
+  setLogoEye(true);
   showBlocking(vaultExists ? 'Decrypting vault…' : 'Creating vault…');
 
   try {
@@ -605,23 +634,24 @@ $('form-unlock').addEventListener('submit', async e => {
       if (passphrase !== confirm) {
         errEl.textContent = 'Passphrases do not match.';
         errEl.style.visibility = 'visible';
-        loaderDone();
-        closeEyeAfterDelay();
-        hideBlocking();
+        setLogoEye(false);
         return;
       }
       data = await invoke('create_vault', { passphrase });
     }
     renderList(data);
+    unlockedAtMs = Date.now();
     startTick();
     showView('view-list');
   } catch (err) {
     errEl.textContent = String(err);
     errEl.style.visibility = 'visible';
-    closeEyeAfterDelay(); // wrong passphrase — close eye after delay
+    setLogoEye(false); // wrong passphrase — close the eye
   } finally {
     loaderDone();
     hideBlocking();
+    btn.disabled = false;
+    btn.textContent = originalBtnText;
     $('input-passphrase').value = '';
     $('input-passphrase-confirm').value = '';
   }
@@ -895,6 +925,7 @@ $('search-input').addEventListener('input', e => applyFilter(e.target.value));
 // a one-word "locked" toast.
 function onSessionLocked() {
   stopTick();
+  unlockedAtMs = null;
   entries = [];
   filteredEntries = [];
   selectedId = null;

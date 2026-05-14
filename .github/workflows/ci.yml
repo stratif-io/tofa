@@ -3,7 +3,25 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - 'tofa/**'
+      - 'tofa-core/**'
+      - 'tofa-app/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'deny.toml'
+      - 'scripts/install.sh'
+      - '.github/workflows/ci.yml'
   pull_request:
+    paths:
+      - 'tofa/**'
+      - 'tofa-core/**'
+      - 'tofa-app/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'deny.toml'
+      - 'scripts/install.sh'
+      - '.github/workflows/ci.yml'
 
 jobs:
   # fmt is platform-independent — run once on Linux (fast)

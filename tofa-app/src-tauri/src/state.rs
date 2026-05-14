@@ -2,7 +2,8 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use zeroize::Zeroizing;
 
-const DEFAULT_LOCK_AFTER: Duration = Duration::from_secs(10 * 60);
+pub const DEFAULT_LOCK_AFTER_SECONDS: u64 = 10 * 60;
+const DEFAULT_LOCK_AFTER: Duration = Duration::from_secs(DEFAULT_LOCK_AFTER_SECONDS);
 
 pub struct PassphraseCache {
     passphrase: Zeroizing<String>,

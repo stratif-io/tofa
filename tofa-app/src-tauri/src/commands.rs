@@ -35,13 +35,13 @@ fn default_theme() -> String {
 }
 
 fn default_lock_after_seconds() -> Option<u64> {
-    Some(600)
+    Some(crate::state::DEFAULT_LOCK_AFTER_SECONDS)
 }
 
 /// Take the passphrase + vault path out of the unlocked cache.
 ///
-/// If the cache is locked (either explicitly or because `CACHE_TTL` expired
-/// in `state.rs` since the last access), emit `session-locked` so the UI
+/// If the cache is locked (either explicitly or because the cache's TTL
+/// elapsed in `state.rs` since the last access), emit `session-locked` so the UI
 /// can return to the lock screen — the silent TTL path is otherwise
 /// invisible to the frontend and surfaces only as a cryptic "locked"
 /// error at the next command invocation.

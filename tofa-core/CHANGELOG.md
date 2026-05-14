@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.2](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.1...tofa-core-v0.11.2) (2026-05-14)
+
+
+### Bug Fixes
+
+* **landing:** use node:22-alpine in Dockerfile for Astro v6 ([1ed6256](https://github.com/stratif-io/tofa/commit/1ed6256a0bb426b35f01ee56155f663c97ae4fd1))
+
 ## [0.11.1](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.0...tofa-core-v0.11.1) (2026-05-14)
 
 

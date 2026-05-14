@@ -95,6 +95,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: install-test
 
       - name: Build CLI binary
         run: cargo build --release -p tofa

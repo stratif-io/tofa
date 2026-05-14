@@ -1,4 +1,4 @@
 {
-  "tofa-core": "0.11.0",
-  "tofa-app/src-tauri": "0.11.3"
+  "tofa-core": "0.11.1",
+  "tofa-app/src-tauri": "0.12.0"
 }

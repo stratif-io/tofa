@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.12.0](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.11.3...tofa-macos-v0.12.0) (2026-05-14)
+
+
+### Features
+
+* **app:** add auto-lock interval segmented control to Settings ([a01b5fb](https://github.com/stratif-io/tofa/commit/a01b5fbcdebdc4e4b557eff4c4efaed19dd10fef))
+* **app:** add lock_after_seconds field to Settings ([ed0ea4d](https://github.com/stratif-io/tofa/commit/ed0ea4d0aa6403edc2f685962fd30d2e8386e658))
+* **app:** apply new lock_after_seconds to live cache on save ([7201f87](https://github.com/stratif-io/tofa/commit/7201f875aa5f755b236e4a8bcaf75764911a4691))
+* **app:** configurable auto-lock + lock-on-show + unlock progress ([6796345](https://github.com/stratif-io/tofa/commit/67963452c4374766704bc6b1ff85ded53a814a69))
+* **app:** lock vault on popover show if TTL expired ([b2e60d2](https://github.com/stratif-io/tofa/commit/b2e60d239a7951b171a3ac328f51fcc2cdaf812b))
+
+
+### Bug Fixes
+
+* **app:** self-host fonts to remove Google Fonts dependency ([6518e98](https://github.com/stratif-io/tofa/commit/6518e982313fbab75e39f175d8a6978493ad713a))
+* **app:** show progress on unlock and auto-lock while visible ([3ba9653](https://github.com/stratif-io/tofa/commit/3ba9653c37a261891e91e247629f6aa603ceb02b))
+* **app:** vendor jsQR locally to remove CDN dependency ([5f9fc36](https://github.com/stratif-io/tofa/commit/5f9fc367247f596cece37e7cceaf7d06dbf0123d))
+* **security:** vendor jsQR + self-host fonts; add AUDIT.md ([7a4ca32](https://github.com/stratif-io/tofa/commit/7a4ca32a4d1f606319dca441c705b51eba50f9f0))
+
 ## [0.11.3](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.11.2...tofa-macos-v0.11.3) (2026-05-13)
 
 

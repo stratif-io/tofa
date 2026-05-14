@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.1](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.0...tofa-core-v0.11.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* **app:** vendor jsQR locally to remove CDN dependency ([5f9fc36](https://github.com/stratif-io/tofa/commit/5f9fc367247f596cece37e7cceaf7d06dbf0123d))
+* **security:** vendor jsQR + self-host fonts; add AUDIT.md ([7a4ca32](https://github.com/stratif-io/tofa/commit/7a4ca32a4d1f606319dca441c705b51eba50f9f0))
+
 ## [0.11.0](https://github.com/stratif-io/tofa/compare/tofa-core-v0.10.0...tofa-core-v0.11.0) (2026-05-11)
 
 

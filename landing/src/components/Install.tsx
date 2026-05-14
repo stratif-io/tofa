@@ -79,10 +79,10 @@ function NotarizedModal({ onClose }: { onClose: () => void }) {
         <div className="mt-5 pt-4 border-t border-border">
           <p className="text-xs text-text-subtle mb-2">Or use the terminal one-liner:</p>
           <div className="relative">
-            <pre className="rounded-tofa-md bg-bg-sunken border border-border px-3 py-2 font-mono text-xs text-text overflow-x-auto pr-10">
+            <pre className="rounded-tofa-md bg-bg-sunken border border-border px-3 py-2 font-mono text-xs text-text overflow-x-auto">
               <code>xattr -dr com.apple.quarantine /Applications/tofa.app</code>
             </pre>
-            <div className="absolute top-1.5 right-1.5">
+            <div className="mt-1.5 flex justify-end">
               <CopyButton
                 value="xattr -dr com.apple.quarantine /Applications/tofa.app"
                 umamiEvent="install-copy-quarantine"

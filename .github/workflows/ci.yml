@@ -77,8 +77,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
-        with:
-          key: install-test-${{ matrix.os }}
 
       - name: Build CLI binary
         run: cargo build --release -p tofa

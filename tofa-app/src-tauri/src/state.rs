@@ -2,18 +2,20 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use zeroize::Zeroizing;
 
-const CACHE_TTL: Duration = Duration::from_secs(10 * 60);
-
 pub struct PassphraseCache {
     passphrase: Zeroizing<String>,
     unlocked_at: Option<Instant>,
+    /// `None` means "never auto-lock" — the passphrase stays in memory until
+    /// `lock()` is called explicitly (or the process exits).
+    lock_after: Option<Duration>,
 }
 
 impl PassphraseCache {
-    pub fn new() -> Self {
+    pub fn new(lock_after: Option<Duration>) -> Self {
         Self {
             passphrase: Zeroizing::new(String::new()),
             unlocked_at: None,
+            lock_after,
         }
     }
 
@@ -25,13 +27,34 @@ impl PassphraseCache {
     }
 
     pub fn get(&mut self) -> Option<&str> {
-        match self.unlocked_at {
-            Some(t) if t.elapsed() < CACHE_TTL => Some(self.passphrase.as_str()),
+        match (self.unlocked_at, self.lock_after) {
+            // Never-expire mode: alive as long as we've ever unlocked.
+            (Some(_), None) => Some(self.passphrase.as_str()),
+            // TTL mode: alive within the window.
+            (Some(t), Some(ttl)) if t.elapsed() < ttl => Some(self.passphrase.as_str()),
+            // Locked, or TTL elapsed — scrub and return None.
             _ => {
                 self.lock();
                 None
             }
         }
+    }
+
+    /// True iff the cache is currently unlocked AND its TTL has elapsed.
+    /// Pure read — does not mutate state. Used by `show_popover_under_tray`
+    /// to flip the UI to the lock screen before the popover becomes visible.
+    pub fn is_expired(&self) -> bool {
+        match (self.unlocked_at, self.lock_after) {
+            (Some(t), Some(ttl)) => t.elapsed() >= ttl,
+            _ => false,
+        }
+    }
+
+    /// Update the auto-lock window. Called when the user saves a new value
+    /// in Settings. Does not change `unlocked_at` — if the new TTL is
+    /// already shorter than `elapsed`, the next `get()` will lock.
+    pub fn set_lock_after(&mut self, lock_after: Option<Duration>) {
+        self.lock_after = lock_after;
     }
 
     /// Run `f` with the passphrase borrowed in-place — no heap clone, no unprotected String.
@@ -57,25 +80,42 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        let vault_path = Self::load_vault_path();
+        let (vault_path, lock_after) = Self::load_from_settings();
         Self {
-            cache: PassphraseCache::new(),
+            cache: PassphraseCache::new(lock_after),
             vault_path,
         }
     }
 
-    fn load_vault_path() -> PathBuf {
+    /// Load both `vault_path` and the `lock_after_seconds` TTL from
+    /// `tofa-app-settings.json` in one read. Missing fields fall back to:
+    /// vault_path → `default_vault_path()`, lock_after → 10 min.
+    fn load_from_settings() -> (PathBuf, Option<Duration>) {
+        let default_lock = Some(Duration::from_secs(600));
         let path = settings_path();
-        if path.exists() {
-            if let Ok(s) = std::fs::read_to_string(&path) {
-                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&s) {
-                    if let Some(p) = v["vault_path"].as_str() {
-                        return PathBuf::from(p);
-                    }
-                }
-            }
-        }
-        default_vault_path()
+        let Ok(s) = std::fs::read_to_string(&path) else {
+            return (default_vault_path(), default_lock);
+        };
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(&s) else {
+            return (default_vault_path(), default_lock);
+        };
+
+        let vp = v["vault_path"]
+            .as_str()
+            .map(PathBuf::from)
+            .unwrap_or_else(default_vault_path);
+
+        // Three states for lock_after_seconds in the JSON:
+        //   - missing            → default to 10 min
+        //   - null               → never expire (None)
+        //   - number             → Some(Duration::from_secs(n))
+        let lock_after = match v.get("lock_after_seconds") {
+            None => default_lock,
+            Some(serde_json::Value::Null) => None,
+            Some(n) => n.as_u64().map(Duration::from_secs).or(default_lock),
+        };
+
+        (vp, lock_after)
     }
 }
 
@@ -96,17 +136,22 @@ pub fn settings_path() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::thread::sleep;
+
+    fn ten_min() -> Option<Duration> {
+        Some(Duration::from_secs(600))
+    }
 
     #[test]
     fn new_cache_is_locked() {
-        let mut cache = PassphraseCache::new();
+        let mut cache = PassphraseCache::new(ten_min());
         assert!(cache.get().is_none());
         assert!(cache.get().is_none());
     }
 
     #[test]
     fn unlock_makes_passphrase_available() {
-        let mut cache = PassphraseCache::new();
+        let mut cache = PassphraseCache::new(ten_min());
         cache.unlock("secret".to_string());
         assert!(cache.get().is_some());
         assert_eq!(cache.get(), Some("secret"));
@@ -114,10 +159,47 @@ mod tests {
 
     #[test]
     fn lock_clears_passphrase() {
-        let mut cache = PassphraseCache::new();
+        let mut cache = PassphraseCache::new(ten_min());
         cache.unlock("secret".to_string());
         cache.lock();
         assert!(cache.get().is_none());
+        assert!(cache.get().is_none());
+    }
+
+    #[test]
+    fn cache_with_zero_ttl_expires_immediately() {
+        let mut cache = PassphraseCache::new(Some(Duration::ZERO));
+        cache.unlock("secret".to_string());
+        assert!(cache.is_expired());
+        assert!(
+            cache.get().is_none(),
+            "expired cache should self-lock on get"
+        );
+    }
+
+    #[test]
+    fn cache_with_none_ttl_never_expires() {
+        let mut cache = PassphraseCache::new(None);
+        cache.unlock("secret".to_string());
+        sleep(Duration::from_millis(20));
+        assert!(!cache.is_expired());
+        assert_eq!(cache.get(), Some("secret"));
+    }
+
+    #[test]
+    fn is_expired_false_when_locked() {
+        let cache = PassphraseCache::new(Some(Duration::ZERO));
+        // Never unlocked — is_expired must be false even with a zero TTL,
+        // because "expired" only makes sense for an unlocked cache.
+        assert!(!cache.is_expired());
+    }
+
+    #[test]
+    fn set_lock_after_takes_effect() {
+        let mut cache = PassphraseCache::new(None);
+        cache.unlock("secret".to_string());
+        cache.set_lock_after(Some(Duration::ZERO));
+        assert!(cache.is_expired());
         assert!(cache.get().is_none());
     }
 }

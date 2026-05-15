@@ -1,0 +1,38 @@
+name: Bump tofa-core dep in tofa
+
+on:
+  push:
+    tags:
+      - 'tofa-core-v*'
+
+jobs:
+  bump:
+    name: Bump tofa/Cargo.toml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Push branch + open PR requires write access via the default token
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#tofa-core-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Update tofa/Cargo.toml
+        run: |
+          sed -i 's|tofa-core = { path = "\.\./tofa-core", version = "[^"]*" }|tofa-core = { path = "../tofa-core", version = "${{ steps.ver.outputs.version }}" }|' tofa/Cargo.toml
+          grep tofa-core tofa/Cargo.toml
+
+      - name: Open PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/bump-tofa-core-dep-${{ steps.ver.outputs.version }}
+          commit-message: "chore(cli): bump tofa-core dependency to ${{ steps.ver.outputs.version }}"
+          title: "chore(cli): bump tofa-core dependency to ${{ steps.ver.outputs.version }}"
+          body: |
+            Automated bump of the `tofa-core` version constraint in `tofa/Cargo.toml` following the `tofa-core-v${{ steps.ver.outputs.version }}` release.
+
+            This ensures release-please will include a `tofa` release in the next release PR.
+          labels: automated

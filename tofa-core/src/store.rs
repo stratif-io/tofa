@@ -55,6 +55,7 @@ pub const CREATED_AT_FORMAT: &str = "%Y-%m-%d";
 /// this everywhere a new entry is being added so the field is shaped
 /// the same way regardless of which surface (CLI / TUI / app) created
 /// the entry.
+#[must_use]
 pub fn today_iso() -> String {
     chrono::Local::now().format(CREATED_AT_FORMAT).to_string()
 }
@@ -224,6 +225,7 @@ impl Vault {
         }
     }
 
+    #[must_use]
     pub fn entries(&self) -> &[VaultEntry] {
         &self.data.entries
     }

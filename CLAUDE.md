@@ -46,22 +46,15 @@ All feature work is done in **git worktrees** managed by the `superpowers:using-
 
 ## Releases
 
-release-please manages **`tofa-core`** and **`tofa-macos`** (`tofa-app/src-tauri`) only. The `tofa` CLI is **not** tracked by release-please — `linked-versions` was removed because it groups release PRs without actually locking versions, which caused an empty-release-PR loop.
+release-please manages **`tofa`**, **`tofa-core`**, and **`tofa-macos`** (`tofa-app/src-tauri`). Each is an independent package — no `linked-versions` grouping (that caused empty release PR loops).
 
-### Releasing the `tofa` CLI
-
-1. Bump `version` in `tofa/Cargo.toml`.
-2. Update `tofa/CHANGELOG.md` by hand.
-3. Commit, merge to `main`, then tag and push:
-   ```
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
-4. `release.yml` builds CLI binaries + dispatches the Homebrew formula update.
+- `tofa` tags as `vX.Y.Z` (no component prefix) — matches what `release.yml` and `publish-crates.yml` expect
+- `tofa-core` tags as `tofa-core-vX.Y.Z`
+- `tofa-macos` tags as `tofa-macos-vX.Y.Z`
 
 ### When `tofa-core` bumps
 
-release-please **does not** update the `tofa-core` dep constraint in `tofa/Cargo.toml` anymore. After a `tofa-core` release lands, bump the constraint manually in the same commit or a follow-up:
+release-please does not update the `tofa-core` dep constraint in `tofa/Cargo.toml`. After a `tofa-core` release lands, bump it manually:
 
 ```
 tofa-core = { path = "../tofa-core", version = "X.Y.Z" }

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.3](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.2...tofa-core-v0.11.3) (2026-05-15)
+
+
+### Bug Fixes
+
+* **core:** use DEFAULT_PERIOD/DIGITS/ALGORITHM constants in VaultEntry::new ([896e0ef](https://github.com/stratif-io/tofa/commit/896e0efb473d776c1cd2d08798c92de6866c37ad))
+* **core:** use DEFAULT_PERIOD/DIGITS/ALGORITHM constants in VaultEntry::new ([1c781a9](https://github.com/stratif-io/tofa/commit/1c781a9ce467d6df83fbe362e8fc9ab9dd60bc64))
+* store default constants, must_use annotations, release cp collision ([#121](https://github.com/stratif-io/tofa/issues/121)) ([201f24e](https://github.com/stratif-io/tofa/commit/201f24ef9069144596b9e7397c697d9a67c27bd8))
+
 ## [0.11.2](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.1...tofa-core-v0.11.2) (2026-05-14)
 
 

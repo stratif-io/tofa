@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.3](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.12.2...tofa-macos-v0.12.3) (2026-05-15)
+
+
+### Bug Fixes
+
+* **macos:** add #[must_use] to default_vault_path and settings_path ([2c09342](https://github.com/stratif-io/tofa/commit/2c0934253c452f78e57f611eb9f57850f6204bdf))
+* **macos:** add #[must_use] to default_vault_path and settings_path ([a91e35b](https://github.com/stratif-io/tofa/commit/a91e35b59a6762326cc15f4be371dd19cb44bbfc))
+
 ## [0.12.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.12.1...tofa-macos-v0.12.2) (2026-05-15)
 
 

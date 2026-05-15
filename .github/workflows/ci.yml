@@ -98,6 +98,9 @@ jobs:
         with:
           prefix-key: install-test
 
+      - name: Validate cargo (guard against rustup-init cache poison)
+        run: cargo --version || { rm -f "$HOME/.cargo/bin/cargo" "$HOME/.cargo/bin/rustup"; rustup default stable; }
+
       - name: Build CLI binary
         run: cargo build --release -p tofa
 

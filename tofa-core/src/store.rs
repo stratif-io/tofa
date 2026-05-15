@@ -82,9 +82,9 @@ impl VaultEntry {
             name,
             secret,
             created_at,
-            period: 30,
-            digits: 6,
-            algorithm: "SHA1".to_string(),
+            period: DEFAULT_PERIOD,
+            digits: DEFAULT_DIGITS,
+            algorithm: DEFAULT_ALGORITHM.to_string(),
         }
     }
 }

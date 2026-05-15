@@ -77,8 +77,9 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           ARCHIVE="tofa-${VERSION}-${{ matrix.target }}.tar.gz"
-          cp target/${{ matrix.target }}/release/tofa tofa
-          tar czf "$ARCHIVE" tofa
+          mkdir -p _package
+          cp target/${{ matrix.target }}/release/tofa _package/tofa
+          tar czf "$ARCHIVE" -C _package tofa
           echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4

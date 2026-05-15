@@ -49,6 +49,7 @@ impl PassphraseCache {
     ///
     /// Pure read — does not mutate state or self-lock. The next call to
     /// `get()` will perform the actual lock-and-scrub.
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         match (self.unlocked_at, self.lock_after) {
             (Some(t), Some(ttl)) => t.elapsed() >= ttl,

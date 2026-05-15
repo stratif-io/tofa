@@ -46,6 +46,7 @@ pub fn generate_code_now(entry: &VaultEntry) -> Result<String, TotpError> {
 
 /// Format a raw TOTP code with a space in the middle.
 /// 6 digits → "XXX XXX", 8 digits → "XXXX XXXX", others → as-is.
+#[must_use]
 pub fn format_code(raw: &str) -> String {
     match raw.len() {
         6 => format!("{} {}", &raw[..3], &raw[3..]),
@@ -55,6 +56,7 @@ pub fn format_code(raw: &str) -> String {
 }
 
 /// Format a masked placeholder matching the entry's digit count.
+#[must_use]
 pub fn mask_code(entry: &VaultEntry) -> &'static str {
     if entry.digits == 8 {
         "•••• ••••"
@@ -64,12 +66,14 @@ pub fn mask_code(entry: &VaultEntry) -> &'static str {
 }
 
 /// Seconds remaining in the entry's TOTP window at a specific timestamp.
+#[must_use]
 pub fn seconds_remaining(entry: &VaultEntry, timestamp: u64) -> u64 {
     let p = entry.period as u64;
     p - (timestamp % p)
 }
 
 /// Seconds remaining in the entry's TOTP window using the current system time.
+#[must_use]
 pub fn seconds_remaining_now(entry: &VaultEntry) -> u64 {
     seconds_remaining(entry, now_secs())
 }

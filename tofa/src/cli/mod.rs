@@ -56,6 +56,7 @@ pub enum Commands {
     Cam(commands::cam::CamArgs),
 }
 
+#[must_use]
 pub fn default_vault_path() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.7](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.6...tofa-core-v0.11.7) (2026-05-15)
+
+
+### Bug Fixes
+
+* **ci:** add permissions to bump-tofa-core-dep workflow and bump tofa-core to 0.11.6 ([e4a9625](https://github.com/stratif-io/tofa/commit/e4a96257cb3bdcec4c68e064f29a36b3dbd28e7b))
+
 ## [0.11.6](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.5...tofa-core-v0.11.6) (2026-05-15)
 
 

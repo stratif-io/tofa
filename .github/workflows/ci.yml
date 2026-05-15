@@ -99,7 +99,12 @@ jobs:
           prefix-key: install-test
 
       - name: Validate cargo (guard against rustup-init cache poison)
-        run: cargo --version || { rm -f "$HOME/.cargo/bin/cargo" "$HOME/.cargo/bin/rustup"; rustup default stable; }
+        run: |
+          if ! cargo --version 2>&1 | grep -q '^cargo'; then
+            echo "cargo shim is rustup-init — adding toolchain bin to PATH"
+            TOOLCHAIN=$(rustup show active-toolchain | awk '{print $1}')
+            echo "$HOME/.rustup/toolchains/$TOOLCHAIN/bin" >> "$GITHUB_PATH"
+          fi
 
       - name: Build CLI binary
         run: cargo build --release -p tofa

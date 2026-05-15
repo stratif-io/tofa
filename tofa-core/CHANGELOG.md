@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.8](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.7...tofa-core-v0.11.8) (2026-05-15)
+
+
+### Bug Fixes
+
+* **cli:** add #[must_use] to ansi color helper functions ([4b65de0](https://github.com/stratif-io/tofa/commit/4b65de07274ef51e15d978819c4ad756f8bf3c79))
+
 ## [0.11.7](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.6...tofa-core-v0.11.7) (2026-05-15)
 
 

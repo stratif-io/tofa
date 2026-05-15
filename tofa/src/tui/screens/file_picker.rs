@@ -8,6 +8,7 @@ use ratatui::{
     Frame,
 };
 
+#[must_use]
 pub fn filtered<'a>(entries: &'a [(String, bool)], query: &str) -> Vec<&'a (String, bool)> {
     let q = query.to_lowercase();
     entries

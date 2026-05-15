@@ -47,6 +47,16 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
 
+      - name: Validate cargo (guard against rustup-init cache poison)
+        run: |
+          if cargo --version 2>&1 | grep -q '^cargo'; then
+            echo "cargo OK"
+          else
+            echo "cargo shim is rustup-init — adding toolchain bin to PATH"
+            TOOLCHAIN=$(rustup show active-toolchain | awk '{print $1}')
+            echo "$HOME/.rustup/toolchains/$TOOLCHAIN/bin" >> "$GITHUB_PATH"
+          fi
+
       - name: clippy
         run: cargo clippy --workspace -- -D warnings
 

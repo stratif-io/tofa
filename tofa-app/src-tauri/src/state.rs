@@ -131,6 +131,7 @@ impl AppState {
     }
 }
 
+#[must_use]
 pub fn default_vault_path() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
@@ -138,6 +139,7 @@ pub fn default_vault_path() -> PathBuf {
         .join("vault.enc")
 }
 
+#[must_use]
 pub fn settings_path() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))

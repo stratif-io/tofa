@@ -36,11 +36,13 @@ jobs:
           version=$(cargo metadata --no-deps --format-version=1 \
             | jq -r '.packages[] | select(.name == "tofa-core") | .version')
           echo "tofa-core local version: $version"
-          if curl -sfL -o /dev/null "https://crates.io/api/v1/crates/tofa-core/$version"; then
-            echo "tofa-core $version already published, skipping"
-          else
-            cargo publish -p tofa-core
-          fi
+          out=$(cargo publish -p tofa-core 2>&1) && echo "$out" || {
+            if echo "$out" | grep -q "already exists"; then
+              echo "tofa-core $version already published, skipping"
+            else
+              echo "$out" >&2; exit 1
+            fi
+          }
 
       - name: Wait for tofa-core to be indexed
         run: sleep 30
@@ -53,8 +55,10 @@ jobs:
           version=$(cargo metadata --no-deps --format-version=1 \
             | jq -r '.packages[] | select(.name == "tofa") | .version')
           echo "tofa local version: $version"
-          if curl -sfL -o /dev/null "https://crates.io/api/v1/crates/tofa/$version"; then
-            echo "tofa $version already published, skipping"
-          else
-            cargo publish -p tofa
-          fi
+          out=$(cargo publish -p tofa 2>&1) && echo "$out" || {
+            if echo "$out" | grep -q "already exists"; then
+              echo "tofa $version already published, skipping"
+            else
+              echo "$out" >&2; exit 1
+            fi
+          }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.4](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.3...tofa-core-v0.11.4) (2026-05-15)
+
+
+### Bug Fixes
+
+* **core:** add #[must_use] to today_iso and Vault::entries ([#123](https://github.com/stratif-io/tofa/issues/123)) ([8ea1364](https://github.com/stratif-io/tofa/commit/8ea13645861c2d558fc558a13b29cd48196cdd9c))
+
 ## [0.11.3](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.2...tofa-core-v0.11.3) (2026-05-15)
 
 

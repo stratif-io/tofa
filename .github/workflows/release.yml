@@ -49,6 +49,15 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
+      - name: Validate cargo (guard against rustup-init cache poison)
+        if: "!matrix.use_cross"
+        run: |
+          if ! cargo --version 2>&1 | grep -q '^cargo'; then
+            echo "cargo shim is rustup-init — adding toolchain bin to PATH"
+            TOOLCHAIN=$(rustup show active-toolchain | awk '{print $1}')
+            echo "$HOME/.rustup/toolchains/$TOOLCHAIN/bin" >> "$GITHUB_PATH"
+          fi
+
       - name: Install cross
         if: matrix.use_cross
         uses: taiki-e/install-action@v2

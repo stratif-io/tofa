@@ -89,6 +89,7 @@ impl Default for AppState {
 }
 
 impl AppState {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             screen: Screen::Unlock,

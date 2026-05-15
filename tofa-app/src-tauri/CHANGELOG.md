@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.2](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.12.1...tofa-macos-v0.12.2) (2026-05-15)
+
+
+### Bug Fixes
+
+* store default constants, must_use annotations, release cp collision ([#121](https://github.com/stratif-io/tofa/issues/121)) ([201f24e](https://github.com/stratif-io/tofa/commit/201f24ef9069144596b9e7397c697d9a67c27bd8))
+
 ## [0.12.1](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.12.0...tofa-macos-v0.12.1) (2026-05-14)
 
 

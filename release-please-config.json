@@ -6,7 +6,8 @@
       "component": "tofa",
       "changelog-path": "tofa/CHANGELOG.md",
       "include-component-in-tag": false,
-      "include-v-in-tag": true
+      "include-v-in-tag": true,
+      "pull-request-title-pattern": "chore(tofa): release ${version}"
     },
     "tofa-core": {
       "release-type": "rust",

@@ -77,6 +77,7 @@ impl Drop for VaultEntry {
 }
 
 impl VaultEntry {
+    #[must_use]
     pub fn new(name: String, secret: String, created_at: String) -> Self {
         Self {
             id: String::new(),
@@ -108,6 +109,7 @@ impl Default for Vault {
 }
 
 impl Vault {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             data: VaultData {
@@ -215,6 +217,7 @@ impl Vault {
         }
     }
 
+    #[must_use]
     pub fn entry_by_id(&self, id: &str) -> Option<&VaultEntry> {
         self.data.entries.iter().find(|e| e.id == id)
     }

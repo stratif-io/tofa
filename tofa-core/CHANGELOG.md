@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.6](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.5...tofa-core-v0.11.6) (2026-05-15)
+
+
+### Bug Fixes
+
+* **core:** add #[must_use] to VaultEntry::new, Vault::new, and entry_by_id ([6efdba0](https://github.com/stratif-io/tofa/commit/6efdba07a3ad53253015f81ffbd3d2c7067a59bd))
+
 ## [0.11.5](https://github.com/stratif-io/tofa/compare/tofa-core-v0.11.4...tofa-core-v0.11.5) (2026-05-15)
 
 

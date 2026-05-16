@@ -273,7 +273,7 @@ function tick() {
     if (codeEl) codeEl.style.color = color;
   });
 
-  if (secs <= 1) { refreshEntries(); return; }
+  if (secs >= 30) { refreshEntries(); return; }
 
   if (selectedId) {
     const entry = entries.find(e => e.id === selectedId);

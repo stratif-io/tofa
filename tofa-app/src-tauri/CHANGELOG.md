@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.4](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.12.3...tofa-macos-v0.12.4) (2026-05-16)
+
+
+### Bug Fixes
+
+* **app:** refresh TOTP codes at period start, not 1s before end ([#144](https://github.com/stratif-io/tofa/issues/144)) ([e24198d](https://github.com/stratif-io/tofa/commit/e24198d29bef4387ab4a10c4235afe030c9300ec))
+
 ## [0.12.3](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.12.2...tofa-macos-v0.12.3) (2026-05-15)
 
 

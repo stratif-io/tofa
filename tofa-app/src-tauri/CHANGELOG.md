@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.5](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.12.4...tofa-macos-v0.12.5) (2026-10-07)
+
+
+### Bug Fixes
+
+* **app:** copy TOTP code without display spacing ([#147](https://github.com/stratif-io/tofa/issues/147)) ([cd62bc2](https://github.com/stratif-io/tofa/commit/cd62bc28b4f9262d4dcbf113f2cd112a0b7d9707))
+
 ## [0.12.4](https://github.com/stratif-io/tofa/compare/tofa-macos-v0.12.3...tofa-macos-v0.12.4) (2026-05-16)
 
 

@@ -146,8 +146,8 @@ pub async fn copy_code(
             .entry_by_id(&id)
             .ok_or_else(|| format!("entry '{}' not found", id))?
             .clone();
-        let raw = tofa_core::totp::generate_code_now(&entry).map_err(|e| e.to_string())?;
-        Ok::<String, String>(tofa_core::totp::format_code(&raw))
+        // Copy the raw digits: the display spacing would break paste into OTP fields.
+        tofa_core::totp::generate_code_now(&entry).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())??;
